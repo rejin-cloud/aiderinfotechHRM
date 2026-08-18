@@ -1,10 +1,17 @@
+import datetime
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.departments.models import Branch, Department
-from apps.tasks.models import Task, TaskAttachment
+from apps.tasks.models import (
+    Task,
+    TaskAttachment,
+    TaskExtensionRequest,
+    TaskSubmission,
+    TaskSubmissionAttachment,
+)
 from apps.users.models import User
 
 
@@ -263,6 +270,186 @@ class CreativeTasksTestCase(TestCase):
         # Task Detail: access restricted
         maya_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}), follow=True)
         self.assertContains(maya_detail, "Access restricted: This task belongs to another branch.")
+
+    def test_task_completion_with_supporting_media_and_remarks(self):
+        """Assigned member submits completion with remarks and deliverables (any file type)."""
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-400',
+            title='Social Media Motion Graphics',
+            description='Create 3 animated reels for product launch.',
+            priority=Task.Priority.HIGH,
+            status=Task.Status.ACTIVE
+        )
+
+        self.client.login(username="staff_daniel", password="password123")
+
+        # Access completion page
+        res = self.client.get(reverse('task_complete', kwargs={'task_id': task.id}))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Submit Deliverables & Final Remarks")
+
+        # Submit completion with remarks and media files (e.g. mp4, zip)
+        file1 = SimpleUploadedFile("reel_final.mp4", b"MP4 dummy video bytes", content_type="video/mp4")
+        file2 = SimpleUploadedFile("assets.zip", b"ZIP archive bytes", content_type="application/zip")
+
+        post_data = {
+            'remarks': 'Completed all 3 reels with audio mixing and color grade at 1080x1920.',
+            'submission_files': [file1, file2],
+        }
+
+        post_res = self.client.post(reverse('task_complete', kwargs={'task_id': task.id}), post_data, follow=True)
+        self.assertEqual(post_res.status_code, 200)
+        self.assertContains(post_res, "Submitted Deliverables & Completion Media")
+
+        # Verify task is updated to COMPLETED
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.COMPLETED)
+        self.assertIsNotNone(task.completed_at)
+
+        # Verify submission record and attachments
+        self.assertEqual(task.submissions.count(), 1)
+        sub = task.submissions.first()
+        self.assertEqual(sub.submitted_by, self.creative_staff_daniel)
+        self.assertEqual(sub.attachments.count(), 2)
+
+        # Non-assigned member Liam cannot submit completion
+        self.client.login(username="staff_liam", password="password123")
+        unauth_res = self.client.get(reverse('task_complete', kwargs={'task_id': task.id}), follow=True)
+        self.assertContains(unauth_res, "Permission Denied: Only the member assigned to this task can submit completion deliverables.")
+
+    def test_overdue_task_automatically_transitions_to_on_hold(self):
+        """Active task whose deadline has passed automatically moves to ON_HOLD."""
+        past_deadline = timezone.now() - datetime.timedelta(days=2)
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-500',
+            title='Overdue Campaign Assets',
+            description='Test deadline expiration.',
+            priority=Task.Priority.URGENT,
+            status=Task.Status.ACTIVE,
+            deadline=past_deadline
+        )
+
+        self.client.login(username="staff_daniel", password="password123")
+
+        # Accessing task list triggers Task.update_overdue_tasks()
+        res = self.client.get(reverse('task_list'))
+        self.assertEqual(res.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.ON_HOLD)
+
+    def test_assigned_member_can_request_extension_and_manager_review(self):
+        """Assigned member requests more days; Creative Department Manager approves and extends deadline."""
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-600',
+            title='3D Billboard Mockup',
+            description='Design anamorphic 3D billboard.',
+            status=Task.Status.ON_HOLD,
+            deadline=timezone.now() - datetime.timedelta(days=1)
+        )
+
+        # 1. Member submits extension request
+        self.client.login(username="staff_daniel", password="password123")
+        req_res = self.client.post(
+            reverse('task_request_extension', kwargs={'task_id': task.id}),
+            {
+                'request_type': TaskExtensionRequest.RequestType.MORE_DAYS,
+                'requested_days': 4,
+                'reason': '3D ray-tracing rendering is taking additional compute time.',
+            },
+            follow=True
+        )
+        self.assertEqual(req_res.status_code, 200)
+
+        ext_req = task.extension_requests.first()
+        self.assertIsNotNone(ext_req)
+        self.assertEqual(ext_req.status, TaskExtensionRequest.Status.PENDING)
+        self.assertEqual(ext_req.requested_days, 4)
+
+        # 2. Manager reviews request and grants extra days
+        self.client.login(username="deptmgr_rachel", password="password123")
+
+        queue_res = self.client.get(reverse('manager_extension_requests'))
+        self.assertEqual(queue_res.status_code, 200)
+        self.assertContains(queue_res, "CR-TASK-600")
+
+        new_target_deadline = timezone.now() + datetime.timedelta(days=4)
+        review_post = self.client.post(
+            reverse('manager_extension_review', kwargs={'request_id': ext_req.id}),
+            {
+                'decision': 'EXTEND',
+                'new_deadline': new_target_deadline.strftime('%Y-%m-%dT%H:%M'),
+                'manager_remarks': 'Approved 4 days extension. Focus on 4K resolution render.',
+            },
+            follow=True
+        )
+        self.assertEqual(review_post.status_code, 200)
+
+        task.refresh_from_db()
+        ext_req.refresh_from_db()
+
+        self.assertEqual(task.status, Task.Status.ACTIVE)
+        self.assertEqual(ext_req.status, TaskExtensionRequest.Status.APPROVED)
+        self.assertEqual(ext_req.manager_action, TaskExtensionRequest.ManagerAction.EXTENDED)
+        self.assertEqual(ext_req.reviewed_by, self.creative_mgr)
+
+    def test_manager_can_reassign_task_via_extension_review(self):
+        """Manager reassigns task to a new branch and member through request review."""
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-700',
+            title='Video Color Grading',
+            description='Reassign from Designing to Editing branch.',
+            status=Task.Status.ON_HOLD,
+            deadline=timezone.now() - datetime.timedelta(days=1)
+        )
+
+        ext_req = TaskExtensionRequest.objects.create(
+            task=task,
+            requested_by=self.creative_staff_daniel,
+            request_type=TaskExtensionRequest.RequestType.REASSIGN,
+            reason='This requires specialized DaVinci Resolve editing skills.',
+            status=TaskExtensionRequest.Status.PENDING
+        )
+
+        # Manager reassigns to Maya in Editing branch
+        self.client.login(username="deptmgr_rachel", password="password123")
+        review_post = self.client.post(
+            reverse('manager_extension_review', kwargs={'request_id': ext_req.id}),
+            {
+                'decision': 'REASSIGN',
+                'reassign_branch': self.branch_edit.id,
+                'reassign_user': self.creative_staff_maya.id,
+                'new_deadline': (timezone.now() + datetime.timedelta(days=5)).strftime('%Y-%m-%dT%H:%M'),
+                'manager_remarks': 'Reassigned to Maya in Editing branch.',
+            },
+            follow=True
+        )
+        self.assertEqual(review_post.status_code, 200)
+
+        task.refresh_from_db()
+        ext_req.refresh_from_db()
+
+        self.assertEqual(task.branch, self.branch_edit)
+        self.assertEqual(task.assigned_to, self.creative_staff_maya)
+        self.assertEqual(task.status, Task.Status.ACTIVE)
+        self.assertEqual(ext_req.status, TaskExtensionRequest.Status.APPROVED)
+        self.assertEqual(ext_req.manager_action, TaskExtensionRequest.ManagerAction.REASSIGNED)
 
     def test_non_creative_dept_manager_cannot_create_or_assign_task(self):
         """Non-Creative Department Managers are strictly prevented from creating or assigning tasks."""

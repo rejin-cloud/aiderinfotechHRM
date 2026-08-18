@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Task Requests | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Header Banner -->
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);">
+  <div class="row align-items-center">
+    <div class="col-12 col-md-8">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-4 bg-warning text-dark d-flex align-items-center justify-content-center shadow" style="width: 56px; height: 56px;">
+          <i class="bi bi-clock-history fs-2"></i>
+        </div>
+        <div>
+          <div class="badge bg-warning text-dark fw-bold mb-1">
+            <i class="bi bi-shield-check me-1"></i> Creative Department Manager
+          </div>
+          <h3 class="fw-bold mb-0">Extension & Reassignment Review Queue</h3>
+          <p class="text-white-50 small mb-0 mt-1">
+            Review member requests for deadline extensions or task delegations. Grant extra days or reassign as needed.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+      <a href="{% url 'task_list' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+        <i class="bi bi-palette2 me-1"></i> All Tasks
+      </a>
+      <a href="{% url 'dept_manager_dashboard' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-speedometer2 me-1"></i> Manager Portal
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Nav Pills -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="?status=PENDING" class="btn btn-sm {% if current_status == 'PENDING' %}btn-warning text-dark fw-bold shadow-sm{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
+    <i class="bi bi-hourglass-split me-1"></i> Pending Review ({{ pending_count }})
+  </a>
+  <a href="?status=APPROVED" class="btn btn-sm {% if current_status == 'APPROVED' %}btn-success text-white fw-bold shadow-sm{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
+    <i class="bi bi-check-circle-fill me-1"></i> Approved
+  </a>
+  <a href="?status=REJECTED" class="btn btn-sm {% if current_status == 'REJECTED' %}btn-danger text-white fw-bold shadow-sm{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
+    <i class="bi bi-x-circle-fill me-1"></i> Rejected
+  </a>
+  <a href="?status=ALL" class="btn btn-sm {% if current_status == 'ALL' %}btn-primary text-white fw-bold shadow-sm{% else %}btn-outline-secondary bg-white{% endif %} rounded-pill px-3">
+    <i class="bi bi-list-task me-1"></i> All Requests
+  </a>
+</div>
+
+<!-- Requests Table Card -->
+<div class="hrms-card shadow-sm border-0">
+  <div class="hrms-card-header bg-light p-3 border-bottom d-flex justify-content-between align-items-center">
+    <h5 class="hrms-card-title mb-0">
+      <i class="bi bi-inbox-fill text-primary me-2"></i> Requests Directory
+    </h5>
+    <span class="text-muted small">{{ requests.count }} Request{{ requests.count|pluralize }} Found</span>
+  </div>
+
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Task & Directive</th>
+            <th>Requested By</th>
+            <th>Request Type</th>
+            <th>Requested Adjustment</th>
+            <th>Reason & Notes</th>
+            <th>Status</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in requests %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark font-monospace text-warning px-2 py-1 fs-7">{{ r.task.task_number }}</span>
+                <div>
+                  <a href="{% url 'task_detail' r.task.id %}" class="fw-bold text-dark text-decoration-none d-block small">
+                    {{ r.task.title }}
+                  </a>
+                  <span class="text-muted small" style="font-size: 0.75rem;">
+                    Branch: {{ r.task.branch.name|default:"General" }} &bull; Current Status: <span class="badge {{ r.task.status_badge_class }} py-0">{{ r.task.get_status_display }}</span>
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: #4f46e5; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ r.requested_by.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <strong class="text-dark small d-block">{{ r.requested_by.get_full_name|default:r.requested_by.username }}</strong>
+                  <span class="text-muted small" style="font-size: 0.75rem;">{{ r.requested_by.get_role_display }}</span>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              {% if r.request_type == 'MORE_DAYS' %}
+              <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                <i class="bi bi-calendar-plus me-1"></i> More Days / Extension
+              </span>
+              {% else %}
+              <span class="badge bg-purple-subtle text-primary border border-purple-subtle">
+                <i class="bi bi-arrow-left-right me-1"></i> Reassign Task
+              </span>
+              {% endif %}
+            </td>
+
+            <td class="small">
+              {% if r.requested_days %}
+              <strong>+{{ r.requested_days }} Days</strong>
+              {% elif r.requested_deadline %}
+              <strong>{{ r.requested_deadline|date:"M d, Y, h:i A" }}</strong>
+              {% else %}
+              <span class="text-muted">Reassignment Request</span>
+              {% endif %}
+            </td>
+
+            <td class="small text-secondary" style="max-width: 250px;">
+              <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                {{ r.reason }}
+              </div>
+            </td>
+
+            <td>
+              {% if r.status == 'PENDING' %}
+              <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Pending</span>
+              {% elif r.status == 'APPROVED' %}
+              <span class="badge bg-success text-white"><i class="bi bi-check2-circle me-1"></i> Approved ({{ r.get_manager_action_display }})</span>
+              {% elif r.status == 'REJECTED' %}
+              <span class="badge bg-danger text-white"><i class="bi bi-x-circle me-1"></i> Rejected</span>
+              {% endif %}
+            </td>
+
+            <td class="text-end">
+              {% if r.status == 'PENDING' %}
+              <a href="{% url 'manager_extension_review' r.id %}" class="btn btn-sm btn-primary fw-bold px-3">
+                <i class="bi bi-pencil-square me-1"></i> Review & Decide
+              </a>
+              {% else %}
+              <a href="{% url 'manager_extension_review' r.id %}" class="btn btn-sm btn-outline-secondary px-3">
+                <i class="bi bi-eye-fill me-1"></i> View Decision
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted small">
+              <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+              No extension or reassignment requests found matching this filter.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

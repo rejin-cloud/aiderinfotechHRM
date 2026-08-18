@@ -72,6 +72,7 @@ class Task(models.Model):
         db_index=True
     )
     deadline = models.DateTimeField(null=True, blank=True, help_text="Target completion deadline (IST)")
+    completed_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when task was marked completed")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -82,6 +83,19 @@ class Task(models.Model):
 
     def __str__(self):
         return f"[{self.task_number}] {self.title}"
+
+    @classmethod
+    def update_overdue_tasks(cls):
+        """
+        Automatically updates any active task whose deadline has expired
+        to 'ON_HOLD' status.
+        """
+        now = timezone.now()
+        cls.objects.filter(
+            status=cls.Status.ACTIVE,
+            deadline__isnull=False,
+            deadline__lt=now
+        ).update(status=cls.Status.ON_HOLD)
 
     @property
     def priority_badge_class(self):
@@ -98,16 +112,28 @@ class Task(models.Model):
         mapping = {
             self.Status.ACTIVE: 'bg-primary text-white',
             self.Status.COMPLETED: 'bg-success text-white',
-            self.Status.ON_HOLD: 'bg-warning text-dark',
+            self.Status.ON_HOLD: 'bg-danger text-white',
             self.Status.ARCHIVED: 'bg-secondary text-white',
         }
         return mapping.get(self.status, 'bg-secondary text-white')
 
     @property
     def is_overdue(self):
-        if self.deadline and self.status == self.Status.ACTIVE:
+        if self.deadline and self.status != self.Status.COMPLETED:
             return timezone.now() > self.deadline
         return False
+
+    @property
+    def latest_submission(self):
+        return self.submissions.order_by('-submitted_at').first()
+
+    @property
+    def latest_extension_request(self):
+        return self.extension_requests.order_by('-created_at').first()
+
+    @property
+    def has_pending_extension_request(self):
+        return self.extension_requests.filter(status=TaskExtensionRequest.Status.PENDING).exists()
 
     @classmethod
     def generate_next_task_number(cls, department_name="Creative"):
@@ -130,7 +156,7 @@ class Task(models.Model):
 
 
 class TaskAttachment(models.Model):
-    """Stores files & documents of ANY format associated with a task."""
+    """Stores files & documents of ANY format created as initial task briefing materials."""
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
@@ -188,3 +214,167 @@ class TaskAttachment(models.Model):
         elif ext in ['mp4', 'mov', 'avi', 'mkv']:
             return 'bi-file-earmark-play text-primary'
         return 'bi-file-earmark-text text-secondary'
+
+
+class TaskSubmission(models.Model):
+    """Stores completion details, final remarks, and deliverable submissions by assigned member."""
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='submissions'
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='task_submissions'
+    )
+    remarks = models.TextField(help_text="Completion remarks, delivery summary, and notes")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        verbose_name = 'Task Submission'
+        verbose_name_plural = 'Task Submissions'
+
+    def __str__(self):
+        return f"Submission for [{self.task.task_number}] by {self.submitted_by.username}"
+
+
+class TaskSubmissionAttachment(models.Model):
+    """Stores submitted output deliverables & media of ANY file format (ZIP, PSD, AI, MP4, PDF, etc.)."""
+    submission = models.ForeignKey(
+        TaskSubmission,
+        on_delete=models.CASCADE,
+        related_name='attachments'
+    )
+    file = models.FileField(upload_to='tasks/submissions/%Y/%m/')
+    filename = models.CharField(max_length=255, blank=True)
+    file_size_bytes = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"{self.filename or os.path.basename(self.file.name)}"
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.filename:
+            self.filename = os.path.basename(self.file.name)
+            try:
+                self.file_size_bytes = self.file.size
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
+    @property
+    def formatted_file_size(self):
+        bytes_val = self.file_size_bytes or 0
+        if bytes_val < 1024:
+            return f"{bytes_val} B"
+        elif bytes_val < 1024 * 1024:
+            return f"{bytes_val / 1024:.1f} KB"
+        return f"{bytes_val / (1024 * 1024):.1f} MB"
+
+    @property
+    def file_extension(self):
+        if self.filename:
+            ext = os.path.splitext(self.filename)[1].lower()
+            return ext.lstrip('.')
+        return 'file'
+
+    @property
+    def icon_class(self):
+        ext = self.file_extension
+        if ext in ['pdf']:
+            return 'bi-file-earmark-pdf text-danger'
+        elif ext in ['doc', 'docx', 'txt', 'rtf']:
+            return 'bi-file-earmark-word text-primary'
+        elif ext in ['xls', 'xlsx', 'csv']:
+            return 'bi-file-earmark-excel text-success'
+        elif ext in ['zip', 'rar', '7z', 'tar', 'gz']:
+            return 'bi-file-earmark-zip text-warning'
+        elif ext in ['psd', 'ai', 'eps', 'svg', 'png', 'jpg', 'jpeg', 'webp', 'gif']:
+            return 'bi-file-earmark-image text-info'
+        elif ext in ['mp4', 'mov', 'avi', 'mkv']:
+            return 'bi-file-earmark-play text-primary'
+        return 'bi-file-earmark-text text-secondary'
+
+
+class TaskExtensionRequest(models.Model):
+    """Request submitted by assigned member when unable to finish task within deadline."""
+    class RequestType(models.TextChoices):
+        MORE_DAYS = 'MORE_DAYS', 'Request More Days / Extension'
+        REASSIGN = 'REASSIGN', 'Request Task Reassignment'
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Manager Review'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    class ManagerAction(models.TextChoices):
+        EXTENDED = 'EXTENDED', 'Deadline Extended'
+        REASSIGNED = 'REASSIGNED', 'Task Reassigned'
+        REJECTED = 'REJECTED', 'Request Rejected'
+
+    task = models.ForeignKey(
+        Task,
+        on_delete=models.CASCADE,
+        related_name='extension_requests'
+    )
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='task_extension_requests'
+    )
+    request_type = models.CharField(
+        max_length=20,
+        choices=RequestType.choices,
+        default=RequestType.MORE_DAYS
+    )
+    requested_days = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Number of additional days requested"
+    )
+    requested_deadline = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Specific requested completion deadline"
+    )
+    reason = models.TextField(help_text="Reason for inability to complete within deadline / notes")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_task_extensions'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    manager_action = models.CharField(
+        max_length=20,
+        choices=ManagerAction.choices,
+        null=True,
+        blank=True
+    )
+    manager_remarks = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Decision notes and feedback from Department Manager"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Task Extension Request'
+        verbose_name_plural = 'Task Extension Requests'
+
+    def __str__(self):
+        return f"[{self.get_request_type_display()}] for {self.task.task_number} by {self.requested_by.username} ({self.get_status_display()})"

@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Request: {{ ext_request.task.task_number }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+
+    <!-- Header Banner -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-4 bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px;">
+            <i class="bi bi-person-gear fs-2"></i>
+          </div>
+          <div>
+            <div class="badge bg-warning text-dark fw-bold mb-1">
+              <i class="bi bi-shield-check me-1"></i> Manager Decision Portal
+            </div>
+            <h3 class="fw-bold mb-0">Evaluate Request & Take Action</h3>
+            <p class="text-white-50 small mb-0 mt-1">
+              Task: <strong>[{{ task.task_number }}] {{ task.title }}</strong>
+            </p>
+          </div>
+        </div>
+
+        <a href="{% url 'manager_extension_requests' %}" class="btn btn-outline-light rounded-pill px-3">
+          <i class="bi bi-arrow-left me-1"></i> Request Queue
+        </a>
+      </div>
+    </div>
+
+    <!-- Request Dossier Summary Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark font-monospace text-warning px-2 py-1">{{ task.task_number }}</span>
+          <span class="badge {{ task.priority_badge_class }}">{{ task.get_priority_display }} Priority</span>
+          <span class="badge {{ task.status_badge_class }}">{{ task.get_status_display }}</span>
+        </div>
+        <span class="text-muted small">Submitted: {{ ext_request.created_at|date:"M d, Y, h:i A" }}</span>
+      </div>
+
+      <h5 class="fw-bold text-dark mb-2">{{ task.title }}</h5>
+
+      <div class="row g-3 p-3 bg-light rounded-3 border mb-3">
+        <div class="col-12 col-sm-6">
+          <span class="text-muted small d-block">Requested By:</span>
+          <strong class="text-dark">{{ ext_request.requested_by.get_full_name|default:ext_request.requested_by.username }}</strong>
+          <span class="text-muted small">({{ task.branch.name|default:"General" }})</span>
+        </div>
+        <div class="col-12 col-sm-6">
+          <span class="text-muted small d-block">Request Type:</span>
+          <strong class="text-primary">{{ ext_request.get_request_type_display }}</strong>
+          {% if ext_request.requested_days %}
+          <span class="badge bg-warning text-dark ms-1">+{{ ext_request.requested_days }} Days Requested</span>
+          {% endif %}
+        </div>
+        <div class="col-12">
+          <span class="text-muted small d-block">Current Task Deadline:</span>
+          <strong class="text-dark">
+            {% if task.deadline %}{{ task.deadline|date:"M d, Y, h:i A" }}{% else %}No fixed deadline{% endif %}
+          </strong>
+        </div>
+      </div>
+
+      <!-- Member Reason -->
+      <div class="p-3 bg-warning-subtle border border-warning-subtle rounded-3 text-dark">
+        <strong class="d-block mb-1 text-warning-emphasis">
+          <i class="bi bi-chat-quote-fill me-1"></i> Member Justification / Reason:
+        </strong>
+        <p class="mb-0 small fs-6">{{ ext_request.reason }}</p>
+      </div>
+    </div>
+
+    <!-- Manager Decision Form Card -->
+    {% if ext_request.status == 'PENDING' %}
+    <div class="hrms-card shadow-sm border-0 mb-4">
+      <div class="hrms-card-header bg-light p-3 border-bottom">
+        <h5 class="hrms-card-title mb-0">
+          <i class="bi bi-gavel text-primary me-2"></i> Manager Decision
+        </h5>
+      </div>
+
+      <div class="hrms-card-body p-4 p-md-5">
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Step 1: Decision Choice -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">
+              <i class="bi bi-check2-circle text-primary me-1"></i> Select Decision <span class="text-danger">*</span>
+            </label>
+            <div class="d-flex flex-column gap-2 mt-2">
+              {% for choice in form.decision %}
+              <div class="p-3 bg-light rounded-3 border decision-radio-wrapper" onclick="handleDecisionChange()">
+                {{ choice }}
+              </div>
+              {% endfor %}
+            </div>
+            {% if form.decision.errors %}
+            <div class="text-danger small mt-1">{{ form.decision.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Section: Extend Deadline Parameters -->
+          <div id="extendSection" class="p-4 bg-light rounded-3 border mb-4">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="bi bi-calendar-plus text-success me-1"></i> Set New Extended Deadline (IST)
+            </h6>
+            <p class="text-muted small mb-3">Upon approval, the task will automatically resume to <strong>Active / In Progress</strong> with this new target date.</p>
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-sm-8">
+                {{ form.new_deadline }}
+              </div>
+              <div class="col-12 col-sm-4 d-flex gap-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDaysToDeadline(1)">+1 Day</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDaysToDeadline(3)">+3 Days</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDaysToDeadline(7)">+1 Week</button>
+              </div>
+            </div>
+            {% if form.new_deadline.errors %}
+            <div class="text-danger small mt-1">{{ form.new_deadline.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Section: Reassign Parameters -->
+          <div id="reassignSection" class="p-4 bg-light rounded-3 border mb-4 d-none">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="bi bi-arrow-left-right text-primary me-1"></i> Reassign to New Branch & Member
+            </h6>
+            <p class="text-muted small mb-3">Select the new member who will take over this task directive.</p>
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-dark">Branch</label>
+                {{ form.reassign_branch }}
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-dark">New Assignee Member</label>
+                {{ form.reassign_user }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Manager Remarks / Feedback -->
+          <div class="mb-4">
+            <label for="{{ form.manager_remarks.id_for_label }}" class="form-label fw-bold text-dark">
+              <i class="bi bi-chat-square-text text-primary me-1"></i> Manager Remarks & Feedback
+            </label>
+            <div class="form-text small text-muted mb-2">Add feedback or notes explaining your decision (visible on task dossier).</div>
+            {{ form.manager_remarks }}
+          </div>
+
+          <!-- Submit Button -->
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a href="{% url 'manager_extension_requests' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary fw-bold px-5 py-2 shadow-sm">
+              <i class="bi bi-check2-all me-1"></i> Confirm & Execute Decision
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <!-- Completed Decision Recap -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
+      <h5 class="fw-bold text-dark mb-3">
+        <i class="bi bi-shield-check text-success me-2"></i> Decision Executed
+      </h5>
+      <div class="p-3 bg-light rounded-3 border mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge {% if ext_request.status == 'APPROVED' %}bg-success{% else %}bg-danger{% endif %} text-white fs-6">
+            {{ ext_request.get_status_display }} ({{ ext_request.get_manager_action_display }})
+          </span>
+          <span class="text-muted small">Reviewed: {{ ext_request.reviewed_at|date:"M d, Y, h:i A" }}</span>
+        </div>
+        <div class="small text-muted mb-1">
+          Reviewed by: <strong>{{ ext_request.reviewed_by.get_full_name|default:ext_request.reviewed_by.username }}</strong>
+        </div>
+        {% if ext_request.manager_remarks %}
+        <div class="small text-dark mt-2 pt-2 border-top">
+          <strong>Manager Feedback:</strong> {{ ext_request.manager_remarks }}
+        </div>
+        {% endif %}
+      </div>
+      <a href="{% url 'task_detail' task.id %}" class="btn btn-primary">
+        <i class="bi bi-arrow-right-circle me-1"></i> Go to Task Dossier
+      </a>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<script>
+function handleDecisionChange() {
+  const selectedRadio = document.querySelector('input[name="decision"]:checked');
+  if (!selectedRadio) return;
+
+  const val = selectedRadio.value;
+  const extendSec = document.getElementById('extendSection');
+  const reassignSec = document.getElementById('reassignSection');
+
+  if (val === 'EXTEND') {
+    extendSec.classList.remove('d-none');
+    reassignSec.classList.add('d-none');
+  } else if (val === 'REASSIGN') {
+    extendSec.classList.remove('d-none');
+    reassignSec.classList.remove('d-none');
+  } else {
+    extendSec.classList.add('d-none');
+    reassignSec.classList.add('d-none');
+  }
+}
+
+function addDaysToDeadline(days) {
+  const now = new Date();
+  now.setDate(now.getDate() + days);
+  now.setHours(18, 0, 0, 0); // 6:00 PM
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const input = document.getElementById('id_new_deadline');
+  if (input) input.value = formatted;
+}
+
+document.addEventListener('DOMContentLoaded', handleDecisionChange);
+</script>
+{% endblock %}

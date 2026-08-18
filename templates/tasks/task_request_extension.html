@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Extension / Reassignment | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+
+    <!-- Header Banner -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-4 bg-white text-warning d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px;">
+            <i class="bi bi-clock-history fs-2"></i>
+          </div>
+          <div>
+            <div class="badge bg-white text-dark fw-bold mb-1">
+              <i class="bi bi-shield-exclamation me-1"></i> Deadline & Capacity Management
+            </div>
+            <h3 class="fw-bold mb-0">Request Extension or Reassignment</h3>
+            <p class="text-white-50 small mb-0 mt-1">
+              Task: <strong>[{{ task.task_number }}] {{ task.title }}</strong>
+            </p>
+          </div>
+        </div>
+
+        <a href="{% url 'task_detail' task.id %}" class="btn btn-outline-light rounded-pill px-3">
+          <i class="bi bi-arrow-left me-1"></i> Back to Task
+        </a>
+      </div>
+    </div>
+
+    <!-- Current Task Status Alert -->
+    <div class="alert {% if task.is_overdue or task.status == 'ON_HOLD' %}alert-danger bg-danger-subtle border-danger-subtle text-danger-emphasis{% else %}alert-warning bg-warning-subtle border-warning-subtle text-warning-emphasis{% endif %} rounded-3 p-3 mb-4 d-flex align-items-center gap-3">
+      <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+      <div>
+        <strong>Task Timeline Notice:</strong>
+        {% if task.deadline %}
+        The current deadline is <strong>{{ task.deadline|date:"M d, Y, h:i A" }}</strong>.
+        {% if task.is_overdue %}
+        This task's deadline has expired and the task is currently <strong>On Hold</strong>.
+        {% endif %}
+        {% else %}
+        No fixed deadline was initially configured for this task.
+        {% endif %}
+        <div class="small mt-1">
+          Your Department Manager will review this request and can either grant more days or reassign the deliverable to another team member.
+        </div>
+      </div>
+    </div>
+
+    <!-- Request Form Card -->
+    <div class="hrms-card shadow-sm border-0">
+      <div class="hrms-card-header bg-light p-3 border-bottom">
+        <h5 class="hrms-card-title mb-0">
+          <i class="bi bi-send-fill text-primary me-2"></i> Submit Request to Department Manager
+        </h5>
+      </div>
+
+      <div class="hrms-card-body p-4 p-md-5">
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Request Type -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">
+              <i class="bi bi-ui-radios-grid text-primary me-1"></i> What would you like to request? <span class="text-danger">*</span>
+            </label>
+            <div class="d-flex flex-column gap-2 mt-2">
+              {% for choice in form.request_type %}
+              <div class="p-3 bg-light rounded-3 border">
+                {{ choice }}
+              </div>
+              {% endfor %}
+            </div>
+            {% if form.request_type.errors %}
+            <div class="text-danger small mt-1">{{ form.request_type.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Extension Duration Details -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+              <label for="{{ form.requested_days.id_for_label }}" class="form-label fw-bold text-dark">
+                <i class="bi bi-plus-circle text-primary me-1"></i> Additional Days Needed
+              </label>
+              {{ form.requested_days }}
+              <div class="form-text small text-muted">Number of extra days requested (e.g. 3)</div>
+              {% if form.requested_days.errors %}
+              <div class="text-danger small mt-1">{{ form.requested_days.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="{{ form.requested_deadline.id_for_label }}" class="form-label fw-bold text-dark">
+                <i class="bi bi-calendar-event text-primary me-1"></i> Or Specific Target Deadline
+              </label>
+              {{ form.requested_deadline }}
+              <div class="form-text small text-muted">Specific target date/time in IST</div>
+              {% if form.requested_deadline.errors %}
+              <div class="text-danger small mt-1">{{ form.requested_deadline.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Reason & Notes -->
+          <div class="mb-4">
+            <label for="{{ form.reason.id_for_label }}" class="form-label fw-bold text-dark">
+              <i class="bi bi-chat-left-text-fill text-primary me-1"></i> Reason / Detailed Justification <span class="text-danger">*</span>
+            </label>
+            <div class="form-text small text-muted mb-2">
+              Explain why you need more time or why this task should be reassigned (e.g. workload bottleneck, technical blockers, client asset delays, illness, etc.).
+            </div>
+            {{ form.reason }}
+            {% if form.reason.errors %}
+            <div class="text-danger small mt-1">{{ form.reason.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a href="{% url 'task_detail' task.id %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-warning text-dark fw-bold px-5 py-2 shadow-sm">
+              <i class="bi bi-send-check me-1"></i> Send Request to Manager
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

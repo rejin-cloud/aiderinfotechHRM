@@ -18,7 +18,7 @@
           <h3 class="fw-bold mb-0">{{ department.name|default:"Aider Creative" }} &bull; Project Tasks & Directives</h3>
           <p class="text-white-50 small mb-0 mt-1">
             {% if is_creative_manager %}
-              Managed by Creative Department Manager &bull; Task creation, assignment, and resource delegation.
+              Managed by Creative Department Manager &bull; Task creation, assignment, delegation, and extension approvals.
             {% else %}
               Department directives & creative project briefs. Read-only member view.
             {% endif %}
@@ -29,10 +29,18 @@
     
     <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
       {% if is_creative_manager %}
-      <a href="{% url 'task_create' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+      <a href="{% url 'manager_extension_requests' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm position-relative">
+        <i class="bi bi-hourglass-split me-1"></i> Review Requests
+        {% if pending_requests_count > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
+          {{ pending_requests_count }}
+        </span>
+        {% endif %}
+      </a>
+      <a href="{% url 'task_create' %}" class="btn btn-light text-primary fw-bold px-3 py-2 rounded-pill shadow-sm">
         <i class="bi bi-plus-circle-fill me-1"></i> Create Task
       </a>
-      <a href="{% url 'task_assign' %}" class="btn btn-light text-primary fw-bold px-3 py-2 rounded-pill shadow-sm">
+      <a href="{% url 'task_assign' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
         <i class="bi bi-person-check-fill me-1"></i> Assign Tasks
       </a>
       {% endif %}
@@ -48,25 +56,25 @@
   <div class="col-6 col-sm-3">
     <div class="stat-card p-3">
       <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-list-task me-1"></i> Total Tasks</div>
-      <div class="stat-val fs-4">{{ stats.total }}</div>
+      <div class="stat-val fs-4">{{ total_tasks }}</div>
     </div>
   </div>
   <div class="col-6 col-sm-3">
     <div class="stat-card p-3">
       <div class="stat-lbl mb-1 text-info fw-bold"><i class="bi bi-play-circle me-1"></i> Active / In Progress</div>
-      <div class="stat-val fs-4">{{ stats.active }}</div>
+      <div class="stat-val fs-4">{{ active_tasks }}</div>
     </div>
   </div>
   <div class="col-6 col-sm-3">
     <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-danger fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Urgent Active</div>
-      <div class="stat-val fs-4">{{ stats.urgent }}</div>
+      <div class="stat-lbl mb-1 text-warning fw-bold"><i class="bi bi-pause-circle me-1"></i> On Hold / Overdue</div>
+      <div class="stat-val fs-4">{{ on_hold_tasks }}</div>
     </div>
   </div>
   <div class="col-6 col-sm-3">
     <div class="stat-card p-3">
       <div class="stat-lbl mb-1 text-success fw-bold"><i class="bi bi-check2-circle me-1"></i> Completed</div>
-      <div class="stat-val fs-4">{{ stats.completed }}</div>
+      <div class="stat-val fs-4">{{ completed_tasks }}</div>
     </div>
   </div>
 </div>
@@ -149,13 +157,19 @@
 
           {% if t.deadline %}
           <span class="badge {% if t.is_overdue %}bg-danger text-white{% else %}bg-light text-dark border{% endif %}">
-            <i class="bi bi-alarm-fill text-danger me-1"></i> Due: {{ t.deadline|date:"M d, Y" }}
+            <i class="bi bi-alarm-fill {% if t.is_overdue %}text-white{% else %}text-danger{% endif %} me-1"></i> Due: {{ t.deadline|date:"M d, Y" }}
+          </span>
+          {% endif %}
+
+          {% if t.has_pending_extension_request %}
+          <span class="badge bg-warning text-dark border border-warning">
+            <i class="bi bi-hourglass-split me-1"></i> Extension Pending
           </span>
           {% endif %}
 
           {% if t.attachments.exists %}
           <span class="badge bg-purple-subtle text-primary border">
-            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Document{{ t.attachments.count|pluralize }} / Asset{{ t.attachments.count|pluralize }}
+            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Briefing Asset{{ t.attachments.count|pluralize }}
           </span>
           {% endif %}
         </div>
@@ -178,33 +192,39 @@
             <a href="{% url 'task_edit' t.id %}" class="btn btn-sm btn-light border p-1 px-2" title="Edit Task">
               <i class="bi bi-pencil-square text-dark"></i>
             </a>
-            <a href="{% url 'task_delete' t.id %}" class="btn btn-sm btn-light border p-1 px-2" title="Delete Task">
-              <i class="bi bi-trash text-danger"></i>
+            <a href="{% url 'task_delete' t.id %}" class="btn btn-sm btn-light border p-1 px-2 text-danger" title="Delete Task">
+              <i class="bi bi-trash"></i>
             </a>
             {% endif %}
           </div>
         </div>
 
       </div>
+
     </div>
   </div>
   {% empty %}
   <div class="col-12">
-    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
-      <div class="avatar-circle mx-auto mb-3 bg-light text-muted" style="width: 64px; height: 64px; font-size: 1.5rem;">
-        <i class="bi bi-clipboard2-x"></i>
+    <div class="hrms-card p-5 text-center shadow-sm border-0">
+      <div class="rounded-circle bg-light text-muted d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px;">
+        <i class="bi bi-palette2 fs-1"></i>
       </div>
-      <h5 class="fw-bold text-dark mb-1">No Creative Tasks Found</h5>
-      <p class="text-muted small mb-3">There are no tasks matching your query in the Creative Department.</p>
+      <h5 class="fw-bold text-dark">No Creative Tasks Found</h5>
+      <p class="text-muted small mb-4">
+        {% if is_creative_manager %}
+          Create project tasks and design directives to delegate across your branches.
+        {% else %}
+          There are no tasks assigned to your branch at this time.
+        {% endif %}
+      </p>
       {% if is_creative_manager %}
-      <div>
-        <a href="{% url 'task_create' %}" class="btn btn-primary px-4 fw-bold">
-          <i class="bi bi-plus-circle me-1"></i> Create the First Task
-        </a>
-      </div>
+      <a href="{% url 'task_create' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-bold">
+        <i class="bi bi-plus-circle-fill me-1"></i> Create First Creative Task
+      </a>
       {% endif %}
     </div>
   </div>
   {% endfor %}
 </div>
+
 {% endblock %}
