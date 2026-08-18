@@ -16,18 +16,31 @@
       </div>
 
       <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Assigned Member Actions -->
         {% if is_assigned_to_me and task.status != 'COMPLETED' %}
-          <a href="{% url 'task_complete' task.id %}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold">
-            <i class="bi bi-check2-circle me-1"></i> Submit Deliverables & Mark Complete
-          </a>
-          {% if not pending_extension %}
-          <a href="{% url 'task_request_extension' task.id %}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
-            <i class="bi bi-clock-history me-1"></i> Request Extension / Reassignment
-          </a>
+          {% if task.status == 'UNDER_REVIEW' %}
+            <span class="badge bg-info text-dark py-2 px-3 fs-6 shadow-sm">
+              <i class="bi bi-hourglass-split me-1"></i> Submitted &bull; Under Manager Review
+            </span>
+          {% else %}
+            <a href="{% url 'task_complete' task.id %}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm fw-bold">
+              <i class="bi bi-send-check me-1"></i> {% if latest_submission and latest_submission.review_status == 'CHANGES_REQUESTED' %}Submit Revised Deliverables{% else %}Submit Deliverables for Review{% endif %}
+            </a>
+            {% if not pending_extension %}
+            <a href="{% url 'task_request_extension' task.id %}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
+              <i class="bi bi-clock-history me-1"></i> Request Extension / Reassignment
+            </a>
+            {% endif %}
           {% endif %}
         {% endif %}
 
+        <!-- Creative Department Manager Actions -->
         {% if is_creative_manager %}
+          {% if task.status == 'UNDER_REVIEW' or pending_submission %}
+          <a href="{% url 'manager_submission_review' task.id %}" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm fw-bold">
+            <i class="bi bi-file-earmark-check me-1"></i> Evaluate Deliverables
+          </a>
+          {% endif %}
           {% if pending_extension %}
           <a href="{% url 'manager_extension_review' pending_extension.id %}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 shadow-sm fw-bold">
             <i class="bi bi-hourglass-split me-1"></i> Review Extension Request
@@ -51,6 +64,50 @@
         {% endif %}
       </div>
     </div>
+
+    <!-- Alert: Task Under Manager Review -->
+    {% if task.status == 'UNDER_REVIEW' %}
+    <div class="alert alert-info bg-info-subtle border-info rounded-4 p-3 mb-4 shadow-sm">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-hourglass-split fs-2 text-info"></i>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Deliverables Submitted &bull; Awaiting Manager Evaluation</h6>
+            <div class="small text-secondary">
+              Submitted on {{ latest_submission.submitted_at|date:"M d, Y, h:i A" }} by <strong>{{ latest_submission.submitted_by.get_full_name|default:latest_submission.submitted_by.username }}</strong>.
+            </div>
+          </div>
+        </div>
+        {% if is_creative_manager %}
+        <a href="{% url 'manager_submission_review' task.id %}" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">
+          <i class="bi bi-gavel me-1"></i> Evaluate & Decide
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Alert: Changes Requested by Manager -->
+    {% if task.status == 'ACTIVE' and latest_submission and latest_submission.review_status == 'CHANGES_REQUESTED' %}
+    <div class="alert alert-warning bg-warning-subtle border-warning rounded-4 p-3 mb-4 shadow-sm">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <i class="bi bi-arrow-repeat fs-2 text-warning"></i>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Revision Requested by Department Manager</h6>
+            <div class="small text-dark mt-1">
+              <strong>Manager Feedback:</strong> <em>"{{ latest_submission.manager_feedback|default:"Please revise the deliverables based on guidelines." }}"</em>
+            </div>
+          </div>
+        </div>
+        {% if is_assigned_to_me %}
+        <a href="{% url 'task_complete' task.id %}" class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">
+          <i class="bi bi-cloud-arrow-up-fill me-1"></i> Submit Revised Deliverables
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
 
     <!-- Alert: Pending Extension Request -->
     {% if pending_extension %}
@@ -78,14 +135,14 @@
     </div>
     {% endif %}
 
-    <!-- Alert: Task On-Hold Due to Deadline / Extension -->
+    <!-- Alert: Task On-Hold Due to Expired Deadline -->
     {% if task.status == 'ON_HOLD' %}
     <div class="alert alert-danger bg-danger-subtle border-danger-subtle text-danger-emphasis rounded-4 p-3 mb-4 shadow-sm d-flex align-items-center gap-3">
       <i class="bi bi-pause-circle-fill fs-2 text-danger"></i>
       <div>
         <h6 class="fw-bold mb-1">This Task is Currently On Hold</h6>
         <div class="small">
-          The deadline for this task has expired without a completion submission, or it is paused pending managerial reassignment/extension.
+          The deadline for this task has expired without a submission, or it is paused pending managerial reassignment/extension.
         </div>
       </div>
     </div>
@@ -151,7 +208,7 @@
             {% endif %}
             {% if task.completed_at %}
             <div class="small text-muted pt-1 border-top">
-              <i class="bi bi-check2-circle me-1 text-success"></i> Completed On:
+              <i class="bi bi-check2-circle me-1 text-success"></i> Verified & Completed:
               <span class="fw-bold text-success d-block">{{ task.completed_at|date:"M d, Y, h:i A" }}</span>
             </div>
             {% endif %}
@@ -245,20 +302,23 @@
         <!-- 4. Submitted Output Deliverables & Completion Media -->
         {% if latest_submission %}
         <div class="mb-4">
-          <div class="p-4 rounded-4 border bg-success-subtle bg-opacity-25 border-success">
-            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-success border-opacity-25">
-              <h5 class="fw-bold text-success mb-0 d-flex align-items-center gap-2">
-                <i class="bi bi-check2-circle fs-4"></i> Submitted Deliverables & Completion Media
+          <div class="p-4 rounded-4 border {% if task.status == 'COMPLETED' %}bg-success-subtle bg-opacity-25 border-success{% elif task.status == 'UNDER_REVIEW' %}bg-info-subtle bg-opacity-25 border-info{% else %}bg-light border-secondary{% endif %}">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+              <h5 class="fw-bold {% if task.status == 'COMPLETED' %}text-success{% elif task.status == 'UNDER_REVIEW' %}text-primary{% else %}text-dark{% endif %} mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-cloud-check-fill fs-4"></i> Submitted Deliverables & Supporting Media
               </h5>
-              <span class="badge bg-success text-white">
-                Submitted: {{ latest_submission.submitted_at|date:"M d, Y, h:i A" }}
-              </span>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge {% if latest_submission.review_status == 'APPROVED' %}bg-success{% elif latest_submission.review_status == 'CHANGES_REQUESTED' %}bg-warning text-dark{% elif latest_submission.review_status == 'REASSIGNED' %}bg-secondary{% else %}bg-info text-dark{% endif %}">
+                  {{ latest_submission.get_review_status_display }}
+                </span>
+                <span class="text-muted small">Submitted: {{ latest_submission.submitted_at|date:"M d, Y, h:i A" }}</span>
+              </div>
             </div>
 
             <!-- Member Remarks -->
-            <div class="mb-4 bg-white p-3 rounded-3 border">
+            <div class="mb-3 bg-white p-3 rounded-3 border">
               <strong class="d-block text-dark mb-1 small">
-                <i class="bi bi-chat-left-quote-fill text-success me-1"></i> Completion Remarks & Delivery Notes:
+                <i class="bi bi-chat-left-quote-fill text-primary me-1"></i> Member Remarks & Delivery Summary:
               </strong>
               <div class="text-dark fs-6 lh-base" style="white-space: pre-wrap;">{{ latest_submission.remarks }}</div>
               <div class="text-muted small mt-2 pt-2 border-top">
@@ -266,16 +326,31 @@
               </div>
             </div>
 
+            <!-- Manager Feedback if Reviewed -->
+            {% if latest_submission.manager_feedback %}
+            <div class="mb-3 p-3 rounded-3 border {% if latest_submission.review_status == 'APPROVED' %}bg-success-subtle border-success text-success-emphasis{% else %}bg-warning-subtle border-warning text-dark{% endif %}">
+              <strong class="d-block mb-1 small">
+                <i class="bi bi-shield-check me-1"></i> Manager Evaluation & Feedback:
+              </strong>
+              <div class="small lh-base">{{ latest_submission.manager_feedback }}</div>
+              {% if latest_submission.reviewed_by %}
+              <div class="small text-muted mt-2 pt-1 border-top">
+                Reviewed by: <strong>{{ latest_submission.reviewed_by.get_full_name|default:latest_submission.reviewed_by.username }}</strong> on {{ latest_submission.reviewed_at|date:"M d, Y, h:i A" }}
+              </div>
+              {% endif %}
+            </div>
+            {% endif %}
+
             <!-- Deliverable Files / Media Grid -->
             <h6 class="fw-bold text-dark mb-2">
-              <i class="bi bi-paperclip text-success me-1"></i> Output Files & Supporting Media ({{ latest_submission.attachments.count }})
+              <i class="bi bi-paperclip text-primary me-1"></i> Output Files & Supporting Media ({{ latest_submission.attachments.count }})
             </h6>
             <div class="row g-3">
               {% for sub_att in latest_submission.attachments.all %}
               <div class="col-12 col-md-6">
                 <div class="card h-100 border rounded-3 p-3 bg-white shadow-sm">
                   <div class="d-flex align-items-center gap-3">
-                    <div class="rounded-3 bg-success-subtle text-success d-flex align-items-center justify-content-center border" style="width: 48px; height: 48px;">
+                    <div class="rounded-3 bg-primary-subtle text-primary d-flex align-items-center justify-content-center border" style="width: 48px; height: 48px;">
                       <i class="bi {{ sub_att.icon_class }} fs-2"></i>
                     </div>
                     <div class="flex-grow-1 overflow-hidden">
@@ -286,7 +361,7 @@
                         {{ sub_att.formatted_file_size }} &bull; {{ sub_att.file_extension|upper }} &bull; {{ sub_att.uploaded_at|date:"M d, Y" }}
                       </span>
                     </div>
-                    <a href="{{ sub_att.file.url }}" download class="btn btn-sm btn-success fw-bold" title="Download Output Deliverable">
+                    <a href="{{ sub_att.file.url }}" download class="btn btn-sm btn-primary fw-bold" title="Download Output Deliverable">
                       <i class="bi bi-download"></i>
                     </a>
                   </div>
@@ -298,6 +373,15 @@
               </div>
               {% endfor %}
             </div>
+
+            <!-- Manager Action Trigger -->
+            {% if is_creative_manager and task.status == 'UNDER_REVIEW' %}
+            <div class="mt-4 pt-3 border-top d-flex justify-content-end">
+              <a href="{% url 'manager_submission_review' task.id %}" class="btn btn-success fw-bold px-4 py-2 shadow-sm">
+                <i class="bi bi-gavel me-1"></i> Evaluate Deliverables & Decide
+              </a>
+            </div>
+            {% endif %}
 
           </div>
         </div>

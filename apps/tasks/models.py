@@ -15,6 +15,7 @@ class Task(models.Model):
 
     class Status(models.TextChoices):
         ACTIVE = 'ACTIVE', 'Active / In Progress'
+        UNDER_REVIEW = 'UNDER_REVIEW', 'Submitted / Under Review'
         COMPLETED = 'COMPLETED', 'Completed'
         ON_HOLD = 'ON_HOLD', 'On Hold'
         ARCHIVED = 'ARCHIVED', 'Archived'
@@ -72,7 +73,7 @@ class Task(models.Model):
         db_index=True
     )
     deadline = models.DateTimeField(null=True, blank=True, help_text="Target completion deadline (IST)")
-    completed_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when task was marked completed")
+    completed_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp when manager verified and marked task completed")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,7 +89,7 @@ class Task(models.Model):
     def update_overdue_tasks(cls):
         """
         Automatically updates any active task whose deadline has expired
-        to 'ON_HOLD' status.
+        to 'ON_HOLD' status (does not affect tasks submitted for review or completed).
         """
         now = timezone.now()
         cls.objects.filter(
@@ -111,6 +112,7 @@ class Task(models.Model):
     def status_badge_class(self):
         mapping = {
             self.Status.ACTIVE: 'bg-primary text-white',
+            self.Status.UNDER_REVIEW: 'bg-info text-dark',
             self.Status.COMPLETED: 'bg-success text-white',
             self.Status.ON_HOLD: 'bg-danger text-white',
             self.Status.ARCHIVED: 'bg-secondary text-white',
@@ -119,13 +121,17 @@ class Task(models.Model):
 
     @property
     def is_overdue(self):
-        if self.deadline and self.status != self.Status.COMPLETED:
+        if self.deadline and self.status not in [self.Status.COMPLETED, self.Status.UNDER_REVIEW]:
             return timezone.now() > self.deadline
         return False
 
     @property
     def latest_submission(self):
         return self.submissions.order_by('-submitted_at').first()
+
+    @property
+    def pending_submission(self):
+        return self.submissions.filter(review_status=TaskSubmission.ReviewStatus.PENDING).first()
 
     @property
     def latest_extension_request(self):
@@ -217,7 +223,16 @@ class TaskAttachment(models.Model):
 
 
 class TaskSubmission(models.Model):
-    """Stores completion details, final remarks, and deliverable submissions by assigned member."""
+    """
+    Stores deliverable submissions by assigned member.
+    The task moves to UNDER_REVIEW until the Creative Department Manager reviews it.
+    """
+    class ReviewStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Manager Review'
+        APPROVED = 'APPROVED', 'Approved & Marked Completed'
+        CHANGES_REQUESTED = 'CHANGES_REQUESTED', 'Revision Requested'
+        REASSIGNED = 'REASSIGNED', 'Reassigned to Another Member'
+
     task = models.ForeignKey(
         Task,
         on_delete=models.CASCADE,
@@ -228,8 +243,27 @@ class TaskSubmission(models.Model):
         on_delete=models.CASCADE,
         related_name='task_submissions'
     )
-    remarks = models.TextField(help_text="Completion remarks, delivery summary, and notes")
+    remarks = models.TextField(help_text="Deliverables summary, output specs, links, and remarks")
     submitted_at = models.DateTimeField(auto_now_add=True)
+    review_status = models.CharField(
+        max_length=25,
+        choices=ReviewStatus.choices,
+        default=ReviewStatus.PENDING,
+        db_index=True
+    )
+    manager_feedback = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Manager feedback, revision instructions, or approval notes"
+    )
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_task_submissions'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ['-submitted_at']
@@ -237,7 +271,7 @@ class TaskSubmission(models.Model):
         verbose_name_plural = 'Task Submissions'
 
     def __str__(self):
-        return f"Submission for [{self.task.task_number}] by {self.submitted_by.username}"
+        return f"Submission for [{self.task.task_number}] by {self.submitted_by.username} ({self.get_review_status_display()})"
 
 
 class TaskSubmissionAttachment(models.Model):

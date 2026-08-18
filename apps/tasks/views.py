@@ -12,6 +12,7 @@ from apps.departments.models import Branch, Department
 from apps.hierarchy.permissions import get_user_level
 from apps.tasks.forms import (
     ManagerExtensionReviewForm,
+    ManagerSubmissionReviewForm,
     TaskCompletionForm,
     TaskExtensionRequestForm,
     TaskFilterForm,
@@ -67,7 +68,7 @@ def task_list_view(request):
     is_leadership = get_user_level(user) <= 2 or is_creative_manager
 
     # Base Queryset
-    tasks = Task.objects.filter(department=department).select_related('created_by', 'assigned_to', 'branch', 'department').prefetch_related('attachments', 'extension_requests')
+    tasks = Task.objects.filter(department=department).select_related('created_by', 'assigned_to', 'branch', 'department').prefetch_related('attachments', 'extension_requests', 'submissions')
 
     # Scoping rule:
     # - Leadership / Manager sees all tasks in the department.
@@ -100,6 +101,7 @@ def task_list_view(request):
     # Stats for dashboard header
     total_tasks = tasks.count()
     active_tasks = tasks.filter(status=Task.Status.ACTIVE).count()
+    under_review_tasks = tasks.filter(status=Task.Status.UNDER_REVIEW).count()
     completed_tasks = tasks.filter(status=Task.Status.COMPLETED).count()
     on_hold_tasks = tasks.filter(status=Task.Status.ON_HOLD).count()
     urgent_tasks = tasks.filter(priority=Task.Priority.URGENT, status=Task.Status.ACTIVE).count()
@@ -120,6 +122,7 @@ def task_list_view(request):
         'filter_form': filter_form,
         'total_tasks': total_tasks,
         'active_tasks': active_tasks,
+        'under_review_tasks': under_review_tasks,
         'completed_tasks': completed_tasks,
         'on_hold_tasks': on_hold_tasks,
         'urgent_tasks': urgent_tasks,
@@ -249,7 +252,7 @@ def task_assign_view(request, task_id=None):
             task.deadline = None
 
         # If task was on hold due to missing assignment or overdue reassignment, resume to ACTIVE
-        if task.status == Task.Status.ON_HOLD and task.deadline and task.deadline > timezone.now():
+        if task.status in [Task.Status.ON_HOLD, Task.Status.UNDER_REVIEW]:
             task.status = Task.Status.ACTIVE
 
         task.save()
@@ -317,7 +320,7 @@ def branch_members_api(request, branch_id):
 def task_detail_view(request, task_id):
     """
     Detailed Task View:
-    - Creative Department Manager & Corporate Leadership can view all tasks and assignments.
+    - Creative Department Manager & Corporate Leadership can view all tasks, submissions, and assignment details.
     - Branch members can view tasks for their branch (with assignee identity hidden).
     - Assigned Member sees 'Assigned to You' and can submit deliverables or request extension.
     """
@@ -329,7 +332,12 @@ def task_detail_view(request, task_id):
         return redirect('dashboard_router')
 
     task = get_object_or_404(
-        Task.objects.select_related('department', 'branch', 'created_by', 'assigned_to').prefetch_related('attachments', 'submissions__attachments', 'extension_requests__requested_by'),
+        Task.objects.select_related('department', 'branch', 'created_by', 'assigned_to').prefetch_related(
+            'attachments',
+            'submissions__attachments',
+            'submissions__submitted_by',
+            'extension_requests__requested_by'
+        ),
         pk=task_id
     )
 
@@ -343,9 +351,10 @@ def task_detail_view(request, task_id):
             messages.error(request, "Access restricted: This task belongs to another branch.")
             return redirect('task_list')
 
-    # Pending extension request on this task
+    # Pending extension request and submissions
     pending_extension = task.extension_requests.filter(status=TaskExtensionRequest.Status.PENDING).first()
     latest_submission = task.submissions.order_by('-submitted_at').first()
+    pending_submission = task.submissions.filter(review_status=TaskSubmission.ReviewStatus.PENDING).first()
 
     context = {
         'task': task,
@@ -354,6 +363,7 @@ def task_detail_view(request, task_id):
         'is_assigned_to_me': is_assigned_to_me,
         'pending_extension': pending_extension,
         'latest_submission': latest_submission,
+        'pending_submission': pending_submission,
         'page_title': f'Task Brief &bull; [{task.task_number}] {task.title}',
     }
     return render(request, 'tasks/task_detail.html', context)
@@ -362,20 +372,21 @@ def task_detail_view(request, task_id):
 @login_required
 def task_complete_view(request, task_id):
     """
-    Completion submission portal:
+    Deliverables Submission Portal:
     - STRICTLY restricted to the assigned member of the task.
-    - Accepts completion remarks and multi-file output media/deliverables (any file format).
+    - Assigned member submits remarks and supporting media/deliverables (any file format).
+    - Status transitions to UNDER_REVIEW (Only the Creative Department Manager can mark COMPLETED).
     """
     user = request.user
     task = get_object_or_404(Task, pk=task_id)
 
-    # Verify authorization: only the assigned member can submit completion
+    # Verify authorization: only the assigned member can submit deliverables
     if task.assigned_to != user:
         messages.error(request, "Permission Denied: Only the member assigned to this task can submit completion deliverables.")
         return redirect('task_detail', task_id=task.id)
 
     if task.status == Task.Status.COMPLETED:
-        messages.info(request, "This task is already marked as completed.")
+        messages.info(request, "This task has already been reviewed and marked as Completed by your Department Manager.")
         return redirect('task_detail', task_id=task.id)
 
     if request.method == 'POST':
@@ -384,6 +395,7 @@ def task_complete_view(request, task_id):
             submission = form.save(commit=False)
             submission.task = task
             submission.submitted_by = user
+            submission.review_status = TaskSubmission.ReviewStatus.PENDING
             submission.save()
 
             # Handle submitted media files & documents (accepts any file format)
@@ -394,14 +406,13 @@ def task_complete_view(request, task_id):
                     file=f
                 )
 
-            # Update task status to COMPLETED
-            task.status = Task.Status.COMPLETED
-            task.completed_at = timezone.now()
+            # Update task status to UNDER_REVIEW (NOT COMPLETED!)
+            task.status = Task.Status.UNDER_REVIEW
             task.save()
 
             messages.success(
                 request,
-                f"Congratulations! Task [{task.task_number}] '{task.title}' has been submitted and marked as Completed."
+                f"Deliverables for task [{task.task_number}] '{task.title}' have been submitted successfully! Your submission is now Under Review by the Creative Department Manager."
             )
             return redirect('task_detail', task_id=task.id)
     else:
@@ -410,9 +421,118 @@ def task_complete_view(request, task_id):
     context = {
         'task': task,
         'form': form,
-        'page_title': f'Submit Completion Deliverables &bull; {task.task_number}',
+        'page_title': f'Submit Deliverables &bull; {task.task_number}',
     }
     return render(request, 'tasks/task_complete.html', context)
+
+
+@login_required
+def manager_submission_review_view(request, task_id, submission_id=None):
+    """
+    Manager Review Portal for Task Deliverable Submissions:
+    - STRICTLY restricted to Creative Department Manager.
+    - Evaluation options:
+      1. APPROVE: Verifies deliverables and marks task COMPLETED.
+      2. REVISION: Requests revision from current member (task returns to ACTIVE, optional feedback & deadline).
+      3. REASSIGN: Reassigns task to another member (task returns to ACTIVE with new member).
+    """
+    user = request.user
+    if not can_manage_creative_tasks(user):
+        messages.error(request, "Permission Denied: Only the Creative Department Manager can review submissions.")
+        return redirect('task_list')
+
+    department = get_creative_department_instance()
+    task = get_object_or_404(Task, pk=task_id, department=department)
+
+    if submission_id:
+        submission = get_object_or_404(TaskSubmission, pk=submission_id, task=task)
+    else:
+        submission = task.submissions.order_by('-submitted_at').first()
+
+    if not submission:
+        messages.warning(request, "No deliverables have been submitted for this task yet.")
+        return redirect('task_detail', task_id=task.id)
+
+    if request.method == 'POST':
+        form = ManagerSubmissionReviewForm(request.POST, department=department)
+        if form.is_valid():
+            decision = form.cleaned_data['decision']
+            feedback = form.cleaned_data.get('manager_feedback', '')
+
+            submission.manager_feedback = feedback
+            submission.reviewed_by = user
+            submission.reviewed_at = timezone.now()
+
+            if decision == 'APPROVE':
+                task.status = Task.Status.COMPLETED
+                task.completed_at = timezone.now()
+                task.save()
+
+                submission.review_status = TaskSubmission.ReviewStatus.APPROVED
+                submission.save()
+
+                messages.success(
+                    request,
+                    f"Excellent! Task [{task.task_number}] has been approved and marked as Completed."
+                )
+
+            elif decision == 'REVISION':
+                task.status = Task.Status.ACTIVE
+                new_deadline = form.cleaned_data.get('new_deadline')
+                if new_deadline:
+                    task.deadline = new_deadline
+                task.save()
+
+                submission.review_status = TaskSubmission.ReviewStatus.CHANGES_REQUESTED
+                submission.save()
+
+                messages.warning(
+                    request,
+                    f"Revision requested for task [{task.task_number}]. The task has been returned to {task.assigned_to.get_full_name() or task.assigned_to.username} with your feedback."
+                )
+
+            elif decision == 'REASSIGN':
+                reassign_branch = form.cleaned_data.get('reassign_branch')
+                reassign_user = form.cleaned_data.get('reassign_user')
+                new_deadline = form.cleaned_data.get('new_deadline')
+
+                if not reassign_user:
+                    messages.error(request, "Please select a member to reassign this task to.")
+                    return render(request, 'tasks/manager_submission_review.html', {'task': task, 'submission': submission, 'form': form, 'department': department})
+
+                if reassign_branch:
+                    task.branch = reassign_branch
+                task.assigned_to = reassign_user
+                if new_deadline:
+                    task.deadline = new_deadline
+                task.status = Task.Status.ACTIVE
+                task.save()
+
+                submission.review_status = TaskSubmission.ReviewStatus.REASSIGNED
+                submission.save()
+
+                messages.success(
+                    request,
+                    f"Task [{task.task_number}] has been reassigned to {reassign_user.get_full_name() or reassign_user.username} and resumed to Active."
+                )
+
+            return redirect('task_detail', task_id=task.id)
+    else:
+        initial_data = {}
+        if task.branch:
+            initial_data['reassign_branch'] = task.branch
+        if task.deadline and task.deadline > timezone.now():
+            initial_data['new_deadline'] = task.deadline
+        form = ManagerSubmissionReviewForm(initial=initial_data, department=department)
+
+    context = {
+        'task': task,
+        'submission': submission,
+        'form': form,
+        'department': department,
+        'page_title': f'Review Deliverables &bull; {task.task_number}',
+    }
+    return render(request, 'tasks/manager_submission_review.html', context)
 
 
 @login_required

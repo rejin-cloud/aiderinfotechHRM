@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Deliverables: {{ task.task_number }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+
+    <!-- Header Banner -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%);">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-4 bg-white text-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px;">
+            <i class="bi bi-file-earmark-check fs-2"></i>
+          </div>
+          <div>
+            <div class="badge bg-warning text-dark fw-bold mb-1">
+              <i class="bi bi-shield-check me-1"></i> Creative Department Manager
+            </div>
+            <h3 class="fw-bold mb-0">Evaluate Submitted Deliverables</h3>
+            <p class="text-white-50 small mb-0 mt-1">
+              Task: <strong>[{{ task.task_number }}] {{ task.title }}</strong>
+            </p>
+          </div>
+        </div>
+
+        <a href="{% url 'task_detail' task.id %}" class="btn btn-outline-light rounded-pill px-3">
+          <i class="bi bi-arrow-left me-1"></i> Back to Task
+        </a>
+      </div>
+    </div>
+
+    <!-- Submitted Deliverables Dossier Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark font-monospace text-warning px-2 py-1">{{ task.task_number }}</span>
+          <span class="badge {{ task.status_badge_class }}">{{ task.get_status_display }}</span>
+        </div>
+        <span class="text-muted small">Submitted on {{ submission.submitted_at|date:"M d, Y, h:i A" }}</span>
+      </div>
+
+      <h5 class="fw-bold text-dark mb-3">{{ task.title }}</h5>
+
+      <div class="row g-3 p-3 bg-light rounded-3 border mb-3">
+        <div class="col-12 col-sm-6">
+          <span class="text-muted small d-block">Submitted By:</span>
+          <strong class="text-dark">{{ submission.submitted_by.get_full_name|default:submission.submitted_by.username }}</strong>
+          <span class="text-muted small">({{ task.branch.name|default:"General" }})</span>
+        </div>
+        <div class="col-12 col-sm-6">
+          <span class="text-muted small d-block">Deadline Context:</span>
+          <strong class="text-dark">
+            {% if task.deadline %}{{ task.deadline|date:"M d, Y, h:i A" }}{% else %}No fixed deadline{% endif %}
+          </strong>
+        </div>
+      </div>
+
+      <!-- Member Remarks -->
+      <div class="p-3 bg-light border rounded-3 text-dark mb-4">
+        <strong class="d-block mb-1 text-primary">
+          <i class="bi bi-chat-left-quote-fill me-1"></i> Member Deliverable Remarks & Summary:
+        </strong>
+        <p class="mb-0 small fs-6" style="white-space: pre-wrap;">{{ submission.remarks }}</p>
+      </div>
+
+      <!-- Supporting Media Deliverables (Any File Type) -->
+      <h6 class="fw-bold text-dark mb-2">
+        <i class="bi bi-paperclip text-primary me-1"></i> Attached Deliverable Files & Media ({{ submission.attachments.count }})
+      </h6>
+      <div class="row g-3">
+        {% for att in submission.attachments.all %}
+        <div class="col-12 col-md-6">
+          <div class="card h-100 border rounded-3 p-3 bg-light">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-white text-primary d-flex align-items-center justify-content-center border" style="width: 44px; height: 44px;">
+                <i class="bi {{ att.icon_class }} fs-3"></i>
+              </div>
+              <div class="flex-grow-1 overflow-hidden">
+                <span class="fw-bold text-dark text-truncate d-block small" title="{{ att.filename }}">{{ att.filename }}</span>
+                <span class="text-muted" style="font-size: 0.75rem;">{{ att.formatted_file_size }} &bull; {{ att.file_extension|upper }}</span>
+              </div>
+              <a href="{{ att.file.url }}" download class="btn btn-sm btn-primary" title="Download Asset">
+                <i class="bi bi-download"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+          <span class="text-muted small">No file attachments included in this submission.</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Manager Evaluation Form Card -->
+    <div class="hrms-card shadow-sm border-0 mb-4">
+      <div class="hrms-card-header bg-light p-3 border-bottom">
+        <h5 class="hrms-card-title mb-0">
+          <i class="bi bi-gavel text-primary me-2"></i> Manager Evaluation & Decision
+        </h5>
+      </div>
+
+      <div class="hrms-card-body p-4 p-md-5">
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+
+          <!-- Step 1: Decision Choice -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">
+              <i class="bi bi-check2-circle text-primary me-1"></i> Evaluation Outcome <span class="text-danger">*</span>
+            </label>
+            <div class="d-flex flex-column gap-2 mt-2">
+              {% for choice in form.decision %}
+              <div class="p-3 bg-light rounded-3 border decision-radio-wrapper" onclick="handleSubDecisionChange()">
+                {{ choice }}
+              </div>
+              {% endfor %}
+            </div>
+            {% if form.decision.errors %}
+            <div class="text-danger small mt-1">{{ form.decision.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Section: Revision / Deadline Extension Parameters -->
+          <div id="revisionSection" class="p-4 bg-warning-subtle rounded-3 border border-warning mb-4 d-none">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="bi bi-arrow-repeat text-warning-emphasis me-1"></i> Revision Timeline & Deadline Adjustment
+            </h6>
+            <p class="text-muted small mb-3">The task will return to <strong>Active / In Progress</strong> for {{ submission.submitted_by.get_full_name|default:submission.submitted_by.username }}. You can set a revised deadline if needed.</p>
+            <div class="row g-2 align-items-center">
+              <div class="col-12 col-sm-8">
+                {{ form.new_deadline }}
+              </div>
+              <div class="col-12 col-sm-4 d-flex gap-1">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDaysToDeadline(1)">+1 Day</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDaysToDeadline(3)">+3 Days</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="addDaysToDeadline(7)">+1 Week</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Reassign Parameters -->
+          <div id="subReassignSection" class="p-4 bg-light rounded-3 border mb-4 d-none">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="bi bi-person-plus text-primary me-1"></i> Reassign to New Member
+            </h6>
+            <p class="text-muted small mb-3">Select the branch and team member who will take over this task directive.</p>
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-dark">Branch</label>
+                {{ form.reassign_branch }}
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-dark">New Assignee Member</label>
+                {{ form.reassign_user }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Feedback & Notes -->
+          <div class="mb-4">
+            <label for="{{ form.manager_feedback.id_for_label }}" class="form-label fw-bold text-dark">
+              <i class="bi bi-chat-left-text text-primary me-1"></i> Manager Feedback / Specific Revision Instructions
+            </label>
+            <div class="form-text small text-muted mb-2">
+              If requesting a revision, clearly specify what changes, design modifications, or corrections are required.
+            </div>
+            {{ form.manager_feedback }}
+          </div>
+
+          <!-- Submit Button -->
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a href="{% url 'task_detail' task.id %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary fw-bold px-5 py-2 shadow-sm">
+              <i class="bi bi-check2-all me-1"></i> Confirm & Execute Decision
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function handleSubDecisionChange() {
+  const selectedRadio = document.querySelector('input[name="decision"]:checked');
+  if (!selectedRadio) return;
+
+  const val = selectedRadio.value;
+  const revSec = document.getElementById('revisionSection');
+  const reassignSec = document.getElementById('subReassignSection');
+
+  if (val === 'APPROVE') {
+    revSec.classList.add('d-none');
+    reassignSec.classList.add('d-none');
+  } else if (val === 'REVISION') {
+    revSec.classList.remove('d-none');
+    reassignSec.classList.add('d-none');
+  } else if (val === 'REASSIGN') {
+    revSec.classList.remove('d-none');
+    reassignSec.classList.remove('d-none');
+  }
+}
+
+function addDaysToDeadline(days) {
+  const now = new Date();
+  now.setDate(now.getDate() + days);
+  now.setHours(18, 0, 0, 0); // 6:00 PM
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const input = document.getElementById('id_new_deadline');
+  if (input) input.value = formatted;
+}
+
+document.addEventListener('DOMContentLoaded', handleSubDecisionChange);
+</script>
+{% endblock %}

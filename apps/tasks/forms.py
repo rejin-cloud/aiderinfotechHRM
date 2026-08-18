@@ -105,7 +105,7 @@ class TaskFilterForm(forms.Form):
 
 
 class TaskCompletionForm(forms.ModelForm):
-    """Form used by assigned member to mark task complete with remarks and media attachments."""
+    """Form used by assigned member to submit deliverable media and remarks for manager review."""
     submission_files = MultipleFileField(
         required=False,
         help_text="Attach completed media, deliverables, or final assets (accepts ANY file format: ZIP, PSD, AI, MP4, PDF, PNG, JPG, DOCX, etc.)."
@@ -118,7 +118,7 @@ class TaskCompletionForm(forms.ModelForm):
             'remarks': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 5,
-                'placeholder': 'Detail your completed deliverables, output summary, design decisions, links, and final remarks...',
+                'placeholder': 'Detail your completed deliverables, output summary, design decisions, links, and handover remarks...',
                 'required': True,
             })
         }
@@ -201,6 +201,53 @@ class ManagerExtensionReviewForm(forms.Form):
             'rows': 3,
             'placeholder': 'Add feedback, guidance, or managerial explanation...'
         })
+    )
+
+    def __init__(self, *args, department=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if department:
+            self.fields['reassign_branch'].queryset = Branch.objects.filter(department=department)
+            self.fields['reassign_user'].queryset = User.objects.filter(department=department).exclude(role=User.Role.SUPERADMIN)
+        else:
+            self.fields['reassign_branch'].queryset = Branch.objects.all()
+            self.fields['reassign_user'].queryset = User.objects.all().exclude(role=User.Role.SUPERADMIN)
+
+
+class ManagerSubmissionReviewForm(forms.Form):
+    """Form used by Creative Department Manager to evaluate submitted deliverables."""
+    DECISION_CHOICES = [
+        ('APPROVE', 'Approve & Mark Completed (Deliverables Verified)'),
+        ('REVISION', 'Request Revision from Member (Needs Work / Do Again)'),
+        ('REASSIGN', 'Reassign Task to Another Branch Member'),
+    ]
+
+    decision = forms.ChoiceField(
+        choices=DECISION_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input', 'required': True})
+    )
+    manager_feedback = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Provide feedback, specific revision instructions, or approval appreciation notes...'
+        })
+    )
+    new_deadline = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
+    )
+    reassign_branch = forms.ModelChoiceField(
+        queryset=Branch.objects.none(),
+        required=False,
+        empty_label="Select Branch",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_review_branch'})
+    )
+    reassign_user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        empty_label="Select Member",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_sub_review_user'})
     )
 
     def __init__(self, *args, department=None, **kwargs):

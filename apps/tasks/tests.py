@@ -271,8 +271,11 @@ class CreativeTasksTestCase(TestCase):
         maya_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}), follow=True)
         self.assertContains(maya_detail, "Access restricted: This task belongs to another branch.")
 
-    def test_task_completion_with_supporting_media_and_remarks(self):
-        """Assigned member submits completion with remarks and deliverables (any file type)."""
+    def test_assigned_member_submits_deliverables_and_manager_marks_completed(self):
+        """
+        - Member can ONLY submit deliverables (status moves to UNDER_REVIEW, NOT COMPLETED).
+        - Creative Department Manager reviews deliverables and marks COMPLETED.
+        """
         task = Task.objects.create(
             department=self.dept_creative,
             branch=self.branch_design,
@@ -287,12 +290,12 @@ class CreativeTasksTestCase(TestCase):
 
         self.client.login(username="staff_daniel", password="password123")
 
-        # Access completion page
+        # Access submit page
         res = self.client.get(reverse('task_complete', kwargs={'task_id': task.id}))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "Submit Deliverables & Final Remarks")
+        self.assertContains(res, "Submit Deliverables for Review")
 
-        # Submit completion with remarks and media files (e.g. mp4, zip)
+        # Member submits deliverables
         file1 = SimpleUploadedFile("reel_final.mp4", b"MP4 dummy video bytes", content_type="video/mp4")
         file2 = SimpleUploadedFile("assets.zip", b"ZIP archive bytes", content_type="application/zip")
 
@@ -303,23 +306,151 @@ class CreativeTasksTestCase(TestCase):
 
         post_res = self.client.post(reverse('task_complete', kwargs={'task_id': task.id}), post_data, follow=True)
         self.assertEqual(post_res.status_code, 200)
-        self.assertContains(post_res, "Submitted Deliverables & Completion Media")
+        self.assertContains(post_res, "Under Manager Review")
 
-        # Verify task is updated to COMPLETED
+        # Task is in UNDER_REVIEW (NOT COMPLETED!)
         task.refresh_from_db()
-        self.assertEqual(task.status, Task.Status.COMPLETED)
-        self.assertIsNotNone(task.completed_at)
+        self.assertEqual(task.status, Task.Status.UNDER_REVIEW)
+        self.assertIsNone(task.completed_at)
 
-        # Verify submission record and attachments
+        # Submission is pending review
         self.assertEqual(task.submissions.count(), 1)
         sub = task.submissions.first()
         self.assertEqual(sub.submitted_by, self.creative_staff_daniel)
+        self.assertEqual(sub.review_status, TaskSubmission.ReviewStatus.PENDING)
         self.assertEqual(sub.attachments.count(), 2)
 
-        # Non-assigned member Liam cannot submit completion
-        self.client.login(username="staff_liam", password="password123")
-        unauth_res = self.client.get(reverse('task_complete', kwargs={'task_id': task.id}), follow=True)
-        self.assertContains(unauth_res, "Permission Denied: Only the member assigned to this task can submit completion deliverables.")
+        # 2. Manager reviews deliverables and approves -> marks COMPLETED
+        self.client.login(username="deptmgr_rachel", password="password123")
+
+        review_page = self.client.get(reverse('manager_submission_review', kwargs={'task_id': task.id}))
+        self.assertEqual(review_page.status_code, 200)
+        self.assertContains(review_page, "Evaluate Submitted Deliverables")
+        self.assertContains(review_page, "reel_final.mp4")
+
+        # Manager approves
+        approve_post = self.client.post(
+            reverse('manager_submission_review', kwargs={'task_id': task.id}),
+            {
+                'decision': 'APPROVE',
+                'manager_feedback': 'Great color grading and sound design! Approved.',
+            },
+            follow=True
+        )
+        self.assertEqual(approve_post.status_code, 200)
+
+        task.refresh_from_db()
+        sub.refresh_from_db()
+
+        self.assertEqual(task.status, Task.Status.COMPLETED)
+        self.assertIsNotNone(task.completed_at)
+        self.assertEqual(sub.review_status, TaskSubmission.ReviewStatus.APPROVED)
+        self.assertEqual(sub.reviewed_by, self.creative_mgr)
+
+    def test_manager_can_request_revision_and_member_resubmits(self):
+        """
+        - Member submits deliverables.
+        - Manager requests revision if not good enough (task returns to ACTIVE with feedback).
+        - Member sees feedback and submits revised deliverables.
+        """
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-401',
+            title='Product Catalog Layout',
+            description='Design 16-page catalog.',
+            status=Task.Status.ACTIVE
+        )
+
+        # Member submits 1st draft
+        self.client.login(username="staff_daniel", password="password123")
+        self.client.post(
+            reverse('task_complete', kwargs={'task_id': task.id}),
+            {'remarks': 'Draft v1 ready.'}
+        )
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.UNDER_REVIEW)
+
+        # Manager requests revision
+        self.client.login(username="deptmgr_rachel", password="password123")
+        rev_post = self.client.post(
+            reverse('manager_submission_review', kwargs={'task_id': task.id}),
+            {
+                'decision': 'REVISION',
+                'manager_feedback': 'Margins on page 4 and 8 are misaligned. Please fix typography and resubmit.',
+                'new_deadline': (timezone.now() + datetime.timedelta(days=2)).strftime('%Y-%m-%dT%H:%M'),
+            },
+            follow=True
+        )
+        self.assertEqual(rev_post.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.ACTIVE)
+
+        # Member views task detail and sees revision request banner
+        self.client.login(username="staff_daniel", password="password123")
+        detail_res = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, "Revision Requested by Department Manager")
+        self.assertContains(detail_res, "Margins on page 4 and 8 are misaligned")
+
+        # Member resubmits v2
+        file_v2 = SimpleUploadedFile("catalog_v2.pdf", b"PDF v2 bytes", content_type="application/pdf")
+        resub_post = self.client.post(
+            reverse('task_complete', kwargs={'task_id': task.id}),
+            {
+                'remarks': 'Fixed margins and typography alignment.',
+                'submission_files': [file_v2]
+            },
+            follow=True
+        )
+        self.assertEqual(resub_post.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.UNDER_REVIEW)
+        self.assertEqual(task.submissions.count(), 2)
+
+    def test_manager_can_reassign_task_during_submission_review(self):
+        """Manager can reassign task to another member during deliverables review."""
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-402',
+            title='3D Modeling Scene',
+            description='Requires Cinema4D.',
+            status=Task.Status.ACTIVE
+        )
+
+        # Daniel submits initial attempt
+        self.client.login(username="staff_daniel", password="password123")
+        self.client.post(
+            reverse('task_complete', kwargs={'task_id': task.id}),
+            {'remarks': 'Struggling with lighting setup in Blender.'}
+        )
+
+        # Manager decides to reassign to Maya in Editing branch
+        self.client.login(username="deptmgr_rachel", password="password123")
+        reassign_post = self.client.post(
+            reverse('manager_submission_review', kwargs={'task_id': task.id}),
+            {
+                'decision': 'REASSIGN',
+                'reassign_branch': self.branch_edit.id,
+                'reassign_user': self.creative_staff_maya.id,
+                'manager_feedback': 'Reassigning to Maya for advanced lighting and rendering.',
+            },
+            follow=True
+        )
+        self.assertEqual(reassign_post.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.branch, self.branch_edit)
+        self.assertEqual(task.assigned_to, self.creative_staff_maya)
+        self.assertEqual(task.status, Task.Status.ACTIVE)
 
     def test_overdue_task_automatically_transitions_to_on_hold(self):
         """Active task whose deadline has passed automatically moves to ON_HOLD."""

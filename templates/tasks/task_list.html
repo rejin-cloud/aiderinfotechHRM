@@ -53,25 +53,31 @@
 
 <!-- Task KPI Summary Counters -->
 <div class="row g-3 mb-4">
-  <div class="col-6 col-sm-3">
+  <div class="col-6 col-md">
     <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-list-task me-1"></i> Total Tasks</div>
+      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-list-task me-1"></i> Total</div>
       <div class="stat-val fs-4">{{ total_tasks }}</div>
     </div>
   </div>
-  <div class="col-6 col-sm-3">
+  <div class="col-6 col-md">
     <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-info fw-bold"><i class="bi bi-play-circle me-1"></i> Active / In Progress</div>
+      <div class="stat-lbl mb-1 text-info fw-bold"><i class="bi bi-play-circle me-1"></i> Active</div>
       <div class="stat-val fs-4">{{ active_tasks }}</div>
     </div>
   </div>
-  <div class="col-6 col-sm-3">
+  <div class="col-6 col-md">
     <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-warning fw-bold"><i class="bi bi-pause-circle me-1"></i> On Hold / Overdue</div>
+      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-hourglass-split me-1"></i> Under Review</div>
+      <div class="stat-val fs-4">{{ under_review_tasks }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-warning fw-bold"><i class="bi bi-pause-circle me-1"></i> On Hold</div>
       <div class="stat-val fs-4">{{ on_hold_tasks }}</div>
     </div>
   </div>
-  <div class="col-6 col-sm-3">
+  <div class="col-6 col-md">
     <div class="stat-card p-3">
       <div class="stat-lbl mb-1 text-success fw-bold"><i class="bi bi-check2-circle me-1"></i> Completed</div>
       <div class="stat-val fs-4">{{ completed_tasks }}</div>
