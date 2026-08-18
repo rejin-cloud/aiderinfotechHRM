@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Branch: {{ branch.name }} | HRMS V1{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <a href="{% url 'department_detail' branch.department.id %}" class="btn btn-sm btn-light border"><i class="bi bi-arrow-left"></i></a>
+      <h3 class="fw-bold mb-0">{{ branch.name }}</h3>
+      <span class="badge bg-secondary rounded-pill">{{ branch.member_count }} Personnel</span>
+    </div>
+    <p class="text-muted mb-0">
+      Parent Department: <strong>{{ branch.department.name }}</strong> &bull; Location: {{ branch.location|default:"Central Facility" }}
+    </p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if can_create_branch %}
+    <a href="{% url 'branch_update' branch.id %}" class="btn btn-outline-secondary">
+      <i class="bi bi-pencil me-1"></i> Edit Branch
+    </a>
+    <a href="{% url 'branch_delete' branch.id %}" class="btn btn-outline-danger">
+      <i class="bi bi-trash me-1"></i> Delete
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="hrms-card">
+  <div class="hrms-card-header">
+    <h5 class="hrms-card-title"><i class="bi bi-people-fill me-2 text-primary"></i> Personnel Stationed at {{ branch.name }}</h5>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Role</th>
+            <th>Designation</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mem in members %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ mem.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ mem.first_name|default:mem.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'user_detail' mem.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                    {{ mem.get_full_name|default:mem.username }}
+                  </a>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ mem.employee_id|default:mem.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td><span class="badge {{ mem.role_badge_class }}">{{ mem.get_role_display }}</span></td>
+            <td class="small">{{ mem.designation|default:"Staff" }}</td>
+            <td class="small text-muted">{{ mem.email|default:"—" }}</td>
+            <td class="small text-muted">{{ mem.phone|default:"—" }}</td>
+            <td>
+              <a href="{% url 'user_update' mem.id %}" class="btn btn-sm btn-light border py-0 px-2"><i class="bi bi-pencil"></i></a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" class="text-center py-4 text-muted">No personnel currently stationed at this branch.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

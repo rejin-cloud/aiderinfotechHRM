@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Apply for Leave | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="hrms-card shadow-sm">
+      <div class="hrms-card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="hrms-card-title text-white mb-0">
+          <i class="bi bi-calendar-plus me-2"></i> Submit Leave Application
+        </h5>
+        <a href="{% url 'my_leaves' %}" class="btn btn-sm btn-outline-light">
+          <i class="bi bi-list-check me-1"></i> My Leave Applications
+        </a>
+      </div>
+      <div class="hrms-card-body p-4">
+
+        <!-- Multi-Stage Policy Notice -->
+        <div class="alert alert-light border rounded-3 p-3 mb-4">
+          <h6 class="fw-bold text-dark mb-1"><i class="bi bi-info-circle text-primary me-1"></i> Aider Infotech Multi-Stage Approval Policy</h6>
+          <p class="small text-muted mb-0">
+            1. When submitted, your application is routed to your <strong>Department Manager</strong> for departmental review.<br>
+            2. The Department Manager reviews and forwards the application to the <strong>General Manager</strong> for final approval.<br>
+            3. Upon final approval, your official attendance record will be automatically marked as <em>On Leave</em>.
+          </p>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-4">
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'leave_apply' %}">
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Leave Type <span class="text-danger">*</span></label>
+              {{ form.leave_type }}
+              {% if form.leave_type.errors %}<div class="text-danger small mt-1">{{ form.leave_type.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Applicant Profile</label>
+              <input type="text" class="form-control bg-light" value="{{ request.user.get_full_name|default:request.user.username }} ({{ request.user.department.name|default:'Unassigned' }})" readonly>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold">Start Date <span class="text-danger">*</span></label>
+              {{ form.start_date }}
+              {% if form.start_date.errors %}<div class="text-danger small mt-1">{{ form.start_date.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-12 col-md-6" id="end-date-wrapper">
+              <label class="form-label fw-semibold">End Date <span class="text-danger">*</span></label>
+              {{ form.end_date }}
+              {% if form.end_date.errors %}<div class="text-danger small mt-1">{{ form.end_date.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Half Day Checkbox & Period -->
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="form-check form-switch mb-2">
+              {{ form.is_half_day }}
+              <label class="form-check-label fw-semibold" for="id_is_half_day">
+                Apply as Half-Day Leave (0.5 Day)
+              </label>
+            </div>
+
+            <div id="half-day-period-box" style="display: none;">
+              <label class="form-label small fw-semibold text-muted">Half-Day Session:</label>
+              {{ form.half_day_period }}
+              {% if form.half_day_period.errors %}<div class="text-danger small mt-1">{{ form.half_day_period.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Reason -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Reason for Leave <span class="text-danger">*</span></label>
+            {{ form.reason }}
+            {% if form.reason.errors %}<div class="text-danger small mt-1">{{ form.reason.errors }}</div>{% endif %}
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+            <a href="{% url 'attendance_hub' %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4 py-2 fw-bold shadow-sm">
+              <i class="bi bi-send-check-fill me-1"></i> Submit Leave Application
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const halfDayCheck = document.getElementById('id_is_half_day');
+    const periodBox = document.getElementById('half-day-period-box');
+    const startDateInput = document.getElementById('id_start_date');
+    const endDateInput = document.getElementById('id_end_date');
+
+    function toggleHalfDay() {
+      if (halfDayCheck.checked) {
+        periodBox.style.display = 'block';
+        if (startDateInput.value) {
+          endDateInput.value = startDateInput.value;
+        }
+      } else {
+        periodBox.style.display = 'none';
+      }
+    }
+
+    halfDayCheck.addEventListener('change', toggleHalfDay);
+    toggleHalfDay();
+
+    startDateInput.addEventListener('change', function() {
+      if (halfDayCheck.checked) {
+        endDateInput.value = startDateInput.value;
+      }
+    });
+  });
+</script>
+{% endblock %}

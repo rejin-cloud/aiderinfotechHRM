@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In | Aider Infotech{% endblock %}
+
+{% block auth_content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+      
+      <!-- Brand Logo & Header -->
+      <div class="text-center mb-4">
+        {% load static %}
+        <div class="d-inline-flex p-2 rounded-4 shadow-lg mb-3 bg-white" style="width: 80px; height: 80px;">
+          <img src="{% static 'img/logo.svg' %}" alt="Aider Infotech Logo" class="img-fluid">
+        </div>
+        <h2 class="fw-extrabold text-dark tracking-tight mb-1">Aider Infotech</h2>
+        <p class="text-muted">Enterprise Technology & Multi-Role Operations Portal</p>
+      </div>
+
+      <!-- Login Card -->
+      <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4 p-md-5">
+          {% include 'partials/messages.html' %}
+
+          <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="login-username" class="form-label fw-semibold">Username</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                {{ form.username }}
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label for="login-password" class="form-label fw-semibold">Password</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
+                {{ form.password }}
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm">
+              <i class="bi bi-box-arrow-in-right me-2"></i> Access Aider Portal
+            </button>
+
+            <div class="text-center mt-3 pt-2 border-top">
+              <span class="text-muted small">Don't have an account?</span>
+              <a href="{% url 'register' %}" class="fw-bold text-primary text-decoration-none small ms-1">
+                <i class="bi bi-person-plus me-1"></i>Register New Account
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="text-center text-muted small">
+        <span>Aider Infotech &bull; Cloud Infrastructure & Platform Services</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

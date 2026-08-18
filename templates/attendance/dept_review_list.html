@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Department Leave Review Queue | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Department Leave Review Queue</h3>
+    <p class="text-muted mb-0">
+      {% if department %}
+        Scoped Department: <strong class="text-primary">{{ department.name }}</strong> &bull; Review staff applications and forward recommendations to the General Manager.
+      {% else %}
+        Review staff applications across departments.
+      {% endif %}
+    </p>
+  </div>
+  <a href="{% url 'attendance_hub' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Attendance Hub
+  </a>
+</div>
+
+<div class="hrms-card">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center bg-warning bg-opacity-10 border-bottom border-warning border-opacity-25">
+    <h5 class="hrms-card-title text-dark mb-0">
+      <i class="bi bi-card-checklist me-2 text-warning"></i> Pending Departmental Reviews (Stage 1)
+    </h5>
+    <span class="badge bg-warning text-dark">{{ pending_leaves|length }} Awaiting Review</span>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Applicant</th>
+            <th>Leave Type</th>
+            <th>Dates</th>
+            <th>Duration</th>
+            <th>Reason</th>
+            <th>Review Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lv in pending_leaves %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ lv.user.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ lv.user.first_name|default:lv.user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <span class="fw-bold text-dark small d-block">{{ lv.user.get_full_name|default:lv.user.username }}</span>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ lv.user.designation|default:lv.user.get_role_display }} &bull; {{ lv.user.department.name|default:"—" }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="fw-bold text-dark small">{{ lv.get_leave_type_display }}</span>
+            </td>
+            <td>
+              <span class="small">{{ lv.start_date|date:"M d" }} &rarr; {{ lv.end_date|date:"M d, Y" }}</span>
+              {% if lv.is_half_day %}
+                <span class="badge bg-info-subtle text-info d-block" style="font-size: 0.65rem;">Half Day: {{ lv.get_half_day_period_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ lv.total_days }} day{{ lv.total_days|pluralize }}</span>
+            </td>
+            <td class="small text-muted" style="max-width: 250px;">
+              {{ lv.reason }}
+            </td>
+            <td>
+              <a href="{% url 'dept_manager_review_action' lv.id %}" class="btn btn-sm btn-warning text-dark fw-bold px-3 shadow-sm">
+                <i class="bi bi-pencil-square me-1"></i> Review & Decision
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted small">
+              <i class="bi bi-check-circle fs-2 d-block mb-2 text-success"></i>
+              No pending staff leave applications in your department queue.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

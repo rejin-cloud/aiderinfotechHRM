@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Employee: {{ target_user.get_full_name|default:target_user.username }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div class="d-flex align-items-center gap-2">
+    <a href="{% url 'user_list' %}" class="btn btn-sm btn-light border"><i class="bi bi-arrow-left"></i></a>
+    <div>
+      <h3 class="fw-bold mb-0">{{ target_user.get_full_name|default:target_user.username }}</h3>
+      <span class="text-muted small">@{{ target_user.username }} &bull; {{ target_user.employee_id|default:"EMP-AUTO" }}</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'export_dossier_user' target_user.id %}" class="btn btn-outline-danger">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Download PDF Dossier
+    </a>
+    {% if can_edit %}
+    <a href="{% url 'user_update' target_user.id %}" class="btn btn-primary">
+      <i class="bi bi-pencil me-1"></i> Edit Profile
+    </a>
+    {% endif %}
+    {% if user.is_super_or_server_admin and user.id != target_user.id %}
+    <a href="{% url 'user_delete' target_user.id %}" class="btn btn-outline-danger">
+      <i class="bi bi-trash me-1"></i> Delete
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-12 col-lg-4">
+    <div class="hrms-card text-center p-4">
+      <div class="avatar-circle avatar-lg mx-auto mb-3 shadow" style="background-color: {{ target_user.avatar_color|default:'#4f46e5' }};">
+        {{ target_user.first_name|default:target_user.username|slice:":1"|upper }}
+      </div>
+      <h4 class="fw-bold mb-1">{{ target_user.get_full_name|default:target_user.username }}</h4>
+      <div class="mb-3">
+        <span class="badge {{ target_user.role_badge_class }} py-2 px-3 rounded-pill">
+          Level {{ target_user.level }}: {{ target_user.get_role_display }}
+        </span>
+      </div>
+      <p class="text-muted small mb-0">{{ target_user.designation|default:"Staff Member" }}</p>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+    <div class="hrms-card">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-person-lines-fill me-2 text-primary"></i> Employment & Organizational Record</h5>
+      </div>
+      <div class="hrms-card-body">
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Department</label>
+            <span class="fw-bold fs-6">{{ target_user.department.name|default:"Unassigned" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Branch / Station</label>
+            <span class="fw-bold fs-6">{{ target_user.branch.name|default:"Core / Department Head" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Email Address</label>
+            <span class="fw-semibold">{{ target_user.email|default:"Not specified" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Phone</label>
+            <span class="fw-semibold">{{ target_user.phone|default:"Not specified" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Date Joined</label>
+            <span class="fw-semibold">{{ target_user.joining_date|default:target_user.date_joined|date:"F d, Y" }}</span>
+          </div>
+          <div class="col-sm-6">
+            <label class="text-muted small d-block">Status</label>
+            {% if target_user.is_active %}
+            <span class="badge bg-success-subtle text-success">Active & In Good Standing</span>
+            {% else %}
+            <span class="badge bg-danger-subtle text-danger">Inactive</span>
+            {% endif %}
+          </div>
+          {% if target_user.bio %}
+          <div class="col-12 border-top pt-3 mt-3">
+            <label class="text-muted small d-block">Bio / Notes</label>
+            <p class="text-secondary mb-0">{{ target_user.bio }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

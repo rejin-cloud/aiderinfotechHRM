@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="hrms-card shadow-sm">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-geo-alt-fill me-2 text-primary"></i> {{ title }}</h5>
+        <a href="{% url 'department_list' %}" class="btn btn-sm btn-light border">Cancel</a>
+      </div>
+      <div class="hrms-card-body p-4">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Parent Department <span class="text-danger">*</span></label>
+            {{ form.department }}
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Branch / Division Name <span class="text-danger">*</span></label>
+            {{ form.name }}
+            <div class="form-text">e.g. Marketing, Designing, Editing, IT Club Balussery, Calicut.</div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Physical Location / Office Station</label>
+            {{ form.location }}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'department_list' %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              {% if is_edit %}Save Changes{% else %}Provision Branch{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

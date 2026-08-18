@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Departments & Branches | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Departments & Operational Branches</h3>
+    <p class="text-muted mb-0">Manage organizational departments, branch locations, and team assignments.</p>
+  </div>
+  <div class="d-flex gap-2">
+    {% if can_create_branch_perm %}
+    <a href="{% url 'branch_create' %}" class="btn btn-outline-primary">
+      <i class="bi bi-node-plus me-1"></i> Add Branch
+    </a>
+    {% endif %}
+    {% if can_create_dept_perm %}
+    <a href="{% url 'department_create' %}" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Create Department
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for dept in departments %}
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100">
+      <div class="hrms-card-header">
+        <div>
+          <h5 class="hrms-card-title mb-1">
+            <a href="{% url 'department_detail' dept.id %}" class="text-decoration-none text-dark">
+              {{ dept.name }}
+            </a>
+          </h5>
+          <span class="badge bg-primary-subtle text-primary">{{ dept.member_count }} Members</span>
+        </div>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            Actions
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+            <li><a class="dropdown-item" href="{% url 'department_detail' dept.id %}"><i class="bi bi-eye me-2"></i> View Topology</a></li>
+            {% if can_create_branch_perm %}
+            <li><a class="dropdown-item" href="{% url 'branch_create' %}?dept_id={{ dept.id }}"><i class="bi bi-node-plus me-2 text-primary"></i> Add Branch</a></li>
+            {% endif %}
+            {% if can_create_dept_perm %}
+            <li><a class="dropdown-item" href="{% url 'department_update' dept.id %}"><i class="bi bi-pencil me-2 text-muted"></i> Edit Name/Info</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{% url 'department_delete' dept.id %}"><i class="bi bi-trash me-2"></i> Delete Department</a></li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+      
+      <div class="hrms-card-body">
+        <p class="text-muted small mb-3">{{ dept.description|default:"Standard organizational business unit and department division." }}</p>
+
+        <h6 class="fw-bold small text-uppercase text-secondary mb-2">Branches & Divisions ({{ dept.branches.count }}):</h6>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          {% for branch in dept.branches.all %}
+          <a href="{% url 'branch_detail' branch.id %}" class="badge bg-light text-dark border text-decoration-none py-2 px-3 rounded-pill d-inline-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-geo-alt text-primary"></i> {{ branch.name }}
+            <span class="badge bg-secondary-subtle text-secondary rounded-pill ms-1">{{ branch.member_count }}</span>
+          </a>
+          {% empty %}
+          <span class="text-muted small italic">None (Default core level)</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+        <a href="{% url 'department_detail' dept.id %}" class="small fw-semibold text-primary text-decoration-none">
+          Explore {{ dept.name }} Roster & Branches &rarr;
+        </a>
+        <a href="{% url 'export_excel' %}?department_id={{ dept.id }}" class="btn btn-sm btn-outline-success border-0" title="Export Department Excel">
+          <i class="bi bi-file-earmark-excel"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12 text-center py-5 text-muted">
+    <i class="bi bi-diagram-3 fs-1 d-block mb-3"></i>
+    <h5>No departments found.</h5>
+    <p>Get started by seeding database or creating your first department.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

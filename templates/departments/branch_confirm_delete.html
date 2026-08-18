@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Branch: {{ branch.name }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="hrms-card shadow-sm border-danger">
+      <div class="hrms-card-header bg-danger text-white">
+        <h5 class="hrms-card-title text-white"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Branch Deletion</h5>
+      </div>
+      <div class="hrms-card-body p-4 text-center">
+        <p class="fs-5 fw-bold text-danger">Are you sure you want to delete branch "{{ branch.name }}"?</p>
+        <p class="text-muted small">
+          Parent Department: <strong>{{ branch.department.name }}</strong>. Assigned members ({{ branch.users.count }}) will be reverted to core department level.
+        </p>
+
+        <form method="post" class="mt-4 d-flex justify-content-center gap-2">
+          {% csrf_token %}
+          <a href="{% url 'department_detail' branch.department.id %}" class="btn btn-light border">Cancel & Keep</a>
+          <button type="submit" class="btn btn-danger px-4">
+            <i class="bi bi-trash me-1"></i> Yes, Delete Branch
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

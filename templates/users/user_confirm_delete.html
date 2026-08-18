@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete User: {{ target_user.username }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="hrms-card shadow-sm border-danger">
+      <div class="hrms-card-header bg-danger text-white">
+        <h5 class="hrms-card-title text-white"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirm Personnel Account Deletion</h5>
+      </div>
+      <div class="hrms-card-body p-4 text-center">
+        <p class="fs-5 fw-bold text-danger">Are you sure you want to delete user "{{ target_user.get_full_name|default:target_user.username }}"?</p>
+        <p class="text-muted small">
+          Username: <strong>@{{ target_user.username }}</strong> &bull; Role: <strong>{{ target_user.get_role_display }}</strong> &bull; Department: <strong>{{ target_user.department.name|default:"Unassigned" }}</strong>
+        </p>
+
+        <form method="post" class="mt-4 d-flex justify-content-center gap-2">
+          {% csrf_token %}
+          <a href="{% url 'user_list' %}" class="btn btn-light border">Cancel & Keep</a>
+          <button type="submit" class="btn btn-danger px-4">
+            <i class="bi bi-trash me-1"></i> Yes, Delete User
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

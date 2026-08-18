@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Document & Reporting Hub | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Document Engine & Data Exports</h3>
+    <p class="text-muted mb-0">Generate multi-sheet Excel workbooks, executive PDF digests, and individual employee dossiers.</p>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Excel Engine Card -->
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100 border-success-subtle">
+      <div class="hrms-card-header bg-success-subtle">
+        <h5 class="hrms-card-title text-success"><i class="bi bi-file-earmark-excel-fill me-2"></i> Structured Multi-Department Excel Export</h5>
+      </div>
+      <div class="hrms-card-body">
+        <p class="text-secondary small mb-3">
+          Powered by <strong>pandas & openpyxl</strong>. Generates an enterprise-grade multi-sheet workbook containing executive KPI summaries, complete employee roster, and dedicated department branch tabs.
+        </p>
+
+        <form action="{% url 'export_excel' %}" method="get">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Select Scope:</label>
+            <select name="department_id" class="form-select">
+              <option value="">Full Enterprise (All Departments & Branches)</option>
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }} Only</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success text-white w-100 py-2">
+            <i class="bi bi-download me-2"></i> Generate & Download Excel Workbook (.xlsx)
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Engine Card -->
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100 border-danger-subtle">
+      <div class="hrms-card-header bg-danger-subtle">
+        <h5 class="hrms-card-title text-danger"><i class="bi bi-file-earmark-pdf-fill me-2"></i> Official HR Organization PDF Report</h5>
+      </div>
+      <div class="hrms-card-body">
+        <p class="text-secondary small mb-3">
+          Powered by <strong>ReportLab & WeasyPrint Architecture</strong>. Produces a formatted document with topology tables, RBAC tiers distribution, and master personnel listings.
+        </p>
+
+        <form action="{% url 'export_pdf' %}" method="get">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold">Select Scope:</label>
+            <select name="department_id" class="form-select">
+              <option value="">Full Enterprise (All Departments & Branches)</option>
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }} Only</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-danger w-100 py-2">
+            <i class="bi bi-file-earmark-pdf me-2"></i> Generate & Download Official PDF (.pdf)
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Personal Dossier Generator Card -->
+<div class="hrms-card">
+  <div class="hrms-card-header">
+    <h5 class="hrms-card-title"><i class="bi bi-person-badge me-2 text-primary"></i> Individual Employee Dossier & Identification Card</h5>
+  </div>
+  <div class="hrms-card-body">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <h6 class="fw-bold mb-1">Export Your Official Dossier Record</h6>
+        <p class="text-muted small mb-0">
+          Generates an official certified HR sheet for <strong>{{ user.get_full_name|default:user.username }}</strong> with role tier, department, branch, employee ID, and contact details.
+        </p>
+      </div>
+      <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{% url 'export_my_dossier' %}" class="btn btn-outline-primary">
+          <i class="bi bi-download me-1"></i> Download My Dossier (PDF)
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="hrms-card shadow-sm">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-person-badge me-2 text-primary"></i> {{ title }}</h5>
+        <a href="{% url 'user_list' %}" class="btn btn-sm btn-light border">Cancel</a>
+      </div>
+      <div class="hrms-card-body p-4">
+        {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong>Please resolve the following errors:</strong>
+          <ul class="mb-0 mt-1">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li><strong>{{ field|title }}:</strong> {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          
+          <h6 class="fw-bold text-uppercase text-secondary small mb-3 border-bottom pb-2">1. Account & Identity</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
+              {{ form.username }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Official Email</label>
+              {{ form.email }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">First Name</label>
+              {{ form.first_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Last Name</label>
+              {{ form.last_name }}
+            </div>
+            {% if not is_edit %}
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Initial Password <span class="text-danger">*</span></label>
+              {{ form.password }}
+            </div>
+            {% endif %}
+          </div>
+
+          <h6 class="fw-bold text-uppercase text-secondary small mb-3 border-bottom pb-2">2. Organization & Role Tier (RBAC)</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Assigned Role <span class="text-danger">*</span></label>
+              {{ form.role }}
+              <div class="form-text">Restricted to your operational assignment authority.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Employee ID</label>
+              {{ form.employee_id }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Department</label>
+              {{ form.department }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Branch / Station</label>
+              {{ form.branch }}
+              <div class="form-text">Filtered dynamically based on selected Department.</div>
+            </div>
+          </div>
+
+          <h6 class="fw-bold text-uppercase text-secondary small mb-3 border-bottom pb-2">3. Details & Contact</h6>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Designation / Title</label>
+              {{ form.designation }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Phone Number</label>
+              {{ form.phone }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Date of Joining</label>
+              {{ form.joining_date }}
+            </div>
+            {% if is_edit %}
+            <div class="col-12">
+              <label class="form-label fw-semibold">Bio / Notes</label>
+              {{ form.bio }}
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch mt-2">
+                {{ form.is_active }}
+                <label class="form-check-label fw-semibold ms-2" for="{{ form.is_active.id_for_label }}">Active Personnel Account</label>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{% url 'user_list' %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-primary px-4">
+              {% if is_edit %}Save Employee Changes{% else %}Register Employee{% endif %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

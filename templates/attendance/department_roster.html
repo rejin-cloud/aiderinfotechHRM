@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+{% block title %}Department Attendance Roster | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Department Attendance Registry</h3>
+    <p class="text-muted mb-0">
+      {% if current_dept %}
+        Scoped Department: <strong class="text-primary">{{ current_dept.name }}</strong> &bull; Showing team member check-ins.
+      {% else %}
+        Company-wide workforce attendance audit.
+      {% endif %}
+    </p>
+  </div>
+
+  <!-- Date & Department Filter -->
+  <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+    {% if dept_choices %}
+    <select name="department" class="form-select form-select-sm" onchange="this.form.submit()">
+      <option value="">All Departments</option>
+      {% for d in dept_choices %}
+      <option value="{{ d.id }}" {% if current_dept and d.id == current_dept.id %}selected{% endif %}>{{ d.name }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+
+    <input type="date" name="date" class="form-control form-select-sm" value="{{ selected_date|date:'Y-m-d' }}" onchange="this.form.submit()">
+
+    <div class="input-group input-group-sm" style="max-width: 200px;">
+      <input type="text" name="q" class="form-control" placeholder="Search employee..." value="{{ search_q }}">
+      <button type="submit" class="btn btn-outline-secondary"><i class="bi bi-search"></i></button>
+    </div>
+
+    {% if search_q or request.GET.department or request.GET.date %}
+    <a href="{% url 'department_attendance_roster' %}" class="btn btn-sm btn-light border" title="Reset Filters">
+      <i class="bi bi-x-circle"></i>
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+<!-- Daily KPI Counters -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-success fw-bold"><i class="bi bi-check-circle me-1"></i> Present Today</div>
+      <div class="stat-val fs-4">{{ present_cnt }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-warning fw-bold"><i class="bi bi-alarm me-1"></i> Late Arrivals</div>
+      <div class="stat-val fs-4">{{ late_cnt }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-airplane me-1"></i> On Leave</div>
+      <div class="stat-val fs-4">{{ leave_cnt }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-danger fw-bold"><i class="bi bi-x-circle me-1"></i> Absent / Pending</div>
+      <div class="stat-val fs-4">{{ absent_cnt }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Roster Table -->
+<div class="hrms-card">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center">
+    <h5 class="hrms-card-title mb-0">
+      <i class="bi bi-people-fill me-2 text-primary"></i> Team Roster for {{ selected_date|date:"F d, Y" }}
+    </h5>
+    <span class="badge bg-secondary-subtle text-secondary small">{{ total_employees }} Member{{ total_employees|pluralize }}</span>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Role & Tier</th>
+            <th>Department</th>
+            <th>Clock-In (IST)</th>
+            <th>Clock-Out (IST)</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in roster_rows %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ row.user.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ row.user.first_name|default:row.user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <span class="fw-bold text-dark small d-block">{{ row.user.get_full_name|default:row.user.username }}</span>
+                  <span class="text-muted" style="font-size: 0.75rem;">@{{ row.user.username }} &bull; {{ row.user.employee_id|default:"EMP-AUTO" }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ row.user.role_badge_class }}">Level {{ row.user.level }}: {{ row.user.get_role_display }}</span>
+            </td>
+            <td class="small">{{ row.user.department.name|default:"—" }}</td>
+            <td>
+              {% if row.record and row.record.check_in %}
+                <span class="fw-semibold text-dark">{{ row.record.check_in|date:"h:i A" }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.record and row.record.check_out %}
+                <span class="fw-semibold text-dark">{{ row.record.check_out|date:"h:i A" }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.record and row.record.work_duration_minutes %}
+                <span class="badge bg-light text-dark border">{{ row.record.formatted_duration }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.record %}
+                {% if row.record.status == 'LATE' or row.record.is_late %}
+                  <span class="badge bg-success text-white">Present</span>
+                  <span class="badge bg-warning text-dark ms-1">Late</span>
+                {% else %}
+                  <span class="badge {{ row.record.status_badge_class }}">{{ row.record.get_status_display }}</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-danger text-white">Absent / Not Clocked</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if row.record and row.record.check_in_notes %}
+                {{ row.record.check_in_notes }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted small">
+              <i class="bi bi-person-x fs-2 d-block mb-2 text-secondary"></i>
+              No department personnel found matching the criteria.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

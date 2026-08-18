@@ -1,0 +1,118 @@
+<aside class="app-sidebar">
+  {% load static %}
+  <a href="{% url 'dashboard_router' %}" class="sidebar-brand text-decoration-none">
+    <div class="d-flex align-items-center justify-content-center bg-white rounded-3 shadow-sm p-1" style="width: 36px; height: 36px;">
+      <img src="{% static 'img/logo.svg' %}" alt="Aider Logo" style="width: 28px; height: 28px;">
+    </div>
+    <div class="ms-1">
+      <span class="fw-bold tracking-tight text-white fs-5">Aider <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">Infotech</span></span>
+    </div>
+  </a>
+
+  <div class="sidebar-menu">
+    <div class="sidebar-heading">Core Navigation</div>
+    <a href="{% url 'dashboard_router' %}" class="sidebar-nav-link {% if request.resolver_match.url_name in 'dashboard_router superadmin_dashboard serveradmin_dashboard manager_dashboard hr_dashboard dept_manager_dashboard employee_dashboard' %}active{% endif %}">
+      <i class="bi bi-grid-1x2-fill"></i>
+      <span>Dashboard</span>
+    </a>
+
+    <div class="sidebar-heading">Organization & Structure</div>
+    <a href="{% url 'department_list' %}" class="sidebar-nav-link {% if 'department' in request.resolver_match.url_name or 'branch' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-diagram-3-fill"></i>
+      <span>Departments & Branches</span>
+      <span class="badge bg-secondary ms-auto">{{ stat_total_depts }}</span>
+    </a>
+
+    <div class="sidebar-heading">Human Resources</div>
+    <a href="{% url 'user_list' %}" class="sidebar-nav-link {% if 'user_' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-people-fill"></i>
+      <span>Employee Directory</span>
+      <span class="badge bg-secondary ms-auto">{{ stat_total_users }}</span>
+    </a>
+
+    {% if user.is_super_or_server_admin %}
+    <a href="{% url 'assign_employee' %}" class="sidebar-nav-link text-warning">
+      <i class="bi bi-person-check-fill"></i>
+      <span>Assign Employee & Role</span>
+    </a>
+    {% endif %}
+
+    {% if can_create_branch_perm %}
+    <a href="{% url 'branch_create' %}" class="sidebar-nav-link text-info">
+      <i class="bi bi-node-plus-fill"></i>
+      <span>Add New Branch</span>
+    </a>
+    {% endif %}
+
+    <div class="sidebar-heading">Attendance & Workforce</div>
+    <a href="{% url 'attendance_hub' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'attendance_hub' %}active{% endif %}">
+      <i class="bi bi-clock-history"></i>
+      <span>Attendance Hub</span>
+    </a>
+
+    {% if user.role != 'SUPERADMIN' %}
+    <a href="{% url 'leave_apply' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'leave_apply' %}active{% endif %}">
+      <i class="bi bi-calendar-plus"></i>
+      <span>Apply for Leave</span>
+    </a>
+    <a href="{% url 'my_leaves' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'my_leaves' %}active{% endif %}">
+      <i class="bi bi-calendar-check"></i>
+      <span>My Leave Tracker</span>
+    </a>
+    {% endif %}
+
+    {% if user.role == 'DEPT_MANAGER' or user.level <= 2 %}
+    <a href="{% url 'dept_manager_leave_reviews' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'dept_manager_leave_reviews' %}active{% endif %}">
+      <i class="bi bi-card-checklist"></i>
+      <span>Dept Review Queue</span>
+    </a>
+    {% endif %}
+
+    {% if user.level <= 2 %}
+    <a href="{% url 'manager_leave_approvals' %}" class="sidebar-nav-link text-primary {% if request.resolver_match.url_name == 'manager_leave_approvals' %}active{% endif %}">
+      <i class="bi bi-patch-check-fill"></i>
+      <span>Manager Approvals</span>
+    </a>
+    {% endif %}
+
+    {% if user.level <= 2 %}
+    <a href="{% url 'attendance_monthly_reports' %}" class="sidebar-nav-link {% if 'attendance_monthly' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-table"></i>
+      <span>Monthly Attendance</span>
+    </a>
+    {% endif %}
+
+    <div class="sidebar-heading">Analytics & Docs</div>
+    <a href="{% url 'reports_hub' %}" class="sidebar-nav-link {% if 'report' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-file-earmark-bar-graph-fill"></i>
+      <span>Export & Reports</span>
+    </a>
+
+    <div class="sidebar-heading">Account & System</div>
+    <a href="{% url 'profile' %}" class="sidebar-nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+      <i class="bi bi-person-badge-fill"></i>
+      <span>My Profile</span>
+    </a>
+    {% if user.is_staff %}
+    <a href="/admin/" target="_blank" class="sidebar-nav-link text-warning">
+      <i class="bi bi-gear-wide-connected"></i>
+      <span>Django Admin <i class="bi bi-box-arrow-up-right small ms-1"></i></span>
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="sidebar-user">
+    <div class="d-flex align-items-center gap-2">
+      <div class="avatar-circle" style="background-color: {{ user.avatar_color|default:'#4f46e5' }};">
+        {{ user.first_name|default:user.username|slice:":1"|upper }}
+      </div>
+      <div class="flex-grow-1 overflow-hidden">
+        <div class="text-white text-truncate small fw-bold">{{ user.get_full_name|default:user.username }}</div>
+        <div class="text-secondary text-truncate" style="font-size: 0.75rem;">{{ user.get_role_display }}</div>
+      </div>
+      <a href="{% url 'logout' %}" class="btn btn-sm btn-outline-danger border-0 p-1" title="Sign Out">
+        <i class="bi bi-box-arrow-right fs-5"></i>
+      </a>
+    </div>
+  </div>
+</aside>

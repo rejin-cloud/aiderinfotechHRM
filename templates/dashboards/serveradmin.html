@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Admin Dashboard | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Top Server KPI Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-dark text-white shadow-sm">
+        <i class="bi bi-hdd-network-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">Operational</div>
+        <div class="stat-lbl">System Engine Health</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-primary-subtle text-primary">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ total_users }}</div>
+        <div class="stat-lbl">Registered Personnel</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-success-subtle text-success">
+        <i class="bi bi-diagram-3-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ total_depts }}</div>
+        <div class="stat-lbl">Departments Active</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-danger-subtle text-danger">
+        <i class="bi bi-shield-lock-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">Level 1</div>
+        <div class="stat-lbl">Server Admin Tier</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Server Quick Operations Bar -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="fw-bold text-dark"><i class="bi bi-terminal-fill text-dark me-1"></i> Infrastructure & Personnel Controls:</span>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+        <i class="bi bi-person-check-fill me-1"></i> Assign Employee
+      </a>
+      <a href="{% url 'department_create' %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> Create Department
+      </a>
+      <a href="{% url 'branch_create' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-node-plus me-1"></i> Create Branch
+      </a>
+      <a href="{% url 'user_create' %}" class="btn btn-sm btn-outline-dark">
+        <i class="bi bi-person-plus me-1"></i> Add / Assign User
+      </a>
+      {% if user.is_staff %}
+      <a href="/admin/" target="_blank" class="btn btn-sm btn-dark">
+        <i class="bi bi-gear-fill me-1"></i> Django Core Admin <i class="bi bi-box-arrow-up-right small ms-1"></i>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- System Architecture & Environment Info -->
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-cpu-fill me-2 text-primary"></i> Server Architecture & Topology</h5>
+      </div>
+      <div class="hrms-card-body">
+        <ul class="list-group list-group-flush small">
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+            <span class="text-muted">Database Engine:</span>
+            <span class="badge bg-success-subtle text-success">SQLite / PostgreSQL (Active)</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+            <span class="text-muted">Auth & RBAC Matrix:</span>
+            <span class="badge bg-primary-subtle text-primary">4-Tier Hierarchical Governance</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+            <span class="text-muted">Document Export Engines:</span>
+            <span class="fw-semibold">ReportLab (PDF) & openpyxl (Excel)</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+            <span class="text-muted">Total Corporate Branches:</span>
+            <span class="fw-bold">{{ total_branches }} Nodes</span>
+          </li>
+        </ul>
+
+        <div class="mt-3 p-3 bg-light rounded-3 border">
+          <span class="fw-bold small d-block mb-1"><i class="bi bi-shield-check text-success me-1"></i> Level 1 System Authority</span>
+          <p class="text-muted small mb-0">
+            Server Admins hold root architectural permissions equivalent to the Superadmin, including department creation, node management, and universal role assignments.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Hierarchy Distribution -->
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-pie-chart-fill me-2 text-primary"></i> System Role Distribution</h5>
+        <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-outline-warning text-dark fw-bold">
+          <i class="bi bi-person-check me-1"></i> Assign Roles
+        </a>
+      </div>
+      <div class="hrms-card-body">
+        <div class="d-flex flex-column gap-3">
+          {% for role_key, count in role_dict.items %}
+          <div>
+            <div class="d-flex justify-content-between small fw-semibold mb-1">
+              <span>{{ role_key }}</span>
+              <span class="badge bg-secondary-subtle text-secondary">{{ count }} User{{ count|pluralize }}</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-dark" role="progressbar" style="width: {% if total_users > 0 %}{% widthratio count total_users 100 %}%{% else %}0%{% endif %};"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Personnel Records -->
+<div class="hrms-card mt-4">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center">
+    <h5 class="hrms-card-title mb-0"><i class="bi bi-people me-2 text-primary"></i> System Personnel Audit Roster</h5>
+    <div class="d-flex gap-2">
+      <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-warning text-dark fw-semibold">
+        <i class="bi bi-person-check-fill me-1"></i> Assign Employee
+      </a>
+      <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">Full Directory</a>
+    </div>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Role & Tier</th>
+            <th>Department</th>
+            <th>Branch</th>
+            <th>Joined</th>
+            <th>Assignment Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ u.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ u.first_name|default:u.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'user_detail' u.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                    {{ u.get_full_name|default:u.username }}
+                  </a>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ u.employee_id|default:u.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ u.role_badge_class }} badge-level">
+                Level {{ u.level }}: {{ u.get_role_display }}
+              </span>
+            </td>
+            <td>{{ u.department.name|default:"—" }}</td>
+            <td>{{ u.branch.name|default:"Core / None" }}</td>
+            <td class="text-muted small">{{ u.joining_date|default:u.date_joined|date:"M d, Y" }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'assign_specific_employee' u.id %}" class="btn btn-sm btn-warning text-dark py-0 px-2 fw-semibold" title="Assign Role & Dept">
+                  <i class="bi bi-person-check-fill me-1"></i> Assign
+                </a>
+                <a href="{% url 'user_update' u.id %}" class="btn btn-sm btn-light border py-0 px-2 text-muted" title="Edit Profile">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted small">No users in database.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

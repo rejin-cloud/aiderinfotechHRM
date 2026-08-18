@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Manager Operations Hub | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Welcome & Department Scope Banner -->
+<div class="card border-0 bg-primary text-white shadow-sm rounded-4 mb-4 p-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <span class="badge bg-white text-primary fw-bold mb-2">Level 2 Operational Authority</span>
+      <h3 class="fw-bold mb-1">Branch Operations & Team Management</h3>
+      <p class="mb-0 text-white-50">
+        Assigned Department: <strong>{{ current_dept.name|default:"Enterprise General Operations" }}</strong> &bull; Full Branch Creation & Subordinate Oversight Authority.
+      </p>
+    </div>
+    <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+      <a href="{% url 'manager_leave_approvals' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2">
+        <i class="bi bi-patch-check-fill me-1"></i> Approve Leaves
+      </a>
+      <a href="{% url 'attendance_monthly_reports' %}" class="btn btn-light text-primary fw-bold shadow-sm px-3 py-2">
+        <i class="bi bi-table me-1"></i> Monthly Attendance
+      </a>
+      <a href="{% url 'branch_create' %}" class="btn btn-outline-light px-3 py-2">
+        <i class="bi bi-node-plus-fill me-1"></i> New Branch
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-4">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-info-subtle text-info">
+        <i class="bi bi-diagram-3-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ managed_branches.count }}</div>
+        <div class="stat-lbl">Operational Branches</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-4">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-success-subtle text-success">
+        <i class="bi bi-person-badge-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ dept_managers.count }}</div>
+        <div class="stat-lbl">Department Managers</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-4">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-primary-subtle text-primary">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ dept_members.count }}</div>
+        <div class="stat-lbl">Department Personnel</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Dedicated Branch Management Section -->
+<div class="hrms-card mb-4">
+  <div class="hrms-card-header">
+    <div>
+      <h5 class="hrms-card-title"><i class="bi bi-geo-alt-fill me-2 text-primary"></i> Dedicated Branch Management & Expansion Hub</h5>
+      <span class="text-muted small">Branches managed by your role. You have authority to provision new branches and assign team leads.</span>
+    </div>
+    <a href="{% url 'branch_create' %}" class="btn btn-sm btn-primary">
+      <i class="bi bi-plus-lg me-1"></i> Add Branch
+    </a>
+  </div>
+  <div class="hrms-card-body">
+    <div class="row g-3">
+      {% for branch in managed_branches %}
+      <div class="col-12 col-md-6 col-xl-4">
+        <div class="card h-100 border border-light-subtle shadow-sm rounded-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h6 class="fw-bold text-dark mb-0">{{ branch.name }}</h6>
+              <span class="badge bg-primary-subtle text-primary">{{ branch.member_count }} Members</span>
+            </div>
+            <p class="text-muted small mb-2"><i class="bi bi-building me-1"></i> {{ branch.department.name }}</p>
+            <p class="text-secondary small mb-3"><i class="bi bi-geo-alt me-1"></i> {{ branch.location|default:"Central Facility" }}</p>
+            <div class="d-flex gap-2">
+              <a href="{% url 'branch_detail' branch.id %}" class="btn btn-sm btn-outline-secondary flex-grow-1">View Details</a>
+              <a href="{% url 'branch_update' branch.id %}" class="btn btn-sm btn-light border"><i class="bi bi-pencil"></i></a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-4 text-muted">
+        <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+        No branches provisioned yet. Use the "Add Branch" button above to expand your department.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Department Managers & Subordinates Roster -->
+<div class="row g-4">
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-person-badge-fill me-2 text-success"></i> Department Managers</h5>
+        <a href="{% url 'user_create' %}" class="btn btn-sm btn-outline-success">+ Assign Dept Mgr</a>
+      </div>
+      <div class="hrms-card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hrms align-middle">
+            <thead>
+              <tr>
+                <th>Manager</th>
+                <th>Branch Assignment</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for mgr in dept_managers %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-dark">{{ mgr.get_full_name|default:mgr.username }}</div>
+                  <span class="text-muted small">{{ mgr.email|default:mgr.username }}</span>
+                </td>
+                <td>{{ mgr.branch.name|default:"All Branches / Core" }}</td>
+                <td>
+                  <a href="{% url 'user_update' mgr.id %}" class="btn btn-sm btn-light border py-0 px-2"><i class="bi bi-pencil"></i></a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center py-3 text-muted small">No department managers assigned yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-people-fill me-2 text-primary"></i> Team Personnel</h5>
+        <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">View Directory</a>
+      </div>
+      <div class="hrms-card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hrms align-middle">
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Role</th>
+                <th>Branch</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for mem in staff_members|slice:":6" %}
+              <tr>
+                <td>
+                  <div class="fw-bold text-dark">{{ mem.get_full_name|default:mem.username }}</div>
+                  <span class="text-muted small">{{ mem.designation|default:"Staff" }}</span>
+                </td>
+                <td><span class="badge {{ mem.role_badge_class }}">{{ mem.get_role_display }}</span></td>
+                <td class="small">{{ mem.branch.name|default:"Core" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center py-3 text-muted small">No team members assigned yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

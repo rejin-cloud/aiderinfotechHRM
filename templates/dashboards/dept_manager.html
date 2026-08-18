@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Department Manager Portal | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Department Scope Banner -->
+<div class="card border-0 bg-success text-white shadow-sm rounded-4 mb-4 p-4">
+  <div class="row align-items-center">
+    <div class="col-md-8">
+      <span class="badge bg-white text-success fw-bold mb-2">Level 3 Subordinate Management Authority</span>
+      <h3 class="fw-bold mb-1">{{ current_dept.name|default:"General Department" }} &bull; Team Operations</h3>
+      <p class="mb-0 text-white-50">
+        Assigned Branch: <strong>{{ current_branch.name|default:"Department Core Wing" }}</strong> &bull; Direct managerial authority over Executives, Interns, and Staff.
+      </p>
+    </div>
+    <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+      <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2">
+        <i class="bi bi-card-checklist me-1"></i> Review Leaves
+      </a>
+      <a href="{% url 'department_attendance_roster' %}" class="btn btn-light text-success fw-bold shadow-sm px-3 py-2">
+        <i class="bi bi-clock-history me-1"></i> Dept Attendance
+      </a>
+      <a href="{% url 'user_create' %}" class="btn btn-outline-light px-3 py-2">
+        <i class="bi bi-person-plus-fill me-1"></i> Add Member
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-success-subtle text-success">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ total_subordinates }}</div>
+        <div class="stat-lbl">Direct Subordinates</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-warning-subtle text-warning">
+        <i class="bi bi-briefcase-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ executives_count }}</div>
+        <div class="stat-lbl">Executives</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-purple-subtle text-primary">
+        <i class="bi bi-mortarboard-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ interns_count }}</div>
+        <div class="stat-lbl">Interns</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-secondary-subtle text-secondary">
+        <i class="bi bi-person-lines-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ staff_count }}</div>
+        <div class="stat-lbl">Staff Members</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Subordinates Management Table -->
+<div class="hrms-card">
+  <div class="hrms-card-header">
+    <div>
+      <h5 class="hrms-card-title"><i class="bi bi-person-check-fill me-2 text-success"></i> Team Members Under Your Supervision</h5>
+      <span class="text-muted small">You have operational authority to manage, update, and oversee these team members.</span>
+    </div>
+    <a href="{% url 'user_create' %}" class="btn btn-sm btn-success">
+      <i class="bi bi-person-plus me-1"></i> Add Subordinate
+    </a>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Role & Tier</th>
+            <th>Designation</th>
+            <th>Branch</th>
+            <th>Contact</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subordinates %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ sub.avatar_color|default:'#4f46e5' }}; width: 34px; height: 34px;">
+                  {{ sub.first_name|default:sub.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'user_detail' sub.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                    {{ sub.get_full_name|default:sub.username }}
+                  </a>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ sub.employee_id|default:sub.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ sub.role_badge_class }}">
+                {{ sub.get_role_display }}
+              </span>
+            </td>
+            <td class="small fw-semibold">{{ sub.designation|default:"Staff" }}</td>
+            <td class="small text-muted">{{ sub.branch.name|default:"Department Core" }}</td>
+            <td class="small">
+              <div><i class="bi bi-envelope me-1 text-muted"></i> {{ sub.email|default:"N/A" }}</div>
+              {% if sub.phone %}<div><i class="bi bi-telephone me-1 text-muted"></i> {{ sub.phone }}</div>{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'user_update' sub.id %}" class="btn btn-sm btn-light border py-0 px-2" title="Edit Profile">
+                  <i class="bi bi-pencil text-muted"></i>
+                </a>
+                <a href="{% url 'export_dossier_user' sub.id %}" class="btn btn-sm btn-light border py-0 px-2 text-danger" title="Download PDF Dossier">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">
+              <i class="bi bi-people fs-2 d-block mb-2"></i>
+              No subordinate employees assigned to your branch yet. Use "+ Add Subordinate" to register new members.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

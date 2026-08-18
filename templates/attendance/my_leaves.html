@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}My Leave Applications | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">My Leave Applications & Timeline</h3>
+    <p class="text-muted mb-0">Track multi-stage approval progress, review notes, and final decisions.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'leave_apply' %}" class="btn btn-primary shadow-sm">
+      <i class="bi bi-calendar-plus me-1"></i> New Leave Request
+    </a>
+    <a href="{% url 'attendance_hub' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Attendance Hub
+    </a>
+  </div>
+</div>
+
+<div class="hrms-card">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center">
+    <h5 class="hrms-card-title mb-0">
+      <i class="bi bi-calendar2-range me-2 text-primary"></i> Leave Application Registry
+    </h5>
+    <span class="badge bg-secondary-subtle text-secondary small">{{ leaves|length }} Application{{ leaves|length|pluralize }}</span>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Duration</th>
+            <th>Total Days</th>
+            <th>Current Stage & Status</th>
+            <th>Department Review Notes</th>
+            <th>Manager Approval Notes</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lv in leaves %}
+          <tr>
+            <td>
+              <span class="fw-bold text-dark d-block">{{ lv.get_leave_type_display }}</span>
+              <span class="text-muted small" style="font-size: 0.75rem;">Applied on {{ lv.created_at|date:"M d, Y" }}</span>
+            </td>
+            <td>
+              <span class="fw-semibold text-dark">{{ lv.start_date|date:"M d, Y" }}</span>
+              {% if lv.start_date != lv.end_date %}
+                <span class="text-muted small d-block">&rarr; {{ lv.end_date|date:"M d, Y" }}</span>
+              {% endif %}
+              {% if lv.is_half_day %}
+                <span class="badge bg-info-subtle text-info border small" style="font-size: 0.7rem;">Half Day: {{ lv.get_half_day_period_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ lv.total_days }} day{{ lv.total_days|pluralize }}</span>
+            </td>
+            <td>
+              <span class="badge {{ lv.status_badge_class }} mb-1">{{ lv.get_status_display }}</span>
+              {% if lv.status == 'PENDING_DEPT_REVIEW' %}
+                <span class="text-muted small d-block" style="font-size: 0.75rem;">Awaiting Dept Manager</span>
+              {% elif lv.status == 'PENDING_MANAGER_APPROVAL' %}
+                <span class="text-primary small d-block" style="font-size: 0.75rem;">Forwarded to General Manager</span>
+              {% elif lv.status == 'APPROVED' %}
+                <span class="text-success small d-block" style="font-size: 0.75rem;"><i class="bi bi-check-circle"></i> Official Approved</span>
+              {% elif lv.status == 'REJECTED' %}
+                <span class="text-danger small d-block" style="font-size: 0.75rem;"><i class="bi bi-x-circle"></i> Declined</span>
+              {% endif %}
+            </td>
+            <td class="small" style="max-width: 220px;">
+              {% if lv.dept_manager_notes %}
+                <div class="text-dark">{{ lv.dept_manager_notes }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">By {{ lv.reviewed_by_dept_manager.get_full_name|default:lv.reviewed_by_dept_manager.username }} on {{ lv.dept_manager_reviewed_at|date:"M d" }}</div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="small" style="max-width: 220px;">
+              {% if lv.manager_decision_notes %}
+                <div class="text-dark">{{ lv.manager_decision_notes }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">By {{ lv.approved_by_manager.get_full_name|default:lv.approved_by_manager.username }} on {{ lv.manager_decided_at|date:"M d" }}</div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if lv.status == 'PENDING_DEPT_REVIEW' or lv.status == 'PENDING_MANAGER_APPROVAL' %}
+                <a href="{% url 'cancel_leave' lv.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this leave application?');">
+                  Cancel
+                </a>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted small">
+              <i class="bi bi-calendar2-x fs-2 d-block mb-2 text-secondary"></i>
+              No leave applications submitted yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

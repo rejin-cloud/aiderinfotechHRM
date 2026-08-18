@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Leave Application | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="hrms-card shadow-sm">
+      <div class="hrms-card-header bg-warning bg-opacity-10 border-bottom border-warning border-opacity-25 d-flex justify-content-between align-items-center">
+        <h5 class="hrms-card-title text-dark mb-0">
+          <i class="bi bi-card-checklist me-2 text-warning"></i> Departmental Review (Stage 1)
+        </h5>
+        <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-sm btn-light border">
+          <i class="bi bi-arrow-left me-1"></i> Back to Queue
+        </a>
+      </div>
+      <div class="hrms-card-body p-4">
+        
+        <!-- Applicant Details Summary Card -->
+        <div class="p-3 bg-light rounded-3 border mb-4">
+          <div class="row g-3">
+            <div class="col-6 col-md-3">
+              <span class="text-muted small d-block">Applicant:</span>
+              <strong class="text-dark">{{ leave_req.user.get_full_name|default:leave_req.user.username }}</strong>
+            </div>
+            <div class="col-6 col-md-3">
+              <span class="text-muted small d-block">Department:</span>
+              <strong>{{ leave_req.user.department.name|default:"Unassigned" }}</strong>
+            </div>
+            <div class="col-6 col-md-3">
+              <span class="text-muted small d-block">Leave Type:</span>
+              <span class="badge bg-primary text-white">{{ leave_req.get_leave_type_display }}</span>
+            </div>
+            <div class="col-6 col-md-3">
+              <span class="text-muted small d-block">Requested Dates:</span>
+              <strong>{{ leave_req.start_date|date:"M d" }} &rarr; {{ leave_req.end_date|date:"M d, Y" }}</strong>
+              <span class="badge bg-light text-dark border d-block mt-1">{{ leave_req.total_days }} day{{ leave_req.total_days|pluralize }}</span>
+            </div>
+            <div class="col-12 mt-2 pt-2 border-top">
+              <span class="text-muted small d-block">Applicant's Stated Reason:</span>
+              <p class="text-dark small mb-0">{{ leave_req.reason }}</p>
+            </div>
+          </div>
+        </div>
+
+        <form method="post">
+          {% csrf_token %}
+
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">Your Department Review Action <span class="text-danger">*</span></label>
+            <div class="p-3 bg-light rounded-3 border">
+              {% for radio in form.action %}
+              <div class="form-check mb-2">
+                {{ radio.tag }}
+                <label class="form-check-label fw-semibold" for="{{ radio.id_for_label }}">
+                  {{ radio.choice_label }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Department Review Remarks / Recommendation Notes:</label>
+            {{ form.notes }}
+            <div class="form-text small text-muted">These notes will be passed directly to the General Manager in the final approval stage.</div>
+          </div>
+
+          <div class="d-flex justify-content-between pt-3 border-top">
+            <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-light border">Cancel</a>
+            <button type="submit" class="btn btn-warning text-dark fw-bold px-4 shadow-sm">
+              <i class="bi bi-check2-circle me-1"></i> Submit Review Decision
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

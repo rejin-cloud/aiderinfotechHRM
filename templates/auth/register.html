@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Account | Aider Infotech{% endblock %}
+
+{% block auth_content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-10 col-lg-8 col-xl-6">
+      
+      <!-- Brand Logo & Header -->
+      <div class="text-center mb-4">
+        {% load static %}
+        <div class="d-inline-flex p-2 rounded-4 shadow-lg mb-3 bg-white" style="width: 80px; height: 80px;">
+          <img src="{% static 'img/logo.svg' %}" alt="Aider Infotech Logo" class="img-fluid">
+        </div>
+        <h2 class="fw-extrabold text-dark tracking-tight mb-1">Create an Account</h2>
+        <p class="text-muted">Join Aider Infotech Enterprise Platform</p>
+      </div>
+
+      <!-- Register Card -->
+      <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-4 p-md-5">
+          {% include 'partials/messages.html' %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+          {% endif %}
+
+          <form method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+
+            <!-- Username -->
+            <div class="mb-3">
+              <label for="register-username" class="form-label fw-semibold">
+                Username <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-person"></i></span>
+                {{ form.username }}
+              </div>
+              {% if form.username.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.username.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+              <label for="register-email" class="form-label fw-semibold">
+                Email Address <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
+                {{ form.email }}
+              </div>
+              {% if form.email.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.email.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Phone -->
+            <div class="mb-3">
+              <label for="register-phone" class="form-label fw-semibold">
+                Phone Number
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-telephone"></i></span>
+                {{ form.phone }}
+              </div>
+              {% if form.phone.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.phone.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Department (Populated from Admin-Created Departments) -->
+            <div class="mb-3">
+              <label for="register-department" class="form-label fw-semibold">
+                Department
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-building"></i></span>
+                {{ form.department }}
+              </div>
+              <div class="form-text text-muted small">
+                Select from organizational departments provisioned by administrators.
+              </div>
+              {% if form.department.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.department.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Password -->
+            <div class="mb-3">
+              <label for="register-password" class="form-label fw-semibold">
+                Password <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-lock"></i></span>
+                {{ form.password }}
+              </div>
+              {% if form.password.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.password.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Confirm Password -->
+            <div class="mb-4">
+              <label for="register-confirm-password" class="form-label fw-semibold">
+                Confirm Password <span class="text-danger">*</span>
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-shield-check"></i></span>
+                {{ form.confirm_password }}
+              </div>
+              {% if form.confirm_password.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.confirm_password.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100 py-3 fw-bold shadow-sm">
+              <i class="bi bi-person-check me-2"></i> Register Account
+            </button>
+
+            <div class="text-center mt-4 pt-2 border-top">
+              <span class="text-muted small">Already have an account?</span>
+              <a href="{% url 'login' %}" class="fw-bold text-primary text-decoration-none small ms-1">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Sign In here
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="text-center text-muted small">
+        <span>Aider Infotech &bull; Cloud Infrastructure & Platform Services</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

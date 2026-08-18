@@ -1,0 +1,16 @@
+<div class="role-switcher-banner">
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-primary text-white"><i class="bi bi-shield-lock-fill me-1"></i> RBAC Switcher</span>
+    <span class="text-light opacity-75 small d-none d-md-inline">Explore system permissions live as any role:</span>
+  </div>
+  <div class="d-flex align-items-center flex-wrap gap-1">
+    {% for acc in demo_accounts %}
+    <a href="{% url 'quick_switch_user' acc.id %}" 
+       class="role-pill-btn {% if current_user.id == acc.id %}active{% endif %}"
+       title="{{ acc.get_full_name }} ({{ acc.get_role_display }})">
+      <span class="badge rounded-circle p-1" style="background-color: {{ acc.avatar_color }}; width: 8px; height: 8px; display: inline-block;"></span>
+      {{ acc.get_role_display }}
+    </a>
+    {% endfor %}
+  </div>
+</div>

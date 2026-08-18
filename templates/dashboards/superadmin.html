@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+
+{% block title %}Superadmin Dashboard | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Top KPI Stats Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-primary-subtle text-primary">
+        <i class="bi bi-people-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ total_users }}</div>
+        <div class="stat-lbl">Total Personnel</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-success-subtle text-success">
+        <i class="bi bi-diagram-3-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ total_depts }}</div>
+        <div class="stat-lbl">Departments</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-info-subtle text-info">
+        <i class="bi bi-geo-alt-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val">{{ total_branches }}</div>
+        <div class="stat-lbl">Active Branches</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="stat-card d-flex align-items-center gap-3">
+      <div class="stat-icon-wrapper bg-danger-subtle text-danger">
+        <i class="bi bi-shield-shaded"></i>
+      </div>
+      <div>
+        <div class="stat-val">Level 1</div>
+        <div class="stat-lbl">Full Authority</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Action Shortcuts Bar -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span class="fw-bold text-dark"><i class="bi bi-lightning-fill text-warning me-1"></i> Quick Superadmin Operations:</span>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+        <i class="bi bi-person-check-fill me-1"></i> Assign Employee
+      </a>
+      <a href="{% url 'department_create' %}" class="btn btn-sm btn-primary">
+        <i class="bi bi-plus-circle me-1"></i> Create Department
+      </a>
+      <a href="{% url 'branch_create' %}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-node-plus me-1"></i> Create Branch
+      </a>
+      <a href="{% url 'user_create' %}" class="btn btn-sm btn-outline-dark">
+        <i class="bi bi-person-plus me-1"></i> Add / Assign User
+      </a>
+      <a href="{% url 'export_excel' %}" class="btn btn-sm btn-success text-white">
+        <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+      </a>
+      <a href="{% url 'export_pdf' %}" class="btn btn-sm btn-danger">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF Report
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Department Topology Card -->
+  <div class="col-12 col-lg-7">
+    <div class="hrms-card">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-building me-2 text-primary"></i> Corporate Departmental Topology</h5>
+        <a href="{% url 'department_list' %}" class="btn btn-sm btn-outline-secondary">Manage All</a>
+      </div>
+      <div class="hrms-card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hrms align-middle">
+            <thead>
+              <tr>
+                <th>Department</th>
+                <th>Branches</th>
+                <th>Staff Count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for dept in departments %}
+              <tr>
+                <td>
+                  <a href="{% url 'department_detail' dept.id %}" class="fw-bold text-decoration-none text-dark">
+                    {{ dept.name }}
+                  </a>
+                  <div class="text-muted small text-truncate" style="max-width: 200px;">{{ dept.description|default:"Core organizational division" }}</div>
+                </td>
+                <td>
+                  <span class="badge bg-secondary-subtle text-secondary border">{{ dept.branches_count }} Branches</span>
+                </td>
+                <td>
+                  <span class="fw-bold">{{ dept.members_count }}</span> members
+                </td>
+                <td>
+                  <a href="{% url 'branch_create' %}?dept_id={{ dept.id }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="Add Branch">
+                    + Branch
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">No departments configured yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Breakdown & RBAC Status -->
+  <div class="col-12 col-lg-5">
+    <div class="hrms-card">
+      <div class="hrms-card-header">
+        <h5 class="hrms-card-title"><i class="bi bi-pie-chart-fill me-2 text-primary"></i> Role Distribution</h5>
+      </div>
+      <div class="hrms-card-body">
+        <div class="d-flex flex-column gap-3">
+          {% for role_key, role_label in all_roles_list %}
+          <div>
+            <div class="d-flex justify-content-between small fw-semibold mb-1">
+              <span>{{ role_label }}</span>
+              <span class="text-muted">{{ role_dict|default_if_none:""|dictsort:role_key|length }} users</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: {% if total_users > 0 %}15%{% else %}0%{% endif %};"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Role Assignments for Newly Registered Employees -->
+{% if unassigned_or_staff_users %}
+<div class="hrms-card mt-4 border-warning border-opacity-50">
+  <div class="hrms-card-header bg-warning bg-opacity-10 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h5 class="hrms-card-title text-dark mb-0">
+        <i class="bi bi-person-check-fill text-warning me-2"></i> Newly Joined Staff & Pending Role Assignments
+      </h5>
+      <span class="text-muted small">Registered staff members ready for departmental and system role elevation</span>
+    </div>
+    <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+      <i class="bi bi-sliders me-1"></i> Open Assignment Hub
+    </a>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Registered Employee</th>
+            <th>Current Role</th>
+            <th>Registered Dept</th>
+            <th>Registered Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for emp in unassigned_or_staff_users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ emp.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ emp.first_name|default:emp.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'user_detail' emp.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                    {{ emp.get_full_name|default:emp.username }}
+                  </a>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ emp.email|default:emp.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ emp.role_badge_class }}">
+                {{ emp.get_role_display }}
+              </span>
+            </td>
+            <td>
+              <span class="fw-semibold text-primary small">{{ emp.department.name|default:"Unassigned Dept" }}</span>
+            </td>
+            <td class="text-muted small">
+              {{ emp.joining_date|default:emp.date_joined|date:"M d, Y" }}
+            </td>
+            <td>
+              <a href="{% url 'assign_specific_employee' emp.id %}" class="btn btn-sm btn-warning text-dark fw-bold px-3 py-1 shadow-sm">
+                <i class="bi bi-person-check-fill me-1"></i> Assign Role & Dept
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Recent Personnel Table -->
+<div class="hrms-card mt-4">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center">
+    <h5 class="hrms-card-title mb-0"><i class="bi bi-clock-history me-2 text-primary"></i> Recent Personnel Records</h5>
+    <div class="d-flex gap-2">
+      <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-warning text-dark fw-semibold">
+        <i class="bi bi-person-check-fill me-1"></i> Assign
+      </a>
+      <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">View Full Directory</a>
+    </div>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Role & Tier</th>
+            <th>Department</th>
+            <th>Branch</th>
+            <th>Joined</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in recent_users %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ u.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ u.first_name|default:u.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'user_detail' u.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                    {{ u.get_full_name|default:u.username }}
+                  </a>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ u.employee_id|default:u.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ u.role_badge_class }} badge-level">
+                Level {{ u.level }}: {{ u.get_role_display }}
+              </span>
+            </td>
+            <td>{{ u.department.name|default:"—" }}</td>
+            <td>{{ u.branch.name|default:"Core / None" }}</td>
+            <td class="text-muted small">{{ u.joining_date|default:u.date_joined|date:"M d, Y" }}</td>
+            <td>
+              <div class="d-flex gap-1">
+                <a href="{% url 'assign_specific_employee' u.id %}" class="btn btn-sm btn-outline-warning text-dark py-0 px-2 fw-semibold" title="Assign Role & Dept">
+                  <i class="bi bi-person-check-fill"></i>
+                </a>
+                <a href="{% url 'user_update' u.id %}" class="btn btn-sm btn-light border py-0 px-2 text-muted" title="Edit Profile">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

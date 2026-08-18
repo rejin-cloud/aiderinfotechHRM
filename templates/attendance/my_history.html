@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block title %}My Attendance History | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">My Personal Attendance History</h3>
+    <p class="text-muted mb-0">Review your daily clock-in/out logs, work hours, and status breakdown.</p>
+  </div>
+  
+  <!-- Month / Year Selector Form -->
+  <form method="get" class="d-flex align-items-center gap-2">
+    <select name="month" class="form-select form-select-sm" onchange="this.form.submit()">
+      {% for m_val, m_name in months %}
+      <option value="{{ m_val }}" {% if m_val == selected_month %}selected{% endif %}>{{ m_name }}</option>
+      {% endfor %}
+    </select>
+    <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+      {% for y in years %}
+      <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <a href="{% url 'attendance_hub' %}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i> Today
+    </a>
+  </form>
+</div>
+
+<!-- Monthly Summary KPI Row -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-sm-4 col-xl-2">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-success fw-bold"><i class="bi bi-check-circle me-1"></i> Present</div>
+      <div class="stat-val fs-4">{{ stats.present }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-xl-2">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-warning fw-bold"><i class="bi bi-alarm me-1"></i> Late</div>
+      <div class="stat-val fs-4">{{ stats.late }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-xl-2">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-info fw-bold"><i class="bi bi-clock-split me-1"></i> Half Day</div>
+      <div class="stat-val fs-4">{{ stats.half_day }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-xl-2">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-airplane me-1"></i> On Leave</div>
+      <div class="stat-val fs-4">{{ stats.on_leave }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-xl-2">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-danger fw-bold"><i class="bi bi-x-circle me-1"></i> Absent</div>
+      <div class="stat-val fs-4">{{ stats.absent }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-4 col-xl-2">
+    <div class="stat-card p-3 bg-dark text-white">
+      <div class="stat-lbl mb-1 text-light opacity-75"><i class="bi bi-stopwatch me-1"></i> Total Work</div>
+      <div class="stat-val fs-4 text-white">{{ stats.total_hours }}h</div>
+    </div>
+  </div>
+</div>
+
+<!-- History Log Table -->
+<div class="hrms-card">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center">
+    <h5 class="hrms-card-title mb-0">
+      <i class="bi bi-calendar3 me-2 text-primary"></i> Daily Log ({{ selected_month_name }} {{ selected_year }})
+    </h5>
+    <span class="badge bg-secondary-subtle text-secondary small">{{ records|length }} Logged Days</span>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Clock-In (IST)</th>
+            <th>Clock-Out (IST)</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Notes & Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+          <tr>
+            <td class="fw-bold text-dark">{{ r.date|date:"M d, Y" }}</td>
+            <td class="text-muted small">{{ r.date|date:"l" }}</td>
+            <td>
+              {% if r.check_in %}
+                <span class="text-dark fw-semibold">{{ r.check_in|date:"h:i A" }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.check_out %}
+                <span class="text-dark fw-semibold">{{ r.check_out|date:"h:i A" }}</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ r.formatted_duration }}</span>
+            </td>
+            <td>
+              {% if r.status == 'LATE' or r.is_late %}
+                <span class="badge bg-success text-white">Present</span>
+                <span class="badge bg-warning text-dark ms-1">Late</span>
+              {% else %}
+                <span class="badge {{ r.status_badge_class }}">{{ r.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">
+              {% if r.check_in_notes or r.check_out_notes %}
+                <div>{{ r.check_in_notes }}</div>
+                {% if r.check_out_notes %}<div class="text-secondary opacity-75">{{ r.check_out_notes }}</div>{% endif %}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted small">
+              <i class="bi bi-calendar-x fs-2 d-block mb-2 text-secondary"></i>
+              No attendance logs found for {{ selected_month_name }} {{ selected_year }}.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

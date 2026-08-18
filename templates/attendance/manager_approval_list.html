@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}Manager Final Leave Approvals | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <h3 class="fw-bold mb-1">Executive Leave Approvals Queue (Stage 2)</h3>
+    <p class="text-muted mb-0">Review departmental recommendations and grant final authorization or decline requests.</p>
+  </div>
+  <a href="{% url 'attendance_hub' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Attendance Hub
+  </a>
+</div>
+
+<div class="hrms-card">
+  <div class="hrms-card-header d-flex justify-content-between align-items-center bg-primary bg-opacity-10 border-bottom border-primary border-opacity-25">
+    <h5 class="hrms-card-title text-primary mb-0">
+      <i class="bi bi-patch-check-fill me-2"></i> Pending Final Authorization
+    </h5>
+    <span class="badge bg-primary">{{ pending_leaves|length }} Awaiting Decision</span>
+  </div>
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hrms align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Applicant</th>
+            <th>Department</th>
+            <th>Leave Type</th>
+            <th>Duration</th>
+            <th>Dept Manager Review Remarks</th>
+            <th>Final Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lv in pending_leaves %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="avatar-circle" style="background-color: {{ lv.user.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
+                  {{ lv.user.first_name|default:lv.user.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <span class="fw-bold text-dark small d-block">{{ lv.user.get_full_name|default:lv.user.username }}</span>
+                  <span class="text-muted" style="font-size: 0.75rem;">{{ lv.user.designation|default:lv.user.get_role_display }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ lv.user.department.name|default:"Unassigned" }}</span>
+            </td>
+            <td>
+              <span class="fw-bold text-dark small">{{ lv.get_leave_type_display }}</span>
+              {% if lv.is_half_day %}
+                <span class="badge bg-info-subtle text-info d-block" style="font-size: 0.65rem;">Half Day: {{ lv.get_half_day_period_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="small">{{ lv.start_date|date:"M d" }} &rarr; {{ lv.end_date|date:"M d, Y" }}</span>
+              <span class="badge bg-light text-dark border d-block mt-1">{{ lv.total_days }} day{{ lv.total_days|pluralize }}</span>
+            </td>
+            <td class="small" style="max-width: 250px;">
+              {% if lv.dept_manager_notes %}
+                <div class="text-dark fw-semibold">{{ lv.dept_manager_notes }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">Recommended by {{ lv.reviewed_by_dept_manager.get_full_name|default:lv.reviewed_by_dept_manager.username }}</div>
+              {% else %}
+                <span class="text-muted italic">Direct submission (Level 3+)</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'manager_decision_action' lv.id %}" class="btn btn-sm btn-primary fw-bold px-3 shadow-sm">
+                <i class="bi bi-shield-check me-1"></i> Authorize / Reject
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted small">
+              <i class="bi bi-patch-check fs-2 d-block mb-2 text-success"></i>
+              No leave requests awaiting final manager approval.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
