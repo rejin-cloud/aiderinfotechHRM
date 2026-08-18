@@ -41,13 +41,10 @@
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
               <span class="badge {{ task.priority_badge_class }} px-3 py-1 fs-6">{{ task.get_priority_display }} Priority</span>
               <span class="badge {{ task.status_badge_class }} px-3 py-1 fs-6">{{ task.get_status_display }}</span>
-              {% if task.is_overdue %}
-                <span class="badge bg-danger text-white px-3 py-1 fs-6"><i class="bi bi-exclamation-triangle-fill me-1"></i> Overdue</span>
-              {% endif %}
             </div>
             <h3 class="fw-bold text-dark mb-1">{{ task.title }}</h3>
             <p class="text-muted small mb-0">
-              Department: <strong>{{ task.department.name }}</strong> &bull; Target: <strong>{% if task.branch %}{{ task.branch.name }}{% else %}All Branches{% endif %}</strong>
+              Department: <strong>{{ task.department.name }}</strong> &bull; Audience: <strong>Creative Team Members</strong>
             </p>
           </div>
 
@@ -57,18 +54,10 @@
               <i class="bi bi-person-fill-check me-1 text-primary"></i> Created By:
               <span class="fw-bold text-dark d-block">{{ task.created_by.get_full_name|default:task.created_by.username }}</span>
             </div>
-            {% if task.assigned_to %}
-            <div class="small text-muted mb-1 pt-1 border-top">
-              <i class="bi bi-person-badge me-1 text-success"></i> Assigned To:
-              <span class="fw-bold text-dark d-block">{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</span>
-            </div>
-            {% endif %}
-            {% if task.deadline %}
             <div class="small text-muted pt-1 border-top">
-              <i class="bi bi-alarm me-1 {% if task.is_overdue %}text-danger{% else %}text-warning{% endif %}"></i> Deadline (IST):
-              <span class="fw-bold {% if task.is_overdue %}text-danger{% else %}text-dark{% endif %} d-block">{{ task.deadline|date:"M d, Y h:i A" }}</span>
+              <i class="bi bi-calendar-event me-1 text-secondary"></i> Published On:
+              <span class="fw-bold text-dark d-block">{{ task.created_at|date:"M d, Y" }}</span>
             </div>
-            {% endif %}
           </div>
         </div>
       </div>

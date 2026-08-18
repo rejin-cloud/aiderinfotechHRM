@@ -79,8 +79,6 @@ class CreativeTasksTestCase(TestCase):
             'instructions': 'Use the official color palette and export 4K PNGs.',
             'priority': Task.Priority.URGENT,
             'status': Task.Status.ACTIVE,
-            'branch': self.branch_design.id,
-            'assigned_to': self.creative_staff.id,
             'documents': [doc1, doc2],
         }
 
@@ -92,7 +90,6 @@ class CreativeTasksTestCase(TestCase):
         self.assertEqual(task.title, 'Redesign Company Brand Identity')
         self.assertEqual(task.department, self.dept_creative)
         self.assertEqual(task.created_by, self.creative_mgr)
-        self.assertEqual(task.assigned_to, self.creative_staff)
         self.assertEqual(task.priority, Task.Priority.URGENT)
 
         # Verify attachments

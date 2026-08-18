@@ -39,9 +39,6 @@ class TaskForm(forms.ModelForm):
             'instructions',
             'priority',
             'status',
-            'deadline',
-            'branch',
-            'assigned_to',
         ]
         widgets = {
             'task_number': forms.TextInput(attrs={
@@ -64,25 +61,10 @@ class TaskForm(forms.ModelForm):
             }),
             'priority': forms.Select(attrs={'class': 'form-select'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'deadline': forms.DateTimeInput(attrs={
-                'class': 'form-control',
-                'type': 'datetime-local'
-            }),
-            'branch': forms.Select(attrs={'class': 'form-select'}),
-            'assigned_to': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, department=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if department:
-            self.fields['branch'].queryset = Branch.objects.filter(department=department)
-            self.fields['assigned_to'].queryset = User.objects.filter(department=department).exclude(role=User.Role.SUPERADMIN)
-            self.fields['branch'].empty_label = "All Department Branches"
-            self.fields['assigned_to'].empty_label = "All Department Members (Team Task)"
-        else:
-            self.fields['branch'].empty_label = "All Branches"
-            self.fields['assigned_to'].empty_label = "All Department Members"
-
         # If creating new task and no initial task_number, pre-fill
         if not self.instance.pk and not self.initial.get('task_number'):
             dept_name = department.name if department else "Creative"
@@ -119,14 +101,6 @@ class TaskFilterForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={'class': 'form-select form-select-sm', 'onchange': 'this.form.submit()'})
     )
-    branch = forms.ModelChoiceField(
-        queryset=Branch.objects.none(),
-        required=False,
-        empty_label="All Branches",
-        widget=forms.Select(attrs={'class': 'form-select form-select-sm', 'onchange': 'this.form.submit()'})
-    )
 
     def __init__(self, *args, department=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if department:
-            self.fields['branch'].queryset = Branch.objects.filter(department=department)

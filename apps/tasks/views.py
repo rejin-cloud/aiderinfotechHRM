@@ -49,7 +49,6 @@ def task_list_view(request):
         q = filter_form.cleaned_data.get('q')
         priority = filter_form.cleaned_data.get('priority')
         status = filter_form.cleaned_data.get('status')
-        branch = filter_form.cleaned_data.get('branch')
 
         if q:
             tasks = tasks.filter(
@@ -62,8 +61,6 @@ def task_list_view(request):
             tasks = tasks.filter(priority=priority)
         if status:
             tasks = tasks.filter(status=status)
-        if branch:
-            tasks = tasks.filter(branch=branch)
 
     # Stats for dashboard header
     total_tasks = tasks.count()

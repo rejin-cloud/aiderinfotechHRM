@@ -71,19 +71,16 @@
 <!-- Filter Bar -->
 <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
   <form method="get" class="row g-2 align-items-center">
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-5">
       {{ filter_form.q }}
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-md-3">
       {{ filter_form.priority }}
     </div>
     <div class="col-6 col-md-2">
       {{ filter_form.status }}
     </div>
-    <div class="col-6 col-md-2">
-      {{ filter_form.branch }}
-    </div>
-    <div class="col-6 col-md-2 d-flex gap-2">
+    <div class="col-12 col-md-2 d-flex gap-2">
       <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
         <i class="bi bi-funnel-fill me-1"></i> Filter
       </button>
@@ -110,12 +107,9 @@
           <span class="badge {{ t.status_badge_class }}">{{ t.get_status_display }}</span>
         </div>
         
-        {% if t.deadline %}
-          <span class="small {% if t.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
-            <i class="bi bi-alarm me-1"></i>
-            {% if t.is_overdue %}Overdue: {% endif %}{{ t.deadline|date:"M d, Y" }}
-          </span>
-        {% endif %}
+        <span class="small text-muted">
+          <i class="bi bi-calendar-event me-1"></i> {{ t.created_at|date:"M d, Y" }}
+        </span>
       </div>
 
       <!-- Card Body -->
@@ -128,19 +122,14 @@
           {{ t.description }}
         </p>
 
-        <!-- Scope & Assignments Metadata Pills -->
+        <!-- Scope & Attachments Metadata Pills -->
         <div class="d-flex flex-wrap gap-2 mb-3 small">
           <span class="badge bg-light text-dark border">
-            <i class="bi bi-diagram-3 me-1 text-primary"></i>
-            {% if t.branch %}{{ t.branch.name }}{% else %}All Branches{% endif %}
-          </span>
-          <span class="badge bg-light text-dark border">
-            <i class="bi bi-person-badge me-1 text-success"></i>
-            {% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}{% else %}Full Team{% endif %}
+            <i class="bi bi-people-fill me-1 text-primary"></i> Creative Team
           </span>
           {% if t.attachments.exists %}
           <span class="badge bg-purple-subtle text-primary border">
-            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} File{{ t.attachments.count|pluralize }}
+            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Document{{ t.attachments.count|pluralize }} / Asset{{ t.attachments.count|pluralize }}
           </span>
           {% endif %}
         </div>
