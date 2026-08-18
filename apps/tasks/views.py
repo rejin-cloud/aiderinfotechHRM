@@ -209,14 +209,35 @@ def task_assign_view(request, task_id=None):
             branch=branch
         )
 
-        # Update assignment
+        # Update assignment & deadline
         task.branch = branch
         task.assigned_to = assigned_user
+
+        post_deadline = request.POST.get('deadline', '').strip()
+        if post_deadline:
+            try:
+                from django.utils.dateparse import parse_datetime, parse_date
+                import datetime
+                parsed_dt = parse_datetime(post_deadline)
+                if parsed_dt is None:
+                    parsed_d = parse_date(post_deadline)
+                    if parsed_d:
+                        parsed_dt = datetime.datetime.combine(parsed_d, datetime.time(18, 0))
+                if parsed_dt:
+                    if timezone.is_naive(parsed_dt):
+                        parsed_dt = timezone.make_aware(parsed_dt, timezone.get_current_timezone())
+                    task.deadline = parsed_dt
+            except Exception:
+                pass
+        elif 'deadline' in request.POST and not post_deadline:
+            task.deadline = None
+
         task.save()
 
+        deadline_msg = f" with deadline {timezone.localtime(task.deadline).strftime('%b %d, %Y %I:%M %p')}" if task.deadline else ""
         messages.success(
             request,
-            f"Success! Task [{task.task_number}] '{task.title}' has been assigned to {assigned_user.get_full_name() or assigned_user.username} ({branch.name})."
+            f"Success! Task [{task.task_number}] '{task.title}' has been assigned to {assigned_user.get_full_name() or assigned_user.username} ({branch.name}){deadline_msg}."
         )
         return redirect('task_detail', task_id=task.id)
 

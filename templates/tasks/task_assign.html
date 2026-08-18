@@ -17,9 +17,9 @@
             <div class="badge bg-warning text-dark fw-bold mb-1">
               <i class="bi bi-shield-lock-fill me-1"></i> Creative Department Manager Exclusive
             </div>
-            <h3 class="fw-bold mb-0">Assign Creative Tasks to Branch Members</h3>
+            <h3 class="fw-bold mb-0">Assign Creative Tasks & Set Deadlines</h3>
             <p class="text-white-50 small mb-0 mt-1">
-              Select a task &rarr; choose a branch &rarr; assign to a specific member. Only the assigned member will see this task in their personal dashboard.
+              Select a task &rarr; choose a branch &rarr; assign to a member &rarr; set a completion deadline. The assigned member receives the task and due date.
             </p>
           </div>
         </div>
@@ -52,9 +52,9 @@
               <span class="text-muted small">{{ tasks.count }} Task{{ tasks.count|pluralize }} Available</span>
             </div>
 
-            <div class="hrms-card-body p-3" style="max-height: 600px; overflow-y: auto;">
+            <div class="hrms-card-body p-3" style="max-height: 650px; overflow-y: auto;">
               {% for t in tasks %}
-              <div class="task-select-item p-3 mb-2 rounded-3 border bg-white cursor-pointer transition {% if selected_task and selected_task.id == t.id %}border-primary bg-primary-subtle bg-opacity-10 shadow-sm{% endif %}" onclick="selectTask('{{ t.id }}', '{{ t.task_number }}', '{{ t.title|escapejs }}', '{{ t.priority }}', '{{ t.branch.id|default:'' }}')">
+              <div class="task-select-item p-3 mb-2 rounded-3 border bg-white cursor-pointer transition {% if selected_task and selected_task.id == t.id %}border-primary bg-primary-subtle bg-opacity-10 shadow-sm{% endif %}" onclick="selectTask('{{ t.id }}', '{{ t.task_number }}', '{{ t.title|escapejs }}', '{{ t.priority }}', '{{ t.branch.id|default:'' }}', '{{ t.deadline|date:'Y-m-d\TH:i'|default:'' }}')">
                 <div class="d-flex align-items-start gap-2">
                   <input class="form-check-input mt-1 task-radio" type="radio" name="task_id" id="task_{{ t.id }}" value="{{ t.id }}" {% if selected_task and selected_task.id == t.id %}checked{% endif %} required>
                   <div class="flex-grow-1">
@@ -67,7 +67,7 @@
                       {{ t.description }}
                     </p>
 
-                    <div class="d-flex align-items-center gap-2 small">
+                    <div class="d-flex flex-wrap align-items-center gap-1 small">
                       {% if t.assigned_to %}
                       <span class="badge bg-success-subtle text-success border border-success-subtle">
                         <i class="bi bi-person-check-fill me-1"></i> Assigned: {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}
@@ -75,6 +75,12 @@
                       {% else %}
                       <span class="badge bg-secondary-subtle text-secondary border">
                         <i class="bi bi-circle me-1"></i> Unassigned
+                      </span>
+                      {% endif %}
+
+                      {% if t.deadline %}
+                      <span class="badge bg-light text-dark border">
+                        <i class="bi bi-alarm text-danger me-1"></i> Due: {{ t.deadline|date:"M d, Y" }}
                       </span>
                       {% endif %}
                     </div>
@@ -94,13 +100,13 @@
           </div>
         </div>
 
-        <!-- Column 2: Step 2 & 3 - Select Branch and Member -->
+        <!-- Column 2: Step 2, 3 & 4 - Select Branch, Member, and Deadline -->
         <div class="col-12 col-lg-7">
           <div class="hrms-card shadow-sm border-0 h-100 d-flex flex-column">
             
             <div class="hrms-card-header bg-light p-3 border-bottom">
-              <span class="badge bg-primary text-white rounded-pill px-2 py-1 me-1">Step 2 & 3</span>
-              <strong class="text-dark">Select Branch & Target Member</strong>
+              <span class="badge bg-primary text-white rounded-pill px-2 py-1 me-1">Step 2, 3 & 4</span>
+              <strong class="text-dark">Select Branch, Member & Deadline</strong>
             </div>
 
             <div class="hrms-card-body p-4 flex-grow-1">
@@ -171,6 +177,31 @@
                 </div>
               </div>
 
+              <!-- Step 4: Add Completion Deadline (Optional / Recommended) -->
+              <div class="mb-3 pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label fw-bold text-dark mb-0">
+                    <i class="bi bi-calendar-event text-danger me-1"></i> Step 4: Completion Deadline (IST)
+                  </label>
+                  <span class="badge bg-light text-secondary border">Optional</span>
+                </div>
+                <p class="text-muted small mb-2">
+                  Specify the target date and time by which this creative deliverable should be submitted.
+                </p>
+
+                <div class="row g-2 align-items-center">
+                  <div class="col-12 col-sm-7">
+                    <input type="datetime-local" class="form-control" name="deadline" id="id_deadline" value="{% if selected_task and selected_task.deadline %}{{ selected_task.deadline|date:'Y-m-d\TH:i' }}{% endif %}">
+                  </div>
+                  <div class="col-12 col-sm-5 d-flex flex-wrap gap-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setDeadlinePreset(1)">+1 Day</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setDeadlinePreset(3)">+3 Days</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setDeadlinePreset(7)">+1 Week</button>
+                    <button type="button" class="btn btn-sm btn-light border text-danger" onclick="document.getElementById('id_deadline').value=''"><i class="bi bi-x"></i></button>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <!-- Card Footer Submit -->
@@ -209,7 +240,7 @@ let currentTaskId = '{{ selected_task.id|default:"" }}';
 let currentBranchId = '{{ selected_task.branch.id|default:"" }}';
 let currentUserId = '{{ selected_task.assigned_to.id|default:"" }}';
 
-function selectTask(taskId, taskNumber, taskTitle, priority, branchId) {
+function selectTask(taskId, taskNumber, taskTitle, priority, branchId, deadlineValue) {
   currentTaskId = taskId;
   const radio = document.getElementById('task_' + taskId);
   if (radio) radio.checked = true;
@@ -226,6 +257,11 @@ function selectTask(taskId, taskNumber, taskTitle, priority, branchId) {
   // If task has pre-existing branch, highlight it
   if (branchId && document.getElementById('branch_' + branchId)) {
     selectBranch(branchId);
+  }
+
+  // Prepopulate deadline if exists
+  if (deadlineValue) {
+    document.getElementById('id_deadline').value = deadlineValue;
   }
 
   checkValidation();
@@ -306,6 +342,17 @@ function checkValidation() {
   } else {
     btn.disabled = true;
   }
+}
+
+function setDeadlinePreset(days) {
+  const now = new Date();
+  now.setDate(now.getDate() + days);
+  now.setHours(18, 0, 0, 0); // 6:00 PM IST
+  
+  // Format for datetime-local (YYYY-MM-DDTHH:mm)
+  const pad = (n) => String(n).padStart(2, '0');
+  const formatted = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('id_deadline').value = formatted;
 }
 
 // Auto-initialize if selected_task exists

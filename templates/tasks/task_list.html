@@ -147,6 +147,12 @@
           </span>
           {% endif %}
 
+          {% if t.deadline %}
+          <span class="badge {% if t.is_overdue %}bg-danger text-white{% else %}bg-light text-dark border{% endif %}">
+            <i class="bi bi-alarm-fill text-danger me-1"></i> Due: {{ t.deadline|date:"M d, Y" }}
+          </span>
+          {% endif %}
+
           {% if t.attachments.exists %}
           <span class="badge bg-purple-subtle text-primary border">
             <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Document{{ t.attachments.count|pluralize }} / Asset{{ t.attachments.count|pluralize }}

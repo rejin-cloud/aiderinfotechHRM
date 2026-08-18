@@ -146,7 +146,7 @@ class CreativeTasksTestCase(TestCase):
         # Access assignment page
         res = self.client.get(reverse('task_assign'))
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "Assign Creative Tasks to Branch Members")
+        self.assertContains(res, "Assign Creative Tasks")
         self.assertContains(res, "CR-TASK-100")
         self.assertContains(res, "Designing")
         self.assertContains(res, "Editing")
@@ -160,11 +160,12 @@ class CreativeTasksTestCase(TestCase):
         self.assertIn('staff_liam', member_usernames)
         self.assertNotIn('staff_maya', member_usernames)
 
-        # Submit Assignment: Assign to Daniel in Designing branch
+        # Submit Assignment: Assign to Daniel in Designing branch with a completion deadline
         post_data = {
             'task_id': task.id,
             'branch_id': self.branch_design.id,
             'user_id': self.creative_staff_daniel.id,
+            'deadline': '2026-08-25T18:00',
         }
         assign_res = self.client.post(reverse('task_assign'), post_data, follow=True)
         self.assertEqual(assign_res.status_code, 200)
@@ -172,6 +173,10 @@ class CreativeTasksTestCase(TestCase):
         task.refresh_from_db()
         self.assertEqual(task.branch, self.branch_design)
         self.assertEqual(task.assigned_to, self.creative_staff_daniel)
+        self.assertIsNotNone(task.deadline)
+        self.assertEqual(task.deadline.year, 2026)
+        self.assertEqual(task.deadline.month, 8)
+        self.assertEqual(task.deadline.day, 25)
 
     def test_branch_member_visibility_and_assignment_privacy(self):
         """

@@ -50,6 +50,11 @@
             <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
               <span class="badge {{ task.priority_badge_class }} px-3 py-1 fs-6">{{ task.get_priority_display }} Priority</span>
               <span class="badge {{ task.status_badge_class }} px-3 py-1 fs-6">{{ task.get_status_display }}</span>
+              {% if task.deadline %}
+              <span class="badge {% if task.is_overdue %}bg-danger text-white{% else %}bg-warning text-dark{% endif %} px-3 py-1 fs-6 shadow-sm">
+                <i class="bi bi-alarm-fill me-1"></i> Due: {{ task.deadline|date:"M d, Y, h:i A" }}
+              </span>
+              {% endif %}
               {% if is_assigned_to_me %}
               <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 fs-6">
                 <i class="bi bi-check-circle-fill me-1"></i> Assigned to You
@@ -68,7 +73,7 @@
           </div>
 
           <!-- Metadata Pill Box -->
-          <div class="text-md-end bg-white p-3 rounded-3 border shadow-sm" style="min-width: 220px;">
+          <div class="text-md-end bg-white p-3 rounded-3 border shadow-sm" style="min-width: 240px;">
             <div class="small text-muted mb-1">
               <i class="bi bi-person-fill-check me-1 text-primary"></i> Created By:
               <span class="fw-bold text-dark d-block">{{ task.created_by.get_full_name|default:task.created_by.username }}</span>
@@ -82,6 +87,15 @@
             <div class="small text-muted mb-1 pt-1 border-top">
               <i class="bi bi-person-check-fill me-1 text-success"></i> Assignment Status:
               <span class="fw-bold text-success d-block">Assigned to You</span>
+            </div>
+            {% endif %}
+            {% if task.deadline %}
+            <div class="small text-muted pt-1 border-top">
+              <i class="bi bi-alarm-fill me-1 {% if task.is_overdue %}text-danger{% else %}text-warning{% endif %}"></i> Completion Deadline:
+              <span class="fw-bold {% if task.is_overdue %}text-danger{% else %}text-dark{% endif %} d-block">
+                {{ task.deadline|date:"M d, Y, h:i A" }}
+                {% if task.is_overdue %}<span class="badge bg-danger ms-1">Overdue</span>{% endif %}
+              </span>
             </div>
             {% endif %}
             <div class="small text-muted pt-1 border-top">

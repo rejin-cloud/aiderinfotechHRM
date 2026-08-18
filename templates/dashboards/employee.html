@@ -218,10 +218,15 @@
           </p>
 
           <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-            <div class="text-muted small" style="font-size: 0.75rem;">
+            <div class="d-flex align-items-center gap-2 text-muted small" style="font-size: 0.75rem;">
+              {% if atask.deadline %}
+              <span class="badge {% if atask.is_overdue %}bg-danger text-white{% else %}bg-light text-dark border{% endif %}">
+                <i class="bi bi-alarm text-danger me-1"></i> Due: {{ atask.deadline|date:"M d, Y" }}
+              </span>
+              {% endif %}
               {% if atask.attachments.exists %}
               <span class="badge bg-white text-primary border">
-                <i class="bi bi-paperclip me-1"></i> {{ atask.attachments.count }} File{{ atask.attachments.count|pluralize }} Attached
+                <i class="bi bi-paperclip me-1"></i> {{ atask.attachments.count }} File{{ atask.attachments.count|pluralize }}
               </span>
               {% endif %}
             </div>
