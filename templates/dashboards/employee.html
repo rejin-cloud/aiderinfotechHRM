@@ -28,8 +28,13 @@
       </div>
     </div>
     <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+      {% if department and 'creative' in department.name.lower %}
+      <a href="{% url 'task_list' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-palette2 me-1"></i> Creative Tasks
+      </a>
+      {% endif %}
       <a href="{% url 'attendance_hub' %}" class="btn btn-success px-3 py-2 rounded-pill shadow-sm">
-        <i class="bi bi-clock-history me-1"></i> Clock-In / Attendance
+        <i class="bi bi-clock-history me-1"></i> Attendance
       </a>
       <a href="{% url 'leave_apply' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
         <i class="bi bi-calendar-plus me-1"></i> Apply Leave
@@ -164,6 +169,26 @@
   <!-- Right Column: Company Details & Department Structure -->
   <div class="col-12 col-lg-7">
     
+    {% if department and 'creative' in department.name.lower %}
+    <!-- Creative Tasks Read-Only Access Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white border-start border-primary border-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-purple-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+            <i class="bi bi-palette2 fs-3"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold text-dark mb-0">Creative Department Directives & Tasks</h6>
+            <span class="text-muted small">View project briefs, creative instructions, and download document assets. (Read-Only)</span>
+          </div>
+        </div>
+        <a href="{% url 'task_list' %}" class="btn btn-primary btn-sm px-3 fw-bold">
+          <i class="bi bi-eye-fill me-1"></i> View Tasks & Assets
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Company Overview Card -->
     <div class="hrms-card mb-4">
       <div class="hrms-card-header">

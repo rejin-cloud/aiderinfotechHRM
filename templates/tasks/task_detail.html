@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}[{{ task.task_number }}] {{ task.title }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-10">
+
+    <!-- Top Action Bar -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+      <div class="d-flex align-items-center gap-2">
+        <a href="{% url 'task_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+          <i class="bi bi-arrow-left me-1"></i> All Creative Tasks
+        </a>
+        <span class="badge bg-dark font-monospace text-warning px-3 py-2 fs-6">{{ task.task_number }}</span>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        {% if is_creative_manager %}
+        <a href="{% url 'task_edit' task.id %}" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
+          <i class="bi bi-pencil-square me-1"></i> Edit Task & Files
+        </a>
+        <a href="{% url 'task_delete' task.id %}" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+          <i class="bi bi-trash me-1"></i> Delete
+        </a>
+        {% else %}
+        <span class="badge bg-light text-secondary border py-2 px-3">
+          <i class="bi bi-eye-fill me-1"></i> Read-Only Member View
+        </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Main Task Dossier Card -->
+    <div class="hrms-card shadow-sm border-0 mb-4">
+      
+      <!-- Dossier Header -->
+      <div class="hrms-card-header bg-light bg-opacity-75 p-4 border-bottom">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+          <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span class="badge {{ task.priority_badge_class }} px-3 py-1 fs-6">{{ task.get_priority_display }} Priority</span>
+              <span class="badge {{ task.status_badge_class }} px-3 py-1 fs-6">{{ task.get_status_display }}</span>
+              {% if task.is_overdue %}
+                <span class="badge bg-danger text-white px-3 py-1 fs-6"><i class="bi bi-exclamation-triangle-fill me-1"></i> Overdue</span>
+              {% endif %}
+            </div>
+            <h3 class="fw-bold text-dark mb-1">{{ task.title }}</h3>
+            <p class="text-muted small mb-0">
+              Department: <strong>{{ task.department.name }}</strong> &bull; Target: <strong>{% if task.branch %}{{ task.branch.name }}{% else %}All Branches{% endif %}</strong>
+            </p>
+          </div>
+
+          <!-- Metadata Pill Box -->
+          <div class="text-md-end bg-white p-3 rounded-3 border shadow-sm" style="min-width: 220px;">
+            <div class="small text-muted mb-1">
+              <i class="bi bi-person-fill-check me-1 text-primary"></i> Created By:
+              <span class="fw-bold text-dark d-block">{{ task.created_by.get_full_name|default:task.created_by.username }}</span>
+            </div>
+            {% if task.assigned_to %}
+            <div class="small text-muted mb-1 pt-1 border-top">
+              <i class="bi bi-person-badge me-1 text-success"></i> Assigned To:
+              <span class="fw-bold text-dark d-block">{{ task.assigned_to.get_full_name|default:task.assigned_to.username }}</span>
+            </div>
+            {% endif %}
+            {% if task.deadline %}
+            <div class="small text-muted pt-1 border-top">
+              <i class="bi bi-alarm me-1 {% if task.is_overdue %}text-danger{% else %}text-warning{% endif %}"></i> Deadline (IST):
+              <span class="fw-bold {% if task.is_overdue %}text-danger{% else %}text-dark{% endif %} d-block">{{ task.deadline|date:"M d, Y h:i A" }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Dossier Body -->
+      <div class="hrms-card-body p-4 p-md-5">
+
+        <!-- 1. Task Description & Creative Brief -->
+        <div class="mb-5">
+          <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-file-earmark-richtext text-primary"></i> Task Description & Scope
+          </h5>
+          <div class="p-3 bg-light rounded-3 border text-dark fs-6 lh-base" style="white-space: pre-wrap;">{{ task.description }}</div>
+        </div>
+
+        <!-- 2. Step-by-Step Instructions & Guidelines -->
+        {% if task.instructions %}
+        <div class="mb-5">
+          <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom d-flex align-items-center gap-2">
+            <i class="bi bi-card-checklist text-primary"></i> Step-by-Step Instructions & Guidelines
+          </h5>
+          <div class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 rounded-3 text-dark fs-6 lh-base" style="white-space: pre-wrap;">{{ task.instructions }}</div>
+        </div>
+        {% endif %}
+
+        <!-- 3. Documents, Assets & Reference Files -->
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+              <i class="bi bi-paperclip text-primary"></i> Documents & Project Assets
+              <span class="badge bg-primary text-white fs-6 ms-2">{{ task.attachments.count }}</span>
+            </h5>
+            {% if is_creative_manager %}
+            <a href="{% url 'task_edit' task.id %}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-upload me-1"></i> Add More Files
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="row g-3">
+            {% for att in task.attachments.all %}
+            <div class="col-12 col-md-6">
+              <div class="card h-100 border rounded-3 p-3 bg-white shadow-sm hover-shadow transition">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-3 bg-light text-primary d-flex align-items-center justify-content-center border" style="width: 48px; height: 48px;">
+                    <i class="bi {{ att.icon_class }} fs-2"></i>
+                  </div>
+                  <div class="flex-grow-1 overflow-hidden">
+                    <span class="fw-bold text-dark text-truncate d-block small" title="{{ att.filename }}">
+                      {{ att.filename }}
+                    </span>
+                    <span class="text-muted" style="font-size: 0.75rem;">
+                      {{ att.formatted_file_size }} &bull; {{ att.file_extension|upper }} &bull; {{ att.uploaded_at|date:"M d, Y" }}
+                    </span>
+                  </div>
+                  
+                  <div class="d-flex gap-1">
+                    <a href="{{ att.file.url }}" download class="btn btn-sm btn-primary" title="Download Document">
+                      <i class="bi bi-download"></i>
+                    </a>
+                    {% if is_creative_manager %}
+                    <form method="post" action="{% url 'attachment_delete' att.id %}" onsubmit="return confirm('Remove this document attachment?');" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove File">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+              <div class="p-4 text-center text-muted bg-light rounded-3 border">
+                <i class="bi bi-folder2-open fs-2 d-block mb-1 text-secondary"></i>
+                No documents or asset files attached to this task yet.
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Read-Only Notice for Team Members -->
+        {% if not is_creative_manager %}
+        <div class="alert alert-light border rounded-3 p-3 mt-4 small text-muted d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle text-primary fs-5"></i>
+          <span>This task is assigned by the Creative Department Manager. Contact your department manager for questions or deliverables submission.</span>
+        </div>
+        {% endif %}
+
+      </div>
+
+      <!-- Dossier Footer -->
+      <div class="hrms-card-footer bg-light p-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small">Created on {{ task.created_at|date:"F d, Y h:i A" }} (IST) &bull; Last updated {{ task.updated_at|date:"M d, Y" }}</span>
+        <a href="{% url 'task_list' %}" class="btn btn-sm btn-outline-secondary">
+          <i class="bi bi-arrow-left me-1"></i> Back to Task Board
+        </a>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+{% endblock %}

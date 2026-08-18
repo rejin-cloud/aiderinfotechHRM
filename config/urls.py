@@ -10,6 +10,7 @@ urlpatterns = [
     path('', include('apps.departments.urls')),
     path('', include('apps.reports.urls')),
     path('attendance/', include('apps.attendance.urls')),
+    path('tasks/', include('apps.tasks.urls')),
 ]
 
 if settings.DEBUG:

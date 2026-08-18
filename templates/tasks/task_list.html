@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Creative Tasks | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Creative Tasks Header Banner -->
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);">
+  <div class="row align-items-center">
+    <div class="col-12 col-md-7">
+      <div class="d-flex align-items-center gap-3">
+        <div class="rounded-4 bg-white text-primary d-flex align-items-center justify-content-center shadow" style="width: 56px; height: 56px;">
+          <i class="bi bi-palette2 fs-2"></i>
+        </div>
+        <div>
+          <div class="badge bg-warning text-dark fw-bold mb-1">
+            <i class="bi bi-stars me-1"></i> Creative Department Operations
+          </div>
+          <h3 class="fw-bold mb-0">{{ department.name|default:"Aider Creative" }} &bull; Project Tasks & Directives</h3>
+          <p class="text-white-50 small mb-0 mt-1">
+            {% if is_creative_manager %}
+              Managed by Creative Department Manager &bull; Task creation, assignment, and resource delegation.
+            {% else %}
+              Department directives & creative project briefs. Read-only member view.
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+      {% if is_creative_manager %}
+      <a href="{% url 'task_create' %}" class="btn btn-warning text-dark fw-bold px-4 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-plus-circle-fill me-1"></i> Create New Task
+      </a>
+      {% endif %}
+      <a href="{% url 'dashboard_router' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+        <i class="bi bi-arrow-left me-1"></i> Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Task KPI Summary Counters -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-list-task me-1"></i> Total Tasks</div>
+      <div class="stat-val fs-4">{{ stats.total }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-info fw-bold"><i class="bi bi-play-circle me-1"></i> Active / In Progress</div>
+      <div class="stat-val fs-4">{{ stats.active }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-danger fw-bold"><i class="bi bi-exclamation-octagon me-1"></i> Urgent Active</div>
+      <div class="stat-val fs-4">{{ stats.urgent }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-sm-3">
+    <div class="stat-card p-3">
+      <div class="stat-lbl mb-1 text-success fw-bold"><i class="bi bi-check2-circle me-1"></i> Completed</div>
+      <div class="stat-val fs-4">{{ stats.completed }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+  <form method="get" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      {{ filter_form.q }}
+    </div>
+    <div class="col-6 col-md-2">
+      {{ filter_form.priority }}
+    </div>
+    <div class="col-6 col-md-2">
+      {{ filter_form.status }}
+    </div>
+    <div class="col-6 col-md-2">
+      {{ filter_form.branch }}
+    </div>
+    <div class="col-6 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+        <i class="bi bi-funnel-fill me-1"></i> Filter
+      </button>
+      {% if request.GET %}
+      <a href="{% url 'task_list' %}" class="btn btn-light btn-sm border" title="Reset Filters">
+        <i class="bi bi-x-circle"></i>
+      </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Task Cards Grid -->
+<div class="row g-4">
+  {% for t in tasks %}
+  <div class="col-12 col-lg-6">
+    <div class="hrms-card h-100 shadow-sm border {% if t.priority == 'URGENT' %}border-danger-subtle{% endif %}">
+      
+      <!-- Card Top Header -->
+      <div class="hrms-card-header d-flex justify-content-between align-items-center bg-light bg-opacity-50">
+        <div class="d-flex align-items-center gap-2">
+          <span class="badge bg-dark font-monospace text-warning px-2 py-1 fs-7">{{ t.task_number }}</span>
+          <span class="badge {{ t.priority_badge_class }}">{{ t.get_priority_display }}</span>
+          <span class="badge {{ t.status_badge_class }}">{{ t.get_status_display }}</span>
+        </div>
+        
+        {% if t.deadline %}
+          <span class="small {% if t.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+            <i class="bi bi-alarm me-1"></i>
+            {% if t.is_overdue %}Overdue: {% endif %}{{ t.deadline|date:"M d, Y" }}
+          </span>
+        {% endif %}
+      </div>
+
+      <!-- Card Body -->
+      <div class="hrms-card-body p-4 d-flex flex-column">
+        <h5 class="fw-bold text-dark mb-2">
+          <a href="{% url 'task_detail' t.id %}" class="text-decoration-none text-dark">{{ t.title }}</a>
+        </h5>
+
+        <p class="text-secondary small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+          {{ t.description }}
+        </p>
+
+        <!-- Scope & Assignments Metadata Pills -->
+        <div class="d-flex flex-wrap gap-2 mb-3 small">
+          <span class="badge bg-light text-dark border">
+            <i class="bi bi-diagram-3 me-1 text-primary"></i>
+            {% if t.branch %}{{ t.branch.name }}{% else %}All Branches{% endif %}
+          </span>
+          <span class="badge bg-light text-dark border">
+            <i class="bi bi-person-badge me-1 text-success"></i>
+            {% if t.assigned_to %}{{ t.assigned_to.get_full_name|default:t.assigned_to.username }}{% else %}Full Team{% endif %}
+          </span>
+          {% if t.attachments.exists %}
+          <span class="badge bg-purple-subtle text-primary border">
+            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} File{{ t.attachments.count|pluralize }}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Card Action Footer -->
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto">
+          <div class="text-muted small" style="font-size: 0.75rem;">
+            By <strong>{{ t.created_by.get_full_name|default:t.created_by.username }}</strong> &bull; {{ t.created_at|date:"M d, Y" }}
+          </div>
+
+          <div class="d-flex align-items-center gap-1">
+            <a href="{% url 'task_detail' t.id %}" class="btn btn-sm btn-outline-primary px-3">
+              <i class="bi bi-eye-fill me-1"></i> View Brief
+            </a>
+
+            {% if is_creative_manager %}
+            <a href="{% url 'task_edit' t.id %}" class="btn btn-sm btn-light border p-1 px-2" title="Edit Task">
+              <i class="bi bi-pencil-square text-dark"></i>
+            </a>
+            <a href="{% url 'task_delete' t.id %}" class="btn btn-sm btn-light border p-1 px-2" title="Delete Task">
+              <i class="bi bi-trash text-danger"></i>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
+      <div class="avatar-circle mx-auto mb-3 bg-light text-muted" style="width: 64px; height: 64px; font-size: 1.5rem;">
+        <i class="bi bi-clipboard2-x"></i>
+      </div>
+      <h5 class="fw-bold text-dark mb-1">No Creative Tasks Found</h5>
+      <p class="text-muted small mb-3">There are no tasks matching your query in the Creative Department.</p>
+      {% if is_creative_manager %}
+      <div>
+        <a href="{% url 'task_create' %}" class="btn btn-primary px-4 fw-bold">
+          <i class="bi bi-plus-circle me-1"></i> Create the First Task
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
