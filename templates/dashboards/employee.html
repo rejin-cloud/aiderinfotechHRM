@@ -170,7 +170,7 @@
   <div class="col-12 col-lg-7">
     
     {% if department and 'creative' in department.name.lower %}
-    <!-- Tasks Assigned Directly to this Employee -->
+    <!-- Creative Tasks & Branch Directives -->
     <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white border-start border-primary border-4">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
         <div class="d-flex align-items-center gap-3">
@@ -178,20 +178,20 @@
             <i class="bi bi-palette2 fs-3"></i>
           </div>
           <div>
-            <h6 class="fw-bold text-dark mb-0">Creative Tasks Assigned to You</h6>
-            <span class="text-muted small">Tasks delegated specifically to you by the Creative Department Manager.</span>
+            <h6 class="fw-bold text-dark mb-0">Creative Directives & Tasks</h6>
+            <span class="text-muted small">Tasks & directives for your branch: <strong>{{ branch.name|default:"General" }}</strong></span>
           </div>
         </div>
-        {% if assigned_tasks %}
-        <span class="badge bg-success text-white rounded-pill px-3 py-2">
-          <i class="bi bi-check-circle-fill me-1"></i> {{ assigned_tasks.count }} Assigned Task{{ assigned_tasks.count|pluralize }}
+        {% if branch_tasks %}
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">
+          <i class="bi bi-list-task me-1"></i> {{ branch_tasks.count }} Task{{ branch_tasks.count|pluralize }}
         </span>
         {% endif %}
       </div>
 
-      {% if assigned_tasks %}
+      {% if branch_tasks %}
       <div class="d-flex flex-column gap-3">
-        {% for atask in assigned_tasks %}
+        {% for atask in branch_tasks %}
         <div class="p-3 rounded-3 bg-light border transition hover-shadow">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="d-flex align-items-center gap-2">
@@ -199,9 +199,15 @@
               <span class="badge {{ atask.priority_badge_class }}">{{ atask.get_priority_display }}</span>
               <span class="badge {{ atask.status_badge_class }}">{{ atask.get_status_display }}</span>
             </div>
-            <span class="badge bg-success-subtle text-success border border-success-subtle small">
+            {% if atask.assigned_to == user %}
+            <span class="badge bg-success text-white small">
               <i class="bi bi-person-check-fill me-1"></i> Assigned Directly to You
             </span>
+            {% else %}
+            <span class="badge bg-light text-dark border small">
+              <i class="bi bi-diagram-3 me-1 text-primary"></i> Branch Directive
+            </span>
+            {% endif %}
           </div>
 
           <h6 class="fw-bold text-dark mb-1">
@@ -229,7 +235,7 @@
       {% else %}
       <div class="p-3 text-center text-muted bg-light rounded-3 border">
         <i class="bi bi-clipboard2-check fs-3 d-block mb-1 text-secondary"></i>
-        No creative tasks currently assigned to you.
+        No creative tasks currently assigned to your branch.
       </div>
       {% endif %}
     </div>

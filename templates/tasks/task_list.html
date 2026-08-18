@@ -127,9 +127,26 @@
 
         <!-- Scope & Attachments Metadata Pills -->
         <div class="d-flex flex-wrap gap-2 mb-3 small">
+          {% if t.branch %}
+          <span class="badge bg-light text-dark border">
+            <i class="bi bi-diagram-3 me-1 text-primary"></i> {{ t.branch.name }}
+          </span>
+          {% else %}
           <span class="badge bg-light text-dark border">
             <i class="bi bi-people-fill me-1 text-primary"></i> Creative Team
           </span>
+          {% endif %}
+
+          {% if is_leadership and t.assigned_to %}
+          <span class="badge bg-success-subtle text-success border border-success-subtle">
+            <i class="bi bi-person-badge me-1"></i> {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}
+          </span>
+          {% elif not is_leadership and t.assigned_to == user %}
+          <span class="badge bg-success text-white">
+            <i class="bi bi-person-check-fill me-1"></i> Assigned to You
+          </span>
+          {% endif %}
+
           {% if t.attachments.exists %}
           <span class="badge bg-purple-subtle text-primary border">
             <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Document{{ t.attachments.count|pluralize }} / Asset{{ t.attachments.count|pluralize }}

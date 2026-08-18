@@ -48,9 +48,14 @@ def task_list_view(request):
     # Base Queryset
     tasks = Task.objects.filter(department=department).select_related('created_by', 'assigned_to', 'branch', 'department').prefetch_related('attachments')
 
-    # Scoping rule: regular members only see tasks assigned directly to them
+    # Scoping rule:
+    # - Leadership / Manager sees all tasks in the department.
+    # - Regular members see tasks belonging to their branch (or general tasks if no branch specified).
     if not is_leadership:
-        tasks = tasks.filter(assigned_to=user)
+        if user.branch:
+            tasks = tasks.filter(models.Q(branch=user.branch) | models.Q(branch__isnull=True))
+        else:
+            tasks = tasks.filter(branch__isnull=True)
 
     # Apply filters
     filter_form = TaskFilterForm(request.GET, department=department)
@@ -286,11 +291,12 @@ def task_detail_view(request, task_id):
     is_creative_manager = can_manage_creative_tasks(user)
     is_leadership = get_user_level(user) <= 2 or is_creative_manager
 
-    # Strict Privacy / Scoping Rule:
-    # If regular member, they can only view if the task is assigned specifically to them
+    # Branch Scoping Rule:
+    # Regular members can view tasks belonging to their branch (or general department tasks),
+    # but cannot access tasks assigned to a different branch.
     if not is_leadership:
-        if task.assigned_to != user:
-            messages.error(request, "Access restricted: This task is assigned to another team member.")
+        if task.branch and user.branch and task.branch != user.branch:
+            messages.error(request, "Access restricted: This task belongs to another branch.")
             return redirect('task_list')
 
     context = {

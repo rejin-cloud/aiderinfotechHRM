@@ -23,6 +23,8 @@ class CreativeTasksTestCase(TestCase):
         # 1. Creative Dept Manager
         self.creative_mgr = User.objects.create_user(
             username="deptmgr_rachel",
+            first_name="Rachel",
+            last_name="Green",
             email="rachel@aider.internal",
             password="password123",
             role=User.Role.DEPT_MANAGER,
@@ -33,15 +35,19 @@ class CreativeTasksTestCase(TestCase):
         # 2. Non-Creative Dept Manager
         self.it_mgr = User.objects.create_user(
             username="deptmgr_it",
+            first_name="Ian",
+            last_name="Torvalds",
             email="it_mgr@aider.internal",
             password="password123",
             role=User.Role.DEPT_MANAGER,
             department=self.dept_it
         )
 
-        # 3. Creative Department Staff / Executive A (Designing Branch)
+        # 3. Creative Department Staff / Executive A (Designing Branch - Assignee)
         self.creative_staff_daniel = User.objects.create_user(
             username="staff_daniel",
+            first_name="Daniel",
+            last_name="Craig",
             email="daniel@aider.internal",
             password="password123",
             role=User.Role.EXECUTIVE,
@@ -49,9 +55,23 @@ class CreativeTasksTestCase(TestCase):
             branch=self.branch_design
         )
 
-        # 4. Creative Department Staff B (Editing Branch)
+        # 4. Creative Department Staff B (Designing Branch - Non-Assigned Member of Same Branch)
+        self.creative_staff_liam = User.objects.create_user(
+            username="staff_liam",
+            first_name="Liam",
+            last_name="Neeson",
+            email="liam@aider.internal",
+            password="password123",
+            role=User.Role.STAFF,
+            department=self.dept_creative,
+            branch=self.branch_design
+        )
+
+        # 5. Creative Department Staff C (Editing Branch - Different Branch)
         self.creative_staff_maya = User.objects.create_user(
             username="staff_maya",
+            first_name="Maya",
+            last_name="Lin",
             email="maya@aider.internal",
             password="password123",
             role=User.Role.STAFF,
@@ -59,9 +79,11 @@ class CreativeTasksTestCase(TestCase):
             branch=self.branch_edit
         )
 
-        # 5. Outside Staff
+        # 6. Outside Staff
         self.it_staff = User.objects.create_user(
             username="staff_alex",
+            first_name="Alex",
+            last_name="Ferguson",
             email="alex@aider.internal",
             password="password123",
             role=User.Role.STAFF,
@@ -135,6 +157,7 @@ class CreativeTasksTestCase(TestCase):
         api_data = api_res.json()
         member_usernames = [m['username'] for m in api_data['members']]
         self.assertIn('staff_daniel', member_usernames)
+        self.assertIn('staff_liam', member_usernames)
         self.assertNotIn('staff_maya', member_usernames)
 
         # Submit Assignment: Assign to Daniel in Designing branch
@@ -150,57 +173,91 @@ class CreativeTasksTestCase(TestCase):
         self.assertEqual(task.branch, self.branch_design)
         self.assertEqual(task.assigned_to, self.creative_staff_daniel)
 
-    def test_assigned_member_sees_task_and_other_members_do_not(self):
-        """Assigned member sees task in dashboard and detail; remaining members cannot see it."""
+    def test_branch_member_visibility_and_assignment_privacy(self):
+        """
+        - Task assigned to Designing branch & Daniel Craig.
+        - Daniel (Assignee) sees task and sees 'Assigned to You'.
+        - Liam (Other member of Designing branch) sees task, can read brief & assets, but CANNOT see who it is assigned to.
+        - Maya (Editing branch member) cannot see this task.
+        """
         task = Task.objects.create(
             department=self.dept_creative,
             branch=self.branch_design,
             assigned_to=self.creative_staff_daniel,
             created_by=self.creative_mgr,
-            task_number='CR-TASK-200',
-            title='Icon Animation Video',
-            description='Export SVG and Lottie JSON files.',
-            priority=Task.Priority.MEDIUM
+            task_number='CR-TASK-300',
+            title='Vector 3D Illustration Pack',
+            description='Produce 3D isometric tech illustrations.',
+            instructions='Export in PNG and SVG at 300 DPI.',
+            priority=Task.Priority.HIGH
         )
 
-        # 1. Daniel (Assigned Member) logs in
+        # 1. Daniel (Assigned Member in Designing branch)
         self.client.login(username="staff_daniel", password="password123")
 
-        # In Employee Dashboard: sees assigned task
-        emp_dash = self.client.get(reverse('employee_dashboard'))
-        self.assertEqual(emp_dash.status_code, 200)
-        self.assertContains(emp_dash, 'CR-TASK-200')
-        self.assertContains(emp_dash, 'Icon Animation Video')
-        self.assertContains(emp_dash, 'Assigned Directly to You')
+        # Dashboard: sees task with "Assigned Directly to You"
+        dash_res = self.client.get(reverse('employee_dashboard'))
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, 'CR-TASK-300')
+        self.assertContains(dash_res, 'Assigned Directly to You')
 
-        # In Task List: sees assigned task
-        task_list = self.client.get(reverse('task_list'))
-        self.assertEqual(task_list.status_code, 200)
-        self.assertContains(task_list, 'CR-TASK-200')
+        # Task List: sees task with "Assigned to You"
+        list_res = self.client.get(reverse('task_list'))
+        self.assertEqual(list_res.status_code, 200)
+        self.assertContains(list_res, 'CR-TASK-300')
+        self.assertContains(list_res, 'Assigned to You')
 
-        # In Task Detail: can view full details
-        task_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}))
-        self.assertEqual(task_detail.status_code, 200)
-        self.assertContains(task_detail, 'Icon Animation Video')
-        self.assertContains(task_detail, 'Export SVG and Lottie JSON files.')
+        # Task Detail: can view full details
+        detail_res = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, 'Assigned to You')
+        self.assertContains(detail_res, 'Export in PNG and SVG at 300 DPI.')
 
-        # 2. Maya (Other Creative Staff, not assigned) logs in
+        # 2. Liam (Same branch: Designing, but NOT assigned)
+        self.client.login(username="staff_liam", password="password123")
+
+        # Dashboard: sees the branch task, but does NOT see who it is assigned to
+        liam_dash = self.client.get(reverse('employee_dashboard'))
+        self.assertEqual(liam_dash.status_code, 200)
+        self.assertContains(liam_dash, 'CR-TASK-300')
+        self.assertContains(liam_dash, 'Vector 3D Illustration Pack')
+        self.assertContains(liam_dash, 'Branch Directive')
+        self.assertNotContains(liam_dash, 'Assigned Directly to You')
+
+        # Task List: sees the branch task, but no assignment pill
+        liam_list = self.client.get(reverse('task_list'))
+        self.assertEqual(liam_list.status_code, 200)
+        self.assertContains(liam_list, 'CR-TASK-300')
+        self.assertContains(liam_list, 'Designing')
+        self.assertNotContains(liam_list, 'Assigned to You')
+        self.assertNotContains(liam_list, 'Assigned Directly to You')
+
+        # Task Detail: can read instructions & scope, but cannot see who it is assigned to
+        liam_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}))
+        self.assertEqual(liam_detail.status_code, 200)
+        self.assertContains(liam_detail, 'Produce 3D isometric tech illustrations.')
+        self.assertContains(liam_detail, 'Export in PNG and SVG at 300 DPI.')
+        self.assertContains(liam_detail, 'Branch Directive: <strong>Designing</strong>')
+        self.assertNotContains(liam_detail, 'Assigned Member:')
+        self.assertNotContains(liam_detail, 'Assigned to You')
+        self.assertNotContains(liam_detail, 'Assigned Directly to You')
+
+        # 3. Maya (Different branch: Editing)
         self.client.login(username="staff_maya", password="password123")
 
-        # In Employee Dashboard: does NOT see Daniel's task
+        # Dashboard: does not see Designing branch task
         maya_dash = self.client.get(reverse('employee_dashboard'))
         self.assertEqual(maya_dash.status_code, 200)
-        self.assertNotContains(maya_dash, 'CR-TASK-200')
-        self.assertNotContains(maya_dash, 'Icon Animation Video')
+        self.assertNotContains(maya_dash, 'CR-TASK-300')
 
-        # In Task List: does NOT see Daniel's task
+        # Task List: does not see Designing branch task
         maya_list = self.client.get(reverse('task_list'))
         self.assertEqual(maya_list.status_code, 200)
-        self.assertNotContains(maya_list, 'CR-TASK-200')
+        self.assertNotContains(maya_list, 'CR-TASK-300')
 
-        # In Task Detail: access restricted
+        # Task Detail: access restricted
         maya_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}), follow=True)
-        self.assertContains(maya_detail, "Access restricted: This task is assigned to another team member.")
+        self.assertContains(maya_detail, "Access restricted: This task belongs to another branch.")
 
     def test_non_creative_dept_manager_cannot_create_or_assign_task(self):
         """Non-Creative Department Managers are strictly prevented from creating or assigning tasks."""

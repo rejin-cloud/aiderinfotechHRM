@@ -197,9 +197,16 @@ def employee_dashboard_view(request):
     if dept:
         teammates = User.objects.filter(department=dept).exclude(id=user.id).select_related('branch')[:8]
 
-    # Creative tasks assigned directly to this employee
+    # Creative tasks for this employee's branch
     from apps.tasks.models import Task
-    assigned_tasks = Task.objects.filter(assigned_to=user).select_related('created_by', 'branch').prefetch_related('attachments').order_by('-created_at')
+    branch_tasks = Task.objects.none()
+    if dept:
+        if branch:
+            branch_tasks = Task.objects.filter(department=dept).filter(
+                Q(branch=branch) | Q(branch__isnull=True)
+            ).select_related('created_by', 'branch', 'assigned_to').prefetch_related('attachments').order_by('-created_at')
+        else:
+            branch_tasks = Task.objects.filter(department=dept, branch__isnull=True).select_related('created_by', 'branch', 'assigned_to').prefetch_related('attachments').order_by('-created_at')
 
     return render(request, 'dashboards/employee.html', {
         'user_profile': user,
@@ -209,7 +216,7 @@ def employee_dashboard_view(request):
         'hr_rep': hr_rep,
         'company_departments': company_departments,
         'teammates': teammates,
-        'assigned_tasks': assigned_tasks,
+        'branch_tasks': branch_tasks,
         'page_title': f'Employee Portal: {user.get_full_name() or user.username}',
     })
 
