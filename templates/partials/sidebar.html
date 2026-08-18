@@ -54,6 +54,10 @@
       <i class="bi bi-plus-circle-fill"></i>
       <span>Create Task</span>
     </a>
+    <a href="{% url 'task_assign' %}" class="sidebar-nav-link text-warning {% if 'task_assign' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-person-check-fill"></i>
+      <span>Assign Tasks</span>
+    </a>
     {% endif %}
 
     <div class="sidebar-heading">Attendance & Workforce</div>

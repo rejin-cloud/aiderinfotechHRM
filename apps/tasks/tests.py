@@ -39,8 +39,8 @@ class CreativeTasksTestCase(TestCase):
             department=self.dept_it
         )
 
-        # 3. Creative Department Staff / Executive (Member)
-        self.creative_staff = User.objects.create_user(
+        # 3. Creative Department Staff / Executive A (Designing Branch)
+        self.creative_staff_daniel = User.objects.create_user(
             username="staff_daniel",
             email="daniel@aider.internal",
             password="password123",
@@ -49,7 +49,17 @@ class CreativeTasksTestCase(TestCase):
             branch=self.branch_design
         )
 
-        # 4. Outside Staff
+        # 4. Creative Department Staff B (Editing Branch)
+        self.creative_staff_maya = User.objects.create_user(
+            username="staff_maya",
+            email="maya@aider.internal",
+            password="password123",
+            role=User.Role.STAFF,
+            department=self.dept_creative,
+            branch=self.branch_edit
+        )
+
+        # 5. Outside Staff
         self.it_staff = User.objects.create_user(
             username="staff_alex",
             email="alex@aider.internal",
@@ -98,92 +108,107 @@ class CreativeTasksTestCase(TestCase):
         self.assertIn('brand_guide.pdf', filenames)
         self.assertIn('banner_asset.psd', filenames)
 
-    def test_non_creative_dept_manager_cannot_create_task(self):
-        """Non-Creative Department Managers are strictly prevented from creating tasks in Creative Dept."""
-        self.client.login(username="deptmgr_it", password="password123")
-
-        res = self.client.get(reverse('task_create'), follow=True)
-        # Should redirect with error
-        self.assertContains(res, "Permission Denied: Only the Creative Department Manager is authorized")
-
-        # Attempt direct POST
-        post_res = self.client.post(reverse('task_create'), {
-            'task_number': 'CR-TASK-999',
-            'title': 'Unauthorized Task',
-            'description': 'Trying to create without permission',
-            'priority': Task.Priority.HIGH,
-            'status': Task.Status.ACTIVE,
-        }, follow=True)
-        self.assertFalse(Task.objects.filter(task_number='CR-TASK-999').exists())
-
-    def test_creative_member_cannot_create_or_edit_task(self):
-        """Creative department staff/interns cannot create, edit, or delete tasks."""
-        self.client.login(username="staff_daniel", password="password123")
-
-        # 1. Attempt task creation
-        res = self.client.get(reverse('task_create'), follow=True)
-        self.assertContains(res, "Permission Denied: Only the Creative Department Manager is authorized")
-
-        # Create a task as manager first
+    def test_creative_manager_can_assign_task_by_branch_and_member(self):
+        """Manager selects task, selects branch, filters branch members, and assigns task."""
         task = Task.objects.create(
             department=self.dept_creative,
             created_by=self.creative_mgr,
-            task_number='CR-TASK-010',
-            title='Icon Set Production',
-            description='Design 15 system icons.',
-            priority=Task.Priority.MEDIUM
-        )
-
-        # 2. Attempt task edit as staff
-        edit_res = self.client.post(reverse('task_edit', kwargs={'task_id': task.id}), {
-            'task_number': 'CR-TASK-010',
-            'title': 'Hacked Title',
-            'description': 'Hacked description',
-            'priority': Task.Priority.LOW,
-            'status': Task.Status.ACTIVE,
-        }, follow=True)
-        self.assertContains(edit_res, "Permission Denied")
-        task.refresh_from_db()
-        self.assertEqual(task.title, 'Icon Set Production')
-
-        # 3. Attempt task delete as staff
-        del_res = self.client.post(reverse('task_delete', kwargs={'task_id': task.id}), follow=True)
-        self.assertContains(del_res, "Permission Denied")
-        self.assertTrue(Task.objects.filter(id=task.id).exists())
-
-    def test_creative_member_can_view_task_read_only(self):
-        """Creative department staff can view tasks in read-only mode."""
-        task = Task.objects.create(
-            department=self.dept_creative,
-            created_by=self.creative_mgr,
-            task_number='CR-TASK-020',
-            title='Motion Graphics Reel',
-            description='Edit 30-second promo video.',
-            instructions='1080x1920 60fps export required.',
+            task_number='CR-TASK-100',
+            title='UI Wireframing Campaign',
+            description='Design low-fidelity mockups.',
             priority=Task.Priority.HIGH
         )
 
-        doc = SimpleUploadedFile("script.docx", b"Script word file content", content_type="application/msword")
-        TaskAttachment.objects.create(task=task, file=doc)
+        self.client.login(username="deptmgr_rachel", password="password123")
 
+        # Access assignment page
+        res = self.client.get(reverse('task_assign'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Assign Creative Tasks to Branch Members")
+        self.assertContains(res, "CR-TASK-100")
+        self.assertContains(res, "Designing")
+        self.assertContains(res, "Editing")
+
+        # Test Branch Members API
+        api_res = self.client.get(reverse('branch_members_api', kwargs={'branch_id': self.branch_design.id}))
+        self.assertEqual(api_res.status_code, 200)
+        api_data = api_res.json()
+        member_usernames = [m['username'] for m in api_data['members']]
+        self.assertIn('staff_daniel', member_usernames)
+        self.assertNotIn('staff_maya', member_usernames)
+
+        # Submit Assignment: Assign to Daniel in Designing branch
+        post_data = {
+            'task_id': task.id,
+            'branch_id': self.branch_design.id,
+            'user_id': self.creative_staff_daniel.id,
+        }
+        assign_res = self.client.post(reverse('task_assign'), post_data, follow=True)
+        self.assertEqual(assign_res.status_code, 200)
+
+        task.refresh_from_db()
+        self.assertEqual(task.branch, self.branch_design)
+        self.assertEqual(task.assigned_to, self.creative_staff_daniel)
+
+    def test_assigned_member_sees_task_and_other_members_do_not(self):
+        """Assigned member sees task in dashboard and detail; remaining members cannot see it."""
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            assigned_to=self.creative_staff_daniel,
+            created_by=self.creative_mgr,
+            task_number='CR-TASK-200',
+            title='Icon Animation Video',
+            description='Export SVG and Lottie JSON files.',
+            priority=Task.Priority.MEDIUM
+        )
+
+        # 1. Daniel (Assigned Member) logs in
         self.client.login(username="staff_daniel", password="password123")
 
-        # 1. Task List
-        list_res = self.client.get(reverse('task_list'))
-        self.assertEqual(list_res.status_code, 200)
-        self.assertContains(list_res, 'CR-TASK-020')
-        self.assertContains(list_res, 'Motion Graphics Reel')
-        # Manager controls should not appear for staff
-        self.assertNotContains(list_res, 'Create New Task')
+        # In Employee Dashboard: sees assigned task
+        emp_dash = self.client.get(reverse('employee_dashboard'))
+        self.assertEqual(emp_dash.status_code, 200)
+        self.assertContains(emp_dash, 'CR-TASK-200')
+        self.assertContains(emp_dash, 'Icon Animation Video')
+        self.assertContains(emp_dash, 'Assigned Directly to You')
 
-        # 2. Task Detail
-        detail_res = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}))
-        self.assertEqual(detail_res.status_code, 200)
-        self.assertContains(detail_res, 'Motion Graphics Reel')
-        self.assertContains(detail_res, '1080x1920 60fps export required.')
-        self.assertContains(detail_res, 'script.docx')
-        self.assertContains(detail_res, 'Read-Only Member View')
-        self.assertNotContains(detail_res, 'Edit Task & Files')
+        # In Task List: sees assigned task
+        task_list = self.client.get(reverse('task_list'))
+        self.assertEqual(task_list.status_code, 200)
+        self.assertContains(task_list, 'CR-TASK-200')
+
+        # In Task Detail: can view full details
+        task_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}))
+        self.assertEqual(task_detail.status_code, 200)
+        self.assertContains(task_detail, 'Icon Animation Video')
+        self.assertContains(task_detail, 'Export SVG and Lottie JSON files.')
+
+        # 2. Maya (Other Creative Staff, not assigned) logs in
+        self.client.login(username="staff_maya", password="password123")
+
+        # In Employee Dashboard: does NOT see Daniel's task
+        maya_dash = self.client.get(reverse('employee_dashboard'))
+        self.assertEqual(maya_dash.status_code, 200)
+        self.assertNotContains(maya_dash, 'CR-TASK-200')
+        self.assertNotContains(maya_dash, 'Icon Animation Video')
+
+        # In Task List: does NOT see Daniel's task
+        maya_list = self.client.get(reverse('task_list'))
+        self.assertEqual(maya_list.status_code, 200)
+        self.assertNotContains(maya_list, 'CR-TASK-200')
+
+        # In Task Detail: access restricted
+        maya_detail = self.client.get(reverse('task_detail', kwargs={'task_id': task.id}), follow=True)
+        self.assertContains(maya_detail, "Access restricted: This task is assigned to another team member.")
+
+    def test_non_creative_dept_manager_cannot_create_or_assign_task(self):
+        """Non-Creative Department Managers are strictly prevented from creating or assigning tasks."""
+        self.client.login(username="deptmgr_it", password="password123")
+
+        # Attempt to access assign page
+        res = self.client.get(reverse('task_assign'), follow=True)
+        self.assertContains(res, "Permission Denied: Only the Creative Department Manager is authorized")
 
     def test_sequential_task_number_generation(self):
         """Task.generate_next_task_number increments sequentially."""

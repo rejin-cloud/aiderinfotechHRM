@@ -29,8 +29,11 @@
     
     <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
       {% if is_creative_manager %}
-      <a href="{% url 'task_create' %}" class="btn btn-warning text-dark fw-bold px-4 py-2 rounded-pill shadow-sm">
-        <i class="bi bi-plus-circle-fill me-1"></i> Create New Task
+      <a href="{% url 'task_create' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-plus-circle-fill me-1"></i> Create Task
+      </a>
+      <a href="{% url 'task_assign' %}" class="btn btn-light text-primary fw-bold px-3 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-person-check-fill me-1"></i> Assign Tasks
       </a>
       {% endif %}
       <a href="{% url 'dashboard_router' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
@@ -146,6 +149,9 @@
             </a>
 
             {% if is_creative_manager %}
+            <a href="{% url 'task_assign_specific' t.id %}" class="btn btn-sm btn-light border p-1 px-2 text-primary" title="Assign to Member">
+              <i class="bi bi-person-check-fill"></i>
+            </a>
             <a href="{% url 'task_edit' t.id %}" class="btn btn-sm btn-light border p-1 px-2" title="Edit Task">
               <i class="bi bi-pencil-square text-dark"></i>
             </a>

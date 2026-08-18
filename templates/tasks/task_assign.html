@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}Assign Creative Task | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-11">
+
+    <!-- Header Banner -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-4 bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px;">
+            <i class="bi bi-person-check-fill fs-2"></i>
+          </div>
+          <div>
+            <div class="badge bg-warning text-dark fw-bold mb-1">
+              <i class="bi bi-shield-lock-fill me-1"></i> Creative Department Manager Exclusive
+            </div>
+            <h3 class="fw-bold mb-0">Assign Creative Tasks to Branch Members</h3>
+            <p class="text-white-50 small mb-0 mt-1">
+              Select a task &rarr; choose a branch &rarr; assign to a specific member. Only the assigned member will see this task in their personal dashboard.
+            </p>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <a href="{% url 'task_list' %}" class="btn btn-outline-light rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> All Tasks
+          </a>
+          <a href="{% url 'dept_manager_dashboard' %}" class="btn btn-warning text-dark fw-bold rounded-pill px-3">
+            <i class="bi bi-speedometer2 me-1"></i> Manager Portal
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assignment Form Card -->
+    <form method="post" id="assignmentForm">
+      {% csrf_token %}
+
+      <div class="row g-4">
+        
+        <!-- Column 1: Step 1 - Select Task -->
+        <div class="col-12 col-lg-5">
+          <div class="hrms-card shadow-sm border-0 h-100">
+            <div class="hrms-card-header bg-light p-3 border-bottom d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge bg-primary text-white rounded-pill px-2 py-1 me-1">Step 1</span>
+                <strong class="text-dark">Select a Task</strong>
+              </div>
+              <span class="text-muted small">{{ tasks.count }} Task{{ tasks.count|pluralize }} Available</span>
+            </div>
+
+            <div class="hrms-card-body p-3" style="max-height: 600px; overflow-y: auto;">
+              {% for t in tasks %}
+              <div class="task-select-item p-3 mb-2 rounded-3 border bg-white cursor-pointer transition {% if selected_task and selected_task.id == t.id %}border-primary bg-primary-subtle bg-opacity-10 shadow-sm{% endif %}" onclick="selectTask('{{ t.id }}', '{{ t.task_number }}', '{{ t.title|escapejs }}', '{{ t.priority }}', '{{ t.branch.id|default:'' }}')">
+                <div class="d-flex align-items-start gap-2">
+                  <input class="form-check-input mt-1 task-radio" type="radio" name="task_id" id="task_{{ t.id }}" value="{{ t.id }}" {% if selected_task and selected_task.id == t.id %}checked{% endif %} required>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <span class="badge bg-dark font-monospace text-warning px-2 py-0 fs-7">{{ t.task_number }}</span>
+                      <span class="badge {{ t.priority_badge_class }} py-0">{{ t.get_priority_display }}</span>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">{{ t.title }}</h6>
+                    <p class="text-muted small mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                      {{ t.description }}
+                    </p>
+
+                    <div class="d-flex align-items-center gap-2 small">
+                      {% if t.assigned_to %}
+                      <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-person-check-fill me-1"></i> Assigned: {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}
+                      </span>
+                      {% else %}
+                      <span class="badge bg-secondary-subtle text-secondary border">
+                        <i class="bi bi-circle me-1"></i> Unassigned
+                      </span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="text-center py-5 text-muted">
+                <i class="bi bi-clipboard2-x fs-2 d-block mb-2 text-secondary"></i>
+                No tasks created in Creative Department yet.
+                <div class="mt-3">
+                  <a href="{% url 'task_create' %}" class="btn btn-sm btn-primary">Create Task</a>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 2: Step 2 & 3 - Select Branch and Member -->
+        <div class="col-12 col-lg-7">
+          <div class="hrms-card shadow-sm border-0 h-100 d-flex flex-column">
+            
+            <div class="hrms-card-header bg-light p-3 border-bottom">
+              <span class="badge bg-primary text-white rounded-pill px-2 py-1 me-1">Step 2 & 3</span>
+              <strong class="text-dark">Select Branch & Target Member</strong>
+            </div>
+
+            <div class="hrms-card-body p-4 flex-grow-1">
+
+              <!-- Selected Task Banner Summary -->
+              <div id="selectedTaskBanner" class="alert alert-light border rounded-3 p-3 mb-4 {% if not selected_task %}d-none{% endif %}">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                  <div>
+                    <span class="small text-muted d-block">Assigning Directive:</span>
+                    <strong class="text-dark" id="selectedTaskName">
+                      {% if selected_task %}[{{ selected_task.task_number }}] {{ selected_task.title }}{% endif %}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 2: Select Branch -->
+              <div class="mb-4">
+                <label class="form-label fw-bold text-dark">
+                  <i class="bi bi-diagram-3-fill text-primary me-1"></i> Step 2: Select Branch in Creative Department <span class="text-danger">*</span>
+                </label>
+                
+                <div class="row g-2" id="branchCardsContainer">
+                  {% for b in branches %}
+                  <div class="col-12 col-sm-4">
+                    <div class="branch-card p-3 rounded-3 border text-center cursor-pointer transition h-100 bg-white" id="branchCard_{{ b.id }}" onclick="selectBranch('{{ b.id }}', '{{ b.name|escapejs }}')">
+                      <input class="form-check-input d-none" type="radio" name="branch_id" id="branch_{{ b.id }}" value="{{ b.id }}">
+                      <i class="bi bi-diagram-3 fs-3 text-primary d-block mb-1"></i>
+                      <div class="fw-bold text-dark small branch-title">{{ b.name }}</div>
+                      <span class="badge bg-light text-muted border mt-1" style="font-size: 0.7rem;">
+                        {{ b.member_count }} Member{{ b.member_count|pluralize }}
+                      </span>
+                    </div>
+                  </div>
+                  {% empty %}
+                  <div class="col-12 text-muted small p-3 bg-light rounded-3">
+                    No branches configured for Creative Department.
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+
+              <!-- Step 3: Select Member in Branch -->
+              <div class="mb-4">
+                <label class="form-label fw-bold text-dark">
+                  <i class="bi bi-people-fill text-primary me-1"></i> Step 3: Select Branch Member <span class="text-danger">*</span>
+                </label>
+                <div class="form-text small text-muted mb-2" id="memberHelpText">
+                  Choose a branch above to view its personnel. Only the chosen member will receive and view this assignment.
+                </div>
+
+                <!-- Dynamic Members Container -->
+                <div id="membersListContainer" class="p-3 bg-light rounded-3 border min-vh-25">
+                  <div class="text-center py-4 text-muted small" id="noBranchPrompt">
+                    <i class="bi bi-arrow-up-circle fs-3 d-block mb-1 text-secondary"></i>
+                    Please select a branch above to view available members.
+                  </div>
+
+                  <div id="membersListGrid" class="row g-2 d-none">
+                    <!-- Populated dynamically via JS -->
+                  </div>
+
+                  <div id="noMembersAlert" class="text-center py-4 text-muted small d-none">
+                    <i class="bi bi-person-x fs-3 d-block mb-1 text-warning"></i>
+                    No members currently assigned to this branch.
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Card Footer Submit -->
+            <div class="hrms-card-footer bg-light p-3 d-flex justify-content-between align-items-center border-top">
+              <a href="{% url 'task_list' %}" class="btn btn-light border px-4">Cancel</a>
+              <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm" id="submitAssignBtn" disabled>
+                <i class="bi bi-check2-circle me-1"></i> Confirm & Assign Task
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- Embedded Branch Members Data for Instant Responsive Interaction -->
+{{ branch_members_data|json_script:"branch-members-json" }}
+
+<style>
+.cursor-pointer { cursor: pointer; }
+.transition { transition: all 0.2s ease-in-out; }
+.task-select-item:hover { border-color: #4f46e5 !important; background-color: #f8fafc; }
+.branch-card:hover { border-color: #4f46e5 !important; background-color: #f5f3ff !important; }
+.branch-card.selected { border-color: #4f46e5 !important; background-color: #eef2ff !important; box-shadow: 0 0 0 2px #4f46e5; }
+.member-card:hover { border-color: #4f46e5 !important; background-color: #f8fafc; }
+.member-card.selected { border-color: #4f46e5 !important; background-color: #ecfdf5 !important; box-shadow: 0 0 0 2px #10b981; }
+</style>
+
+<script>
+const branchMembersMap = JSON.parse(document.getElementById('branch-members-json').textContent || '{}');
+let currentTaskId = '{{ selected_task.id|default:"" }}';
+let currentBranchId = '{{ selected_task.branch.id|default:"" }}';
+let currentUserId = '{{ selected_task.assigned_to.id|default:"" }}';
+
+function selectTask(taskId, taskNumber, taskTitle, priority, branchId) {
+  currentTaskId = taskId;
+  const radio = document.getElementById('task_' + taskId);
+  if (radio) radio.checked = true;
+
+  // Highlight task card
+  document.querySelectorAll('.task-select-item').forEach(el => el.classList.remove('border-primary', 'bg-primary-subtle', 'bg-opacity-10', 'shadow-sm'));
+  radio.closest('.task-select-item').classList.add('border-primary', 'bg-primary-subtle', 'bg-opacity-10', 'shadow-sm');
+
+  // Update banner
+  const banner = document.getElementById('selectedTaskBanner');
+  banner.classList.remove('d-none');
+  document.getElementById('selectedTaskName').textContent = `[${taskNumber}] ${taskTitle}`;
+
+  // If task has pre-existing branch, highlight it
+  if (branchId && document.getElementById('branch_' + branchId)) {
+    selectBranch(branchId);
+  }
+
+  checkValidation();
+}
+
+function selectBranch(branchId, branchName) {
+  currentBranchId = branchId;
+  const radio = document.getElementById('branch_' + branchId);
+  if (radio) radio.checked = true;
+
+  // Highlight branch card
+  document.querySelectorAll('.branch-card').forEach(el => el.classList.remove('selected'));
+  const card = document.getElementById('branchCard_' + branchId);
+  if (card) card.classList.add('selected');
+
+  renderBranchMembers(branchId);
+  checkValidation();
+}
+
+function renderBranchMembers(branchId) {
+  const members = branchMembersMap[branchId] || [];
+  const grid = document.getElementById('membersListGrid');
+  const noPrompt = document.getElementById('noBranchPrompt');
+  const noMembers = document.getElementById('noMembersAlert');
+
+  noPrompt.classList.add('d-none');
+  grid.innerHTML = '';
+
+  if (members.length === 0) {
+    grid.classList.add('d-none');
+    noMembers.classList.remove('d-none');
+    return;
+  }
+
+  noMembers.classList.add('d-none');
+  grid.classList.remove('d-none');
+
+  members.forEach(m => {
+    const isSelected = (currentUserId && String(currentUserId) === String(m.id));
+    const col = document.createElement('div');
+    col.className = 'col-12 col-md-6';
+    col.innerHTML = `
+      <div class="member-card p-3 rounded-3 border bg-white cursor-pointer transition d-flex align-items-center gap-3 ${isSelected ? 'selected' : ''}" id="memberCard_${m.id}" onclick="selectMember('${m.id}')">
+        <input class="form-check-input member-radio" type="radio" name="user_id" id="user_${m.id}" value="${m.id}" ${isSelected ? 'checked' : ''} required>
+        <div class="avatar-circle" style="background-color: ${m.avatar_color}; width: 40px; height: 40px; font-size: 0.95rem;">
+          ${m.name.charAt(0).toUpperCase()}
+        </div>
+        <div class="flex-grow-1 overflow-hidden">
+          <strong class="text-dark d-block text-truncate small">${m.name}</strong>
+          <span class="text-muted small" style="font-size: 0.75rem;">${m.designation} &bull; ${m.role}</span>
+        </div>
+      </div>
+    `;
+    grid.appendChild(col);
+  });
+}
+
+function selectMember(userId) {
+  currentUserId = userId;
+  const radio = document.getElementById('user_' + userId);
+  if (radio) radio.checked = true;
+
+  document.querySelectorAll('.member-card').forEach(el => el.classList.remove('selected'));
+  const card = document.getElementById('memberCard_' + userId);
+  if (card) card.classList.add('selected');
+
+  checkValidation();
+}
+
+function checkValidation() {
+  const taskChecked = document.querySelector('input[name="task_id"]:checked');
+  const branchChecked = document.querySelector('input[name="branch_id"]:checked');
+  const userChecked = document.querySelector('input[name="user_id"]:checked');
+
+  const btn = document.getElementById('submitAssignBtn');
+  if (taskChecked && branchChecked && userChecked) {
+    btn.disabled = false;
+  } else {
+    btn.disabled = true;
+  }
+}
+
+// Auto-initialize if selected_task exists
+document.addEventListener('DOMContentLoaded', function() {
+  if (currentTaskId) {
+    const radio = document.getElementById('task_' + currentTaskId);
+    if (radio) radio.checked = true;
+  }
+  if (currentBranchId) {
+    selectBranch(currentBranchId);
+  }
+  checkValidation();
+});
+</script>
+{% endblock %}
