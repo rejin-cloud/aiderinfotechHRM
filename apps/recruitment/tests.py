@@ -171,6 +171,67 @@ class RecruitmentPipelineTests(TestCase):
         self.assertEqual(cand.status, Candidate.Status.REJECTED)
         self.assertIsNone(cand.interview_date)
 
+    def test_post_interview_approve_and_reject_workflow(self):
+        self.client.force_login(self.hr_user)
+
+        # 1. Candidate with interview scheduled
+        cand = Candidate.objects.create(
+            name='Maya Sreekumar',
+            phone='+91 9998887776',
+            place='Ernakulam',
+            department=self.dept,
+            branch=self.branch,
+            role_applied=Candidate.RoleApplied.STAFF,
+            designation_applied='Graphic Designer',
+            status=Candidate.Status.INTERVIEW_SCHEDULED,
+            interview_date=timezone.localdate(),
+            interview_time='14:00:00',
+            interview_mode='ONLINE',
+            created_by=self.hr_user,
+        )
+
+        # 2. Record Outcome -> Approved (SELECTED)
+        outcome_res = self.client.post(reverse('candidate_interview_outcome', args=[cand.id]), {
+            'outcome': 'SELECTED',
+            'interview_feedback': 'Exceptional portfolio, strong communication, agreed on CTC.',
+        })
+        self.assertEqual(outcome_res.status_code, 302)
+        self.assertRedirects(outcome_res, reverse('candidate_detail', args=[cand.id]))
+
+        cand.refresh_from_db()
+        self.assertEqual(cand.status, Candidate.Status.SELECTED)
+        self.assertEqual(cand.reviewed_by, self.hr_user)
+        self.assertIn('Exceptional portfolio', cand.interview_feedback)
+
+        # 3. View Candidate Detail: Displays HRMS Registration Link Share Banner
+        detail_res = self.client.get(reverse('candidate_detail', args=[cand.id]))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, 'Share HRMS Registration Link')
+        self.assertContains(detail_res, 'https://hrms.aiderinfotech.com/register/')
+        self.assertContains(detail_res, 'Copy Link')
+        self.assertContains(detail_res, 'Share on WhatsApp')
+
+        # 4. Another candidate marked Rejected post-interview
+        cand_rej = Candidate.objects.create(
+            name='Arun Varma',
+            phone='+91 9777666555',
+            place='Kollam',
+            status=Candidate.Status.INTERVIEW_SCHEDULED,
+            interview_date=timezone.localdate(),
+            interview_time='15:00:00',
+            created_by=self.hr_user,
+        )
+
+        rej_outcome_res = self.client.post(reverse('candidate_interview_outcome', args=[cand_rej.id]), {
+            'outcome': 'REJECTED',
+            'interview_feedback': 'Lacked required technical animation skills.',
+        })
+        self.assertEqual(rej_outcome_res.status_code, 302)
+
+        cand_rej.refresh_from_db()
+        self.assertEqual(cand_rej.status, Candidate.Status.REJECTED)
+        self.assertIn('Lacked required technical animation skills', cand_rej.approval_notes)
+
     def test_unauthorized_staff_cannot_access_recruitment(self):
         self.client.force_login(self.staff_user)
         res = self.client.get(reverse('candidate_list'))

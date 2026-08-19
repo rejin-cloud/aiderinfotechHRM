@@ -211,7 +211,14 @@
 
             <!-- Interview Status -->
             <td>
-              {% if cand.status == 'INTERVIEW_SCHEDULED' %}
+              {% if cand.status == 'SELECTED' %}
+              <span class="badge bg-success text-white py-1 px-2">
+                <i class="bi bi-patch-check-fill me-1"></i> Interview Passed (Selected)
+              </span>
+              <div class="small fw-semibold text-success mt-1" style="font-size: 0.75rem;">
+                <i class="bi bi-link-45deg me-1"></i> HRMS Link Ready
+              </div>
+              {% elif cand.status == 'INTERVIEW_SCHEDULED' %}
               <span class="badge bg-primary text-white py-1 px-2">
                 <i class="bi bi-calendar2-check me-1"></i> Interview Fixed
               </span>
@@ -235,9 +242,13 @@
                 <a href="{% url 'candidate_schedule_interview' cand.id %}" class="btn btn-sm btn-primary text-white fw-semibold shadow-sm" title="Arrange Interview">
                   <i class="bi bi-calendar-plus me-1"></i> Arrange Interview
                 </a>
-                {% else %}
-                <a href="{% url 'candidate_schedule_interview' cand.id %}" class="btn btn-sm btn-outline-primary" title="Update Interview">
-                  <i class="bi bi-pencil me-1"></i> Reschedule
+                {% elif cand.status == 'INTERVIEW_SCHEDULED' %}
+                <a href="{% url 'candidate_interview_outcome' cand.id %}" class="btn btn-sm btn-primary text-white fw-bold shadow-sm" title="Record Post-Interview Outcome">
+                  <i class="bi bi-clipboard2-check me-1"></i> Outcome
+                </a>
+                {% elif cand.status == 'SELECTED' %}
+                <a href="{% url 'candidate_detail' cand.id %}" class="btn btn-sm btn-success text-white fw-bold shadow-sm" title="Share HRMS Registration Link">
+                  <i class="bi bi-link-45deg me-1"></i> Share HRMS Link
                 </a>
                 {% endif %}
 

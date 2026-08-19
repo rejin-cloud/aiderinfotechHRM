@@ -9,6 +9,7 @@ from .forms import (
     CandidateCallLogForm,
     CandidateDecisionForm,
     InterviewScheduleForm,
+    CandidateInterviewOutcomeForm,
 )
 from apps.departments.models import Department, Branch
 
@@ -108,7 +109,7 @@ def candidate_approved_list_view(request):
     search_q = request.GET.get('q', '').strip()
 
     qs = Candidate.objects.filter(
-        status__in=[Candidate.Status.APPROVED, Candidate.Status.INTERVIEW_SCHEDULED]
+        status__in=[Candidate.Status.APPROVED, Candidate.Status.INTERVIEW_SCHEDULED, Candidate.Status.SELECTED]
     ).select_related('department', 'branch', 'called_by', 'reviewed_by')
 
     if search_q:
@@ -124,12 +125,14 @@ def candidate_approved_list_view(request):
 
     approved_only_cnt = Candidate.objects.filter(status=Candidate.Status.APPROVED).count()
     interview_scheduled_cnt = Candidate.objects.filter(status=Candidate.Status.INTERVIEW_SCHEDULED).count()
+    selected_cnt = Candidate.objects.filter(status=Candidate.Status.SELECTED).count()
     departments = Department.objects.all()
 
     return render(request, 'recruitment/candidate_approved_list.html', {
         'candidates': qs,
         'approved_only_cnt': approved_only_cnt,
         'interview_scheduled_cnt': interview_scheduled_cnt,
+        'selected_cnt': selected_cnt,
         'total_approved_cnt': qs.count(),
         'departments': departments,
         'selected_dept': dept_filter,
@@ -328,6 +331,61 @@ def candidate_schedule_interview_view(request, candidate_id):
         'candidate': candidate,
         'form': form,
         'page_title': f"Arrange Interview: {candidate.name}",
+    })
+
+
+@login_required
+@hr_or_management_required
+def candidate_interview_outcome_view(request, candidate_id):
+    """
+    Records post-interview evaluation outcome (Approved / Rejected).
+    If Approved (Selected): Prompts HR with the shareable message and instructions
+    to invite the candidate to register on our HRMS system.
+    If Rejected: Updates candidate status to Rejected with feedback remarks.
+    """
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+
+    if request.method == 'POST':
+        form = CandidateInterviewOutcomeForm(request.POST)
+        if form.is_valid():
+            outcome = form.cleaned_data['outcome']
+            feedback = form.cleaned_data.get('interview_feedback', '')
+
+            candidate.interview_feedback = feedback
+            candidate.reviewed_at = timezone.now()
+            candidate.reviewed_by = request.user
+
+            if outcome == 'SELECTED':
+                candidate.status = Candidate.Status.SELECTED
+                candidate.save()
+                messages.success(
+                    request,
+                    f"Candidate '{candidate.name}' has been Approved post-interview! "
+                    "Please share the HRMS registration link with the candidate and ask them to register to our HR system."
+                )
+            else:
+                candidate.status = Candidate.Status.REJECTED
+                candidate.approval_notes = f"Rejected post-interview: {feedback}"
+                candidate.save()
+                messages.warning(
+                    request,
+                    f"Candidate '{candidate.name}' has been marked as Rejected post-interview."
+                )
+
+            return redirect('candidate_detail', candidate_id=candidate.id)
+    else:
+        initial_decision = request.GET.get('decision', 'SELECTED')
+        if initial_decision not in ['SELECTED', 'REJECTED']:
+            initial_decision = 'SELECTED'
+        form = CandidateInterviewOutcomeForm(initial={
+            'outcome': initial_decision,
+            'interview_feedback': candidate.interview_feedback,
+        })
+
+    return render(request, 'recruitment/candidate_interview_outcome.html', {
+        'candidate': candidate,
+        'form': form,
+        'page_title': f"Interview Outcome & Evaluation: {candidate.name}",
     })
 
 

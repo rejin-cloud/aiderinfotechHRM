@@ -10,5 +10,6 @@ urlpatterns = [
     path('candidates/<int:candidate_id>/call/', views.candidate_mark_called_view, name='candidate_mark_called'),
     path('candidates/<int:candidate_id>/decide/', views.candidate_decide_view, name='candidate_decide'),
     path('candidates/<int:candidate_id>/interview/', views.candidate_schedule_interview_view, name='candidate_schedule_interview'),
+    path('candidates/<int:candidate_id>/interview-outcome/', views.candidate_interview_outcome_view, name='candidate_interview_outcome'),
     path('candidates/<int:candidate_id>/delete/', views.candidate_delete_view, name='candidate_delete'),
 ]

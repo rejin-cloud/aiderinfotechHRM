@@ -126,3 +126,26 @@ class InterviewScheduleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['interview_date'].required = True
         self.fields['interview_time'].required = True
+
+
+class CandidateInterviewOutcomeForm(forms.Form):
+    OUTCOME_CHOICES = [
+        ('SELECTED', 'Approved (Select Candidate & Invite to HRMS Registration)'),
+        ('REJECTED', 'Rejected (Candidate did not pass interview round)'),
+    ]
+
+    outcome = forms.ChoiceField(
+        choices=OUTCOME_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        initial='SELECTED',
+        label="Post-Interview Decision"
+    )
+    interview_feedback = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Evaluation feedback: technical skills, culture fit, performance in interview, reasons for approval / rejection...'
+        }),
+        required=False,
+        label="Interview Evaluation Notes & Feedback"
+    )

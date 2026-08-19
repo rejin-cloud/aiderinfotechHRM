@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Post-Interview Outcome: {{ candidate.name }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8 col-xl-7">
+    
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'candidate_list' %}" class="text-decoration-none text-primary">Candidate Pipeline</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'candidate_detail' candidate.id %}" class="text-decoration-none text-primary">{{ candidate.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Post-Interview Decision</li>
+      </ol>
+    </nav>
+
+    <!-- Candidate Summary Banner -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #4338ca 100%);">
+      <div class="d-flex align-items-center gap-3">
+        <div class="avatar-circle avatar-lg shadow-lg border border-2 border-white border-opacity-25" style="background-color: #4f46e5; width: 62px; height: 62px; font-size: 1.6rem; color: #ffffff;">
+          {{ candidate.name|first|upper }}
+        </div>
+        <div>
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+            <span class="badge {{ candidate.status_badge_class }} px-3 py-1 font-monospace">
+              {{ candidate.get_status_display }}
+            </span>
+            {% if candidate.interview_date %}
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1">
+              <i class="bi bi-calendar-check me-1"></i> Interview: {{ candidate.interview_date|date:"M d, Y" }} @ {{ candidate.interview_time|time:"h:i A" }}
+            </span>
+            {% endif %}
+          </div>
+          <h3 class="fw-extrabold mb-0 text-white">{{ candidate.name }}</h3>
+          <span class="text-white-50 small">
+            Applying for <strong>{{ candidate.designation_applied|default:candidate.get_role_applied_display }}</strong> &bull; <i class="bi bi-telephone text-warning me-1"></i>{{ candidate.phone }} &bull; <i class="bi bi-geo-alt text-danger me-1"></i>{{ candidate.place }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Outcome Form Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-4">
+        <h4 class="fw-bold text-dark mb-1">
+          <i class="bi bi-clipboard2-check-fill me-2 text-primary"></i> Record Post-Interview Outcome
+        </h4>
+        <p class="text-muted small mb-0">
+          Mark whether the candidate is <strong>Approved (Selected)</strong> or <strong>Rejected</strong> following the interview round.
+        </p>
+      </div>
+
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Outcome Selection Cards -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark small text-uppercase">
+              Interview Result & Next Step <span class="text-danger">*</span>
+            </label>
+
+            <div class="row g-3">
+              <!-- Approve (Selected) Option -->
+              <div class="col-12 col-md-6">
+                <label class="card h-100 p-3 border rounded-4 cursor-pointer outcome-option" for="id_outcome_0" style="transition: all 0.2s ease;">
+                  <div class="d-flex align-items-start gap-3">
+                    <input class="form-check-input mt-1" type="radio" name="outcome" id="id_outcome_0" value="SELECTED" {% if form.outcome.value == 'SELECTED' or not form.outcome.value %}checked{% endif %} onchange="toggleOutcomePreview()">
+                    <div>
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1">
+                          <i class="bi bi-check-circle-fill me-1"></i> Approved
+                        </span>
+                      </div>
+                      <h6 class="fw-bold text-dark mb-1">Select Candidate</h6>
+                      <p class="small text-muted mb-0" style="font-size: 0.8rem;">
+                        Candidate cleared interview. Prompts HR to share the HRMS registration link for employee self-onboarding.
+                      </p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Reject Option -->
+              <div class="col-12 col-md-6">
+                <label class="card h-100 p-3 border rounded-4 cursor-pointer outcome-option" for="id_outcome_1" style="transition: all 0.2s ease;">
+                  <div class="d-flex align-items-start gap-3">
+                    <input class="form-check-input mt-1" type="radio" name="outcome" id="id_outcome_1" value="REJECTED" {% if form.outcome.value == 'REJECTED' %}checked{% endif %} onchange="toggleOutcomePreview()">
+                    <div>
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-1">
+                          <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                        </span>
+                      </div>
+                      <h6 class="fw-bold text-dark mb-1">Reject Candidate</h6>
+                      <p class="small text-muted mb-0" style="font-size: 0.8rem;">
+                        Candidate did not meet criteria or declined. Candidate will be marked as Rejected (interview scheduling will be disabled).
+                      </p>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            {% if form.outcome.errors %}
+            <div class="text-danger small mt-2">{{ form.outcome.errors }}</div>
+            {% endif %}
+          </div>
+
+          <!-- HRMS Registration Notice Box (Shown when Approved is chosen) -->
+          <div id="hrmsApprovalNotice" class="card border-0 rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #10b981 !important;">
+            <div class="d-flex gap-3 align-items-start">
+              <div class="p-2 bg-success text-white rounded-circle shadow-sm">
+                <i class="bi bi-link-45deg fs-4"></i>
+              </div>
+              <div class="flex-grow-1">
+                <h6 class="fw-bold text-success-emphasis mb-1">
+                  <i class="bi bi-info-circle-fill me-1"></i> Next Action: Share HRMS Registration Link
+                </h6>
+                <p class="small text-dark mb-2">
+                  When you mark this candidate as <strong>Approved</strong>, share the HRMS link with <strong>{{ candidate.name }}</strong> and ask the candidate to register to our HR system:
+                </p>
+                <div class="p-3 bg-white rounded-3 border border-success border-opacity-50 small font-monospace text-dark shadow-sm">
+                  <strong>HRMS Registration Portal:</strong> <span class="text-primary fw-bold">[HRMS Registration Link: https://hrms.aiderinfotech.com/register/]</span>
+                  <div class="mt-2 text-muted" style="font-size: 0.78rem;">
+                    (Exact registration domain URL can be customized as needed)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback & Evaluation Notes -->
+          <div class="mb-4">
+            <label for="id_interview_feedback" class="form-label fw-bold text-dark small text-uppercase">
+              Interview Evaluation Feedback / Remarks
+            </label>
+            {{ form.interview_feedback }}
+            {% if form.interview_feedback.errors %}
+            <div class="text-danger small mt-1">{{ form.interview_feedback.errors }}</div>
+            {% endif %}
+            <div class="form-text small text-muted">
+              Record specific performance observations, interviewer panel consensus, strengths, salary agreed upon, or rejection rationale.
+            </div>
+          </div>
+
+          <!-- Form Action Buttons -->
+          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+            <a href="{% url 'candidate_detail' candidate.id %}" class="btn btn-outline-secondary rounded-pill px-4">
+              <i class="bi bi-arrow-left me-1"></i> Back to Candidate
+            </a>
+            <button type="submit" class="btn btn-primary fw-bold rounded-pill px-5 shadow-sm">
+              <i class="bi bi-check-lg me-1"></i> Save Interview Decision
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function toggleOutcomePreview() {
+  const isApproved = document.getElementById('id_outcome_0').checked;
+  const notice = document.getElementById('hrmsApprovalNotice');
+  if (notice) {
+    notice.style.display = isApproved ? 'block' : 'none';
+  }
+}
+document.addEventListener('DOMContentLoaded', toggleOutcomePreview);
+</script>
+
+<style>
+.cursor-pointer { cursor: pointer; }
+.outcome-option:hover {
+  border-color: #4f46e5 !important;
+  background-color: #f8fafc;
+}
+</style>
+{% endblock %}

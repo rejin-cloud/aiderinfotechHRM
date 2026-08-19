@@ -190,6 +190,82 @@
   <!-- Right Column: Screening Lifecycle & Workflow Stages -->
   <div class="col-12 col-lg-7">
     
+    {% if candidate.status == 'SELECTED' %}
+    <!-- Candidate Selected & HRMS Link Share Box -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 text-dark overflow-hidden" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-left: 5px solid #10b981 !important;">
+      <div class="card-body p-4">
+        <div class="d-flex align-items-start gap-3">
+          <div class="p-3 bg-success text-white rounded-circle shadow-sm">
+            <i class="bi bi-person-check-fill fs-3"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+              <span class="badge bg-success text-white fw-bold px-3 py-1 font-monospace">
+                <i class="bi bi-patch-check-fill me-1"></i> Interview Passed & Candidate Approved
+              </span>
+              <a href="{% url 'candidate_interview_outcome' candidate.id %}" class="btn btn-sm btn-outline-success fw-semibold rounded-pill px-3">
+                <i class="bi bi-pencil me-1"></i> Edit Decision
+              </a>
+            </div>
+            <h4 class="fw-extrabold text-success-emphasis mb-2">Share HRMS Registration Link</h4>
+            <p class="small text-dark mb-3">
+              <strong>{{ candidate.name }}</strong> has been approved and selected following the interview. Please share our HRMS registration link with the candidate and ask them to register into our HR system.
+            </p>
+
+            <!-- Registration Link & Copy Tool -->
+            <div class="p-3 bg-white rounded-3 border border-success border-opacity-50 shadow-sm mb-3">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <span class="small fw-bold text-secondary text-uppercase">
+                  <i class="bi bi-link-45deg me-1"></i> HRMS Portal Registration Link
+                </span>
+                <button class="btn btn-sm btn-primary rounded-pill px-3 py-1 shadow-sm" onclick="copyHrmsLink(this)">
+                  <i class="bi bi-clipboard me-1"></i> Copy Link
+                </button>
+              </div>
+              <div class="font-monospace text-primary fw-bold p-2 bg-light rounded border small text-break" id="hrmsRegistrationUrl">
+                https://hrms.aiderinfotech.com/register/
+              </div>
+              <div class="small text-muted mt-1" style="font-size: 0.76rem;">
+                <i class="bi bi-info-circle me-1"></i> (Portal registration link will be updated if custom domain is configured)
+              </div>
+            </div>
+
+            <!-- Ready to Share Message Template -->
+            <div class="p-3 bg-white rounded-3 border border-success border-opacity-50 shadow-sm">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <span class="small fw-bold text-secondary text-uppercase">
+                  <i class="bi bi-chat-dots-fill me-1"></i> Shareable Invitation Message
+                </span>
+                <button class="btn btn-sm btn-outline-success rounded-pill px-3 py-1" onclick="copyInviteMessage(this)">
+                  <i class="bi bi-clipboard-check me-1"></i> Copy Full Message
+                </button>
+              </div>
+              <div class="p-2 bg-light rounded border small text-dark" id="hrmsInviteMessage" style="white-space: pre-line; font-size: 0.84rem;">Dear {{ candidate.name }},
+
+Congratulations! We are pleased to inform you that you have been approved following your interview at Aider Infotech for the {{ candidate.designation_applied|default:candidate.get_role_applied_display }} position.
+
+Please proceed to register on our HRMS portal using the link below to complete your employee profile and onboarding:
+HRMS Registration Portal: https://hrms.aiderinfotech.com/register/
+
+Welcome to the Aider Infotech team!</div>
+              <div class="d-flex gap-2 mt-3 flex-wrap">
+                <a href="https://wa.me/{{ candidate.phone|cut:' '|cut:'+' }}?text=Dear%20{{ candidate.name|urlencode }}%2C%20Congratulations!%20You%20have%20been%20approved%20following%20your%20interview%20at%20Aider%20Infotech.%20Please%20register%20on%20our%20HRMS%20portal%3A%20https%3A%2F%2Fhrms.aiderinfotech.com%2Fregister%2F" target="_blank" class="btn btn-sm btn-success text-white fw-bold rounded-pill px-3 shadow-sm">
+                  <i class="bi bi-whatsapp me-1"></i> Share on WhatsApp
+                </a>
+                {% if candidate.email %}
+                <a href="mailto:{{ candidate.email }}?subject=Congratulations%20-%20Aider%20Infotech%20HRMS%20Registration&body=Dear%20{{ candidate.name|urlencode }}%2C%0A%0ACongratulations!%20We%20are%20pleased%20to%20inform%20you%20that%20you%20have%20been%20approved%20following%20your%20interview%20at%20Aider%20Infotech%20for%20the%20{{ candidate.designation_applied|default:candidate.get_role_applied_display|urlencode }}%20position.%0A%0APlease%20proceed%20to%20register%20on%20our%20HRMS%20portal%3A%0Ahttps%3A%2F%2Fhrms.aiderinfotech.com%2Fregister%2F%0A%0AWelcome%20to%20Aider%20Infotech!" class="btn btn-sm btn-outline-dark fw-semibold rounded-pill px-3">
+                  <i class="bi bi-envelope me-1"></i> Send Email
+                </a>
+                {% endif %}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Stage 1 & 2: Telephonic Screening & Calling Log -->
     <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border-left: 5px solid #0284c7 !important;">
       <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -393,6 +469,35 @@
           </div>
           {% endif %}
         </div>
+
+        <!-- Post-Interview Decision & Action Section -->
+        <div class="mt-4 pt-4 border-top">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+              <h6 class="fw-bold text-dark mb-0">
+                <i class="bi bi-clipboard2-check-fill me-1 text-primary"></i> Post-Interview Decision & Evaluation
+              </h6>
+              <span class="small text-muted">Record final interview result: Approve (Select & Invite to HRMS) or Reject</span>
+            </div>
+            {% if candidate.status != 'REJECTED' %}
+            <div class="d-flex gap-2">
+              <a href="{% url 'candidate_interview_outcome' candidate.id %}?decision=SELECTED" class="btn btn-sm btn-success fw-bold rounded-pill px-3 shadow-sm">
+                <i class="bi bi-check-circle-fill me-1"></i> Mark Approved & Select
+              </a>
+              <a href="{% url 'candidate_interview_outcome' candidate.id %}?decision=REJECTED" class="btn btn-sm btn-outline-danger fw-semibold rounded-pill px-3">
+                <i class="bi bi-x-circle me-1"></i> Mark Rejected
+              </a>
+            </div>
+            {% endif %}
+          </div>
+
+          {% if candidate.interview_feedback %}
+          <div class="p-3 bg-light rounded-3 border">
+            <span class="text-muted small d-block mb-1 fw-bold">Interview Evaluation Feedback & Remarks:</span>
+            <p class="small text-dark mb-0" style="white-space: pre-line;">{{ candidate.interview_feedback }}</p>
+          </div>
+          {% endif %}
+        </div>
         {% elif candidate.status == 'REJECTED' %}
         <div class="text-center py-4 bg-danger bg-opacity-10 rounded-3 border border-danger border-opacity-25">
           <i class="bi bi-slash-circle fs-1 text-danger d-block mb-2"></i>
@@ -435,4 +540,40 @@
   </div>
 
 </div>
+
+<script>
+function copyHrmsLink(btn) {
+  const el = document.getElementById('hrmsRegistrationUrl');
+  if (!el) return;
+  const text = el.innerText.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Copied!';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-success');
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-primary');
+    }, 2000);
+  });
+}
+
+function copyInviteMessage(btn) {
+  const el = document.getElementById('hrmsInviteMessage');
+  if (!el) return;
+  const text = el.innerText.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Message Copied!';
+    btn.classList.remove('btn-outline-success');
+    btn.classList.add('btn-success', 'text-white');
+    setTimeout(() => {
+      btn.innerHTML = originalHtml;
+      btn.classList.remove('btn-success', 'text-white');
+      btn.classList.add('btn-outline-success');
+    }, 2000);
+  });
+}
+</script>
 {% endblock %}
