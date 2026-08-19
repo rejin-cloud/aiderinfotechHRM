@@ -313,7 +313,7 @@
     </div>
 
     <!-- Stage 4: Official Interview Arrangement -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border-left: 5px solid #4f46e5 !important;">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border-left: 5px solid {% if candidate.status == 'REJECTED' %}#dc2626{% else %}#4f46e5{% endif %} !important;">
       <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div>
           <h5 class="fw-bold text-dark mb-0">
@@ -321,9 +321,19 @@
           </h5>
           <span class="text-muted small">Date, time, mode (In-Person / Online), interviewer panel, and instructions</span>
         </div>
-        <a href="{% url 'candidate_schedule_interview' candidate.id %}" class="btn btn-sm btn-primary rounded-pill px-3">
+        {% if candidate.status == 'REJECTED' %}
+        <button class="btn btn-sm btn-secondary rounded-pill px-3 opacity-75" disabled title="Interview scheduling disabled for rejected candidates">
+          <i class="bi bi-slash-circle me-1"></i> Interview Disabled (Rejected)
+        </button>
+        {% elif candidate.status == 'APPROVED' or candidate.status == 'INTERVIEW_SCHEDULED' %}
+        <a href="{% url 'candidate_schedule_interview' candidate.id %}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
           <i class="bi bi-calendar-plus me-1"></i> {% if candidate.interview_date %}Reschedule{% else %}Arrange Interview{% endif %}
         </a>
+        {% else %}
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" disabled title="Candidate must be called and approved first">
+          <i class="bi bi-lock me-1"></i> Awaiting Approval
+        </button>
+        {% endif %}
       </div>
       <div class="card-body p-4">
         {% if candidate.interview_date %}
@@ -383,6 +393,16 @@
           </div>
           {% endif %}
         </div>
+        {% elif candidate.status == 'REJECTED' %}
+        <div class="text-center py-4 bg-danger bg-opacity-10 rounded-3 border border-danger border-opacity-25">
+          <i class="bi bi-slash-circle fs-1 text-danger d-block mb-2"></i>
+          <h6 class="fw-bold text-danger">Interview Scheduling Disabled</h6>
+          <p class="small text-muted mb-2">This candidate is marked as <strong>Rejected</strong> following phone screening / evaluation.</p>
+          <p class="small text-muted mb-3">No interview button is clickable for rejected candidates. If you wish to proceed with this candidate, re-evaluate and mark as Approved first.</p>
+          <a href="{% url 'candidate_decide' candidate.id %}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+            <i class="bi bi-arrow-repeat me-1"></i> Re-evaluate Candidate
+          </a>
+        </div>
         {% else %}
         <div class="text-center py-4 bg-light rounded-3 border border-dashed">
           <i class="bi bi-calendar-x fs-1 text-secondary d-block mb-2"></i>
@@ -391,12 +411,22 @@
             {% if candidate.status == 'APPROVED' %}
             Candidate has been approved after calling. Proceed to arrange an official interview.
             {% else %}
-            You can schedule an in-person or online interview once the candidate is screened and approved.
+            Candidate is currently in <strong>{{ candidate.get_status_display }}</strong> stage. Complete telephonic screening and approve the candidate before arranging an interview.
             {% endif %}
           </p>
+          {% if candidate.status == 'APPROVED' %}
           <a href="{% url 'candidate_schedule_interview' candidate.id %}" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm">
             <i class="bi bi-calendar-plus-fill me-1"></i> Arrange Interview
           </a>
+          {% elif candidate.status == 'TO_BE_CALLED' %}
+          <a href="{% url 'candidate_mark_called' candidate.id %}" class="btn btn-warning text-dark fw-bold px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-telephone-outbound-fill me-1"></i> Log Phone Call First
+          </a>
+          {% elif candidate.status == 'CALLED' %}
+          <a href="{% url 'candidate_decide' candidate.id %}" class="btn btn-success text-white fw-bold px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-check2-circle me-1"></i> Evaluate & Approve First
+          </a>
+          {% endif %}
         </div>
         {% endif %}
       </div>

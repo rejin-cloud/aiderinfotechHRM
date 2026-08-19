@@ -152,6 +152,25 @@ class RecruitmentPipelineTests(TestCase):
         cand.refresh_from_db()
         self.assertEqual(cand.status, Candidate.Status.REJECTED)
 
+        # Candidate Detail page shows Interview Disabled badge and alert
+        detail_res = self.client.get(reverse('candidate_detail', args=[cand.id]))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, 'Interview Disabled (Rejected)')
+        self.assertContains(detail_res, 'Interview Scheduling Disabled')
+        self.assertNotContains(detail_res, 'Arrange Interview</button>')
+
+        # Direct access / POST to schedule interview is blocked & redirects
+        sched_res = self.client.post(reverse('candidate_schedule_interview', args=[cand.id]), {
+            'interview_date': '2026-08-25',
+            'interview_time': '10:00:00',
+            'interview_mode': 'OFFICE',
+        })
+        self.assertEqual(sched_res.status_code, 302)
+        self.assertRedirects(sched_res, reverse('candidate_detail', args=[cand.id]))
+        cand.refresh_from_db()
+        self.assertEqual(cand.status, Candidate.Status.REJECTED)
+        self.assertIsNone(cand.interview_date)
+
     def test_unauthorized_staff_cannot_access_recruitment(self):
         self.client.force_login(self.staff_user)
         res = self.client.get(reverse('candidate_list'))

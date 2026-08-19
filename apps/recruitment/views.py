@@ -306,6 +306,13 @@ def candidate_schedule_interview_view(request, candidate_id):
     """
     candidate = get_object_or_404(Candidate, id=candidate_id)
 
+    if candidate.status == Candidate.Status.REJECTED:
+        messages.error(
+            request,
+            f"Cannot arrange an interview for '{candidate.name}' because this candidate is marked as Rejected. Re-evaluate and approve the candidate first."
+        )
+        return redirect('candidate_detail', candidate_id=candidate.id)
+
     if request.method == 'POST':
         form = InterviewScheduleForm(request.POST, instance=candidate)
         if form.is_valid():
