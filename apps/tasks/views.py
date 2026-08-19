@@ -11,6 +11,8 @@ from django.utils.dateparse import parse_date, parse_datetime
 from apps.departments.models import Branch, Department
 from apps.hierarchy.permissions import get_user_level
 from apps.tasks.forms import (
+    ClientFilterForm,
+    ClientForm,
     ManagerExtensionReviewForm,
     ManagerSubmissionReviewForm,
     TaskCompletionForm,
@@ -19,6 +21,7 @@ from apps.tasks.forms import (
     TaskForm,
 )
 from apps.tasks.models import (
+    Client,
     Task,
     TaskAttachment,
     TaskExtensionRequest,
@@ -825,3 +828,168 @@ def attachment_delete_view(request, attachment_id):
         messages.success(request, f"Attachment '{fname}' was removed.")
 
     return redirect('task_detail', task_id=task_id)
+
+
+# =====================================================================
+# Creative Department Client Management Views
+# =====================================================================
+
+@login_required
+def client_list_view(request):
+    """
+    Dedicated Client Directory for Creative Department operations.
+    Shows client number, name, company, needs snippet, and associated tasks count.
+    """
+    user = request.user
+    if not can_view_creative_tasks(user):
+        messages.error(request, "Access restricted: You do not have permission to view Creative Department clients.")
+        return redirect('dashboard_router')
+
+    creative_dept = get_creative_department_instance()
+    if user.department and is_creative_department(user.department):
+        department = user.department
+    else:
+        department = creative_dept
+
+    is_creative_manager = can_manage_creative_tasks(user)
+
+    clients = Client.objects.filter(department=department).select_related('created_by').prefetch_related('tasks')
+
+    form = ClientFilterForm(request.GET)
+    if form.is_valid():
+        q = form.cleaned_data.get('q')
+        if q:
+            clients = clients.filter(
+                models.Q(client_number__icontains=q) |
+                models.Q(name__icontains=q) |
+                models.Q(company__icontains=q) |
+                models.Q(needs__icontains=q) |
+                models.Q(email__icontains=q)
+            )
+
+    total_clients = clients.count()
+
+    context = {
+        'clients': clients,
+        'filter_form': form,
+        'department': department,
+        'is_creative_manager': is_creative_manager,
+        'total_clients': total_clients,
+        'page_title': 'Creative Department Clients',
+    }
+    return render(request, 'tasks/client_list.html', context)
+
+
+@login_required
+def client_create_view(request):
+    """
+    Dedicated Page in Creative Department Manager portal for adding new clients.
+    Mandatory fields: client number, client name, company, needs.
+    """
+    user = request.user
+    if not can_manage_creative_tasks(user):
+        messages.error(request, "Permission Denied: Only the Creative Department Manager has authority to add new clients.")
+        return redirect('client_list')
+
+    creative_dept = get_creative_department_instance()
+    if user.department and is_creative_department(user.department):
+        department = user.department
+    else:
+        department = creative_dept
+
+    if request.method == 'POST':
+        form = ClientForm(request.POST, department=department)
+        if form.is_valid():
+            client = form.save(commit=False)
+            client.department = department
+            client.created_by = user
+            client.save()
+
+            messages.success(
+                request,
+                f"Client [{client.client_number}] '{client.name}' ({client.company}) has been added successfully!"
+            )
+            return redirect('client_list')
+    else:
+        form = ClientForm(department=department)
+
+    return render(request, 'tasks/client_create.html', {
+        'form': form,
+        'department': department,
+        'page_title': 'Add New Client | Creative Department',
+    })
+
+
+@login_required
+def client_detail_view(request, client_id):
+    """
+    Client Profile Dossier:
+    Shows Client Number, Client Name, Company, Needs / Scope, Contact info, and Associated Tasks.
+    """
+    user = request.user
+    if not can_view_creative_tasks(user):
+        messages.error(request, "Access restricted: You do not have permission to view this client.")
+        return redirect('dashboard_router')
+
+    client = get_object_or_404(Client.objects.select_related('department', 'created_by').prefetch_related('tasks'), pk=client_id)
+    is_creative_manager = can_manage_creative_tasks(user)
+
+    tasks = client.tasks.select_related('assigned_to', 'branch').order_by('-created_at')
+
+    return render(request, 'tasks/client_detail.html', {
+        'client': client,
+        'tasks': tasks,
+        'is_creative_manager': is_creative_manager,
+        'page_title': f'Client: {client.name} ({client.company})',
+    })
+
+
+@login_required
+def client_edit_view(request, client_id):
+    """
+    Allows Creative Department Manager to update client details, company info, and needs.
+    """
+    user = request.user
+    if not can_manage_creative_tasks(user):
+        messages.error(request, "Permission Denied: Only the Creative Department Manager can edit client information.")
+        return redirect('client_detail', client_id=client_id)
+
+    client = get_object_or_404(Client, pk=client_id)
+
+    if request.method == 'POST':
+        form = ClientForm(request.POST, instance=client, department=client.department)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Client [{client.client_number}] details updated successfully.")
+            return redirect('client_detail', client_id=client.id)
+    else:
+        form = ClientForm(instance=client, department=client.department)
+
+    return render(request, 'tasks/client_edit.html', {
+        'form': form,
+        'client': client,
+        'page_title': f'Edit Client: {client.name}',
+    })
+
+
+@login_required
+def client_delete_view(request, client_id):
+    """
+    Allows Creative Department Manager to delete a client with confirmation.
+    """
+    user = request.user
+    if not can_manage_creative_tasks(user):
+        messages.error(request, "Permission Denied: Only the Creative Department Manager can delete clients.")
+        return redirect('client_list')
+
+    client = get_object_or_404(Client, pk=client_id)
+
+    if request.method == 'POST':
+        c_num = client.client_number
+        c_name = client.name
+        client.delete()
+        messages.success(request, f"Client [{c_num}] '{c_name}' was removed from the client registry.")
+        return redirect('client_list')
+
+    return render(request, 'tasks/client_confirm_delete.html', {'client': client})
+

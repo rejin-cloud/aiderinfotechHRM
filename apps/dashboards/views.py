@@ -4,6 +4,7 @@ from django.db.models import Count, Q
 from apps.attendance.models import LeaveRequest
 from apps.departments.models import Department, Branch
 from apps.hierarchy.permissions import get_user_level
+from apps.tasks.models import Client
 from apps.users.models import User
 
 @login_required
@@ -166,6 +167,12 @@ def dept_manager_dashboard_view(request):
     interns_count = subordinates.filter(role=User.Role.INTERN).count()
     staff_count = subordinates.filter(role=User.Role.STAFF).count()
 
+    clients_count = 0
+    recent_clients = []
+    if dept and 'creative' in dept.name.lower():
+        clients_count = Client.objects.filter(department=dept).count()
+        recent_clients = Client.objects.filter(department=dept).order_by('-created_at')[:5]
+
     return render(request, 'dashboards/dept_manager.html', {
         'subordinates': subordinates,
         'total_subordinates': total_subordinates,
@@ -174,6 +181,8 @@ def dept_manager_dashboard_view(request):
         'staff_count': staff_count,
         'current_dept': dept,
         'current_branch': branch,
+        'clients_count': clients_count,
+        'recent_clients': recent_clients,
         'page_title': f'Department Manager Portal: {dept.name if dept else "General"}',
     })
 

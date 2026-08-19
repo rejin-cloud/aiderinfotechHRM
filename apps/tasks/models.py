@@ -6,6 +6,68 @@ from django.utils import timezone
 from apps.departments.models import Branch, Department
 
 
+class Client(models.Model):
+    """
+    Client registry for Creative Department operations.
+    Stores client identification, contact person, company name, and project needs/scope.
+    """
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        related_name='clients',
+        db_index=True
+    )
+    client_number = models.CharField(
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text="Unique client identifier code (e.g., CR-CL-001)"
+    )
+    name = models.CharField(max_length=255, help_text="Client Name / Contact Person")
+    company = models.CharField(max_length=255, help_text="Company / Brand / Organization Name")
+    needs = models.TextField(help_text="Client creative needs, specifications, requirements, and deliverables")
+
+    email = models.EmailField(blank=True, null=True, help_text="Contact email address")
+    phone = models.CharField(max_length=50, blank=True, null=True, help_text="Contact phone / WhatsApp number")
+    address = models.TextField(blank=True, null=True, help_text="Company address or office location")
+    notes = models.TextField(blank=True, null=True, help_text="Internal notes or creative guidelines")
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='created_clients'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Creative Client'
+        verbose_name_plural = 'Creative Clients'
+
+    def __str__(self):
+        return f"[{self.client_number}] {self.name} - {self.company}"
+
+    @classmethod
+    def generate_next_client_number(cls, department_name="Creative"):
+        """Generates a sequential unique client number e.g. CR-CL-001."""
+        prefix = "CR-CL"
+        if department_name and "creative" not in department_name.lower():
+            code = "".join(w[0] for w in department_name.split() if w)[:3].upper()
+            prefix = f"{code}-CL"
+
+        last_client = cls.objects.filter(client_number__startswith=prefix).order_by('-id').first()
+        if last_client:
+            try:
+                num_part = int(last_client.client_number.split('-')[-1])
+                next_num = num_part + 1
+            except (ValueError, IndexError):
+                next_num = cls.objects.filter(client_number__startswith=prefix).count() + 1
+        else:
+            next_num = 1
+        return f"{prefix}-{next_num:03d}"
+
+
 class Task(models.Model):
     class Priority(models.TextChoices):
         LOW = 'LOW', 'Low'
@@ -25,6 +87,14 @@ class Task(models.Model):
         on_delete=models.CASCADE,
         related_name='tasks',
         db_index=True
+    )
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='tasks',
+        help_text="Associated client for this task (optional)"
     )
     branch = models.ForeignKey(
         Branch,

@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from apps.departments.models import Branch, Department
 from apps.tasks.models import (
+    Client as ClientModel,
     Task,
     TaskAttachment,
     TaskExtensionRequest,
@@ -605,3 +606,111 @@ class CreativeTasksTestCase(TestCase):
 
         next_2 = Task.generate_next_task_number("Aider Creative")
         self.assertEqual(next_2, "CR-TASK-002")
+
+    def test_creative_manager_can_add_and_list_clients(self):
+        """Creative Department Manager has dedicated authority to register clients."""
+        self.client.login(username="deptmgr_rachel", password="password123")
+
+        # 1. Access Client Create Page
+        res_get = self.client.get(reverse('client_create'))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, "Add New Creative Client")
+        self.assertContains(res_get, "CR-CL-001")
+
+        # 2. Submit new client
+        post_data = {
+            'client_number': 'CR-CL-001',
+            'name': 'Sarah Jenkins',
+            'company': 'Apex Media Dynamics',
+            'needs': 'Brand identity overhaul, 4K video editing, 3D motion graphics for social launch.',
+            'email': 'sarah@apexmedia.com',
+            'phone': '+91 98765 43210',
+            'address': 'Calicut Cyberpark, Kerala',
+        }
+        res_post = self.client.post(reverse('client_create'), post_data, follow=True)
+        self.assertEqual(res_post.status_code, 200)
+        self.assertContains(res_post, "has been added successfully")
+
+        # Verify DB
+        client_obj = ClientModel.objects.filter(client_number='CR-CL-001').first()
+        self.assertIsNotNone(client_obj)
+        self.assertEqual(client_obj.name, 'Sarah Jenkins')
+        self.assertEqual(client_obj.company, 'Apex Media Dynamics')
+        self.assertEqual(client_obj.needs, 'Brand identity overhaul, 4K video editing, 3D motion graphics for social launch.')
+        self.assertEqual(client_obj.department, self.dept_creative)
+        self.assertEqual(client_obj.created_by, self.creative_mgr)
+
+        # 3. View Client Detail Dossier
+        res_detail = self.client.get(reverse('client_detail', kwargs={'client_id': client_obj.id}))
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertContains(res_detail, "Apex Media Dynamics")
+        self.assertContains(res_detail, "Brand identity overhaul")
+
+        # 4. View in Client Directory
+        res_list = self.client.get(reverse('client_list'))
+        self.assertEqual(res_list.status_code, 200)
+        self.assertContains(res_list, "Apex Media Dynamics")
+        self.assertContains(res_list, "CR-CL-001")
+
+    def test_non_creative_manager_cannot_add_client(self):
+        """Staff and Non-Creative Managers cannot add clients."""
+        # Non-Creative Dept Manager
+        self.client.login(username="deptmgr_it", password="password123")
+        res_it = self.client.get(reverse('client_create'), follow=True)
+        self.assertContains(res_it, "Permission Denied: Only the Creative Department Manager")
+
+        # Creative Staff Member
+        self.client.login(username="staff_alex", password="password123")
+        res_staff = self.client.get(reverse('client_create'), follow=True)
+        self.assertContains(res_staff, "Permission Denied: Only the Creative Department Manager")
+
+    def test_client_sequential_number_generation(self):
+        """ClientModel.generate_next_client_number increments sequentially."""
+        next_1 = ClientModel.generate_next_client_number("Aider Creative")
+        self.assertEqual(next_1, "CR-CL-001")
+
+        ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number=next_1,
+            name='Acme Client',
+            company='Acme Corp',
+            needs='Video campaigns'
+        )
+
+        next_2 = ClientModel.generate_next_client_number("Aider Creative")
+        self.assertEqual(next_2, "CR-CL-002")
+
+    def test_creative_manager_can_edit_and_delete_client(self):
+        """Creative Department Manager can update and delete clients."""
+        self.client.login(username="deptmgr_rachel", password="password123")
+
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-099',
+            name='Old Name',
+            company='Old Company',
+            needs='Old Needs'
+        )
+
+        # Edit Client
+        edit_data = {
+            'client_number': 'CR-CL-099',
+            'name': 'Updated Client Name',
+            'company': 'Updated Enterprise',
+            'needs': 'Updated Creative Scope and Deliverables',
+        }
+        res_edit = self.client.post(reverse('client_edit', kwargs={'client_id': client_obj.id}), edit_data, follow=True)
+        self.assertEqual(res_edit.status_code, 200)
+
+        client_obj.refresh_from_db()
+        self.assertEqual(client_obj.name, 'Updated Client Name')
+        self.assertEqual(client_obj.company, 'Updated Enterprise')
+        self.assertEqual(client_obj.needs, 'Updated Creative Scope and Deliverables')
+
+        # Delete Client
+        res_del = self.client.post(reverse('client_delete', kwargs={'client_id': client_obj.id}), follow=True)
+        self.assertEqual(res_del.status_code, 200)
+        self.assertFalse(ClientModel.objects.filter(id=client_obj.id).exists())
+

@@ -15,6 +15,12 @@
     </div>
     <div class="col-md-7 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
       {% if 'creative' in current_dept.name.lower %}
+      <a href="{% url 'client_create' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2">
+        <i class="bi bi-person-plus-fill me-1"></i> Add Client
+      </a>
+      <a href="{% url 'client_list' %}" class="btn btn-light text-teal fw-bold shadow-sm px-3 py-2" style="color: #0f766e;">
+        <i class="bi bi-people-fill me-1"></i> Clients ({{ clients_count }})
+      </a>
       <a href="{% url 'manager_extension_requests' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2">
         <i class="bi bi-hourglass-split me-1"></i> Task Requests
       </a>
@@ -93,6 +99,68 @@
 </div>
 
 {% if 'creative' in current_dept.name.lower %}
+<!-- Creative Clients & Accounts Management Card -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white" style="border-left: 5px solid #0d9488 !important;">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 50px; height: 50px; background-color: #ccfbf1; color: #0f766e;">
+        <i class="bi bi-person-badge-fill fs-3"></i>
+      </div>
+      <div>
+        <div class="d-flex align-items-center gap-2">
+          <h5 class="fw-bold text-dark mb-0">Creative Department Clients Registry</h5>
+          <span class="badge bg-teal text-white rounded-pill px-2 py-1" style="background-color: #0d9488;">{{ clients_count }} Client{{ clients_count|pluralize }}</span>
+        </div>
+        <span class="text-muted small">Register corporate accounts, client contacts, creative deliverables scope, and project requirements.</span>
+      </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'client_create' %}" class="btn btn-warning text-dark fw-bold px-3 shadow-sm">
+        <i class="bi bi-person-plus-fill me-1"></i> Add New Client
+      </a>
+      <a href="{% url 'client_list' %}" class="btn btn-outline-dark px-3">
+        <i class="bi bi-people-fill me-1"></i> View Clients Directory
+      </a>
+    </div>
+  </div>
+
+  {% if recent_clients %}
+  <div class="table-responsive mt-2">
+    <table class="table table-sm table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Client #</th>
+          <th>Client Name</th>
+          <th>Company</th>
+          <th>Creative Needs</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in recent_clients %}
+        <tr>
+          <td><span class="badge bg-light text-dark font-monospace border">{{ c.client_number }}</span></td>
+          <td class="fw-semibold text-dark">{{ c.name }}</td>
+          <td><span class="text-muted small"><i class="bi bi-building me-1"></i> {{ c.company }}</span></td>
+          <td class="small text-muted text-truncate" style="max-width: 300px;">{{ c.needs|truncatechars:80 }}</td>
+          <td class="text-end">
+            <a href="{% url 'client_detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
+              <i class="bi bi-eye"></i> View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="alert alert-light border text-center py-3 mb-0 rounded-3 text-muted small">
+    <i class="bi bi-info-circle me-1"></i> No clients registered yet in the Creative Department. Click <strong>Add New Client</strong> to register your first client account.
+  </div>
+  {% endif %}
+</div>
+
 <!-- Creative Tasks Management Card -->
 <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">

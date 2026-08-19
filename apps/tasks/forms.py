@@ -2,7 +2,7 @@ from django import forms
 from django.utils import timezone
 
 from apps.departments.models import Branch, Department
-from apps.tasks.models import Task, TaskExtensionRequest, TaskSubmission
+from apps.tasks.models import Client, Task, TaskExtensionRequest, TaskSubmission
 from apps.users.models import User
 
 
@@ -258,3 +258,82 @@ class ManagerSubmissionReviewForm(forms.Form):
         else:
             self.fields['reassign_branch'].queryset = Branch.objects.all()
             self.fields['reassign_user'].queryset = User.objects.all().exclude(role=User.Role.SUPERADMIN)
+
+
+class ClientForm(forms.ModelForm):
+    class Meta:
+        model = Client
+        fields = [
+            'client_number',
+            'name',
+            'company',
+            'needs',
+            'email',
+            'phone',
+            'address',
+            'notes',
+        ]
+        widgets = {
+            'client_number': forms.TextInput(attrs={
+                'class': 'form-control font-monospace fw-bold',
+                'placeholder': 'e.g. CR-CL-001'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Sarah Jenkins'
+            }),
+            'company': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Nexus Media Group'
+            }),
+            'needs': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Specify the client’s creative needs, branding guidelines, deliverables, video editing, social media campaigns, etc.'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. client@company.com'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. +91 98765 43210'
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Office location / billing address...'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Internal notes, special instructions, or client preferences...'
+            }),
+        }
+
+    def __init__(self, *args, department=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk and not self.initial.get('client_number'):
+            dept_name = department.name if department else "Creative"
+            self.initial['client_number'] = Client.generate_next_client_number(dept_name)
+
+    def clean_client_number(self):
+        cn = self.cleaned_data.get('client_number', '').strip().upper()
+        if not cn:
+            raise forms.ValidationError("Client number is required.")
+        qs = Client.objects.filter(client_number__iexact=cn)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(f"Client number '{cn}' is already assigned to another client.")
+        return cn
+
+
+class ClientFilterForm(forms.Form):
+    q = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search by client #, name, company, or needs...'
+        })
+    )

@@ -17,4 +17,11 @@ urlpatterns = [
     path('<int:task_id>/edit/', views.task_edit_view, name='task_edit'),
     path('<int:task_id>/delete/', views.task_delete_view, name='task_delete'),
     path('attachments/<int:attachment_id>/delete/', views.attachment_delete_view, name='attachment_delete'),
+    
+    # Creative Department Client Management
+    path('clients/', views.client_list_view, name='client_list'),
+    path('clients/add/', views.client_create_view, name='client_create'),
+    path('clients/<int:client_id>/', views.client_detail_view, name='client_detail'),
+    path('clients/<int:client_id>/edit/', views.client_edit_view, name='client_edit'),
+    path('clients/<int:client_id>/delete/', views.client_delete_view, name='client_delete'),
 ]
