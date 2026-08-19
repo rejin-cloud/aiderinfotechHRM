@@ -183,6 +183,7 @@ def dept_manager_dashboard_view(request):
     pending_submissions_count = 0
     pending_extensions_count = 0
     pending_leaves_count = 0
+    pending_mgr_client_reviews = 0
 
     if dept:
         pending_leaves_count = LeaveRequest.objects.filter(
@@ -214,6 +215,11 @@ def dept_manager_dashboard_view(request):
                 status=TaskExtensionRequest.Status.PENDING
             ).count()
 
+            pending_mgr_client_reviews = ClientAssignment.objects.filter(
+                client__department=dept,
+                status=ClientAssignment.Status.UNDER_DEPT_MANAGER_REVIEW
+            ).count()
+
     department_branches = []
     if dept:
         department_branches = Branch.objects.filter(department=dept).annotate(
@@ -239,7 +245,8 @@ def dept_manager_dashboard_view(request):
         'pending_submissions_count': pending_submissions_count,
         'pending_extensions_count': pending_extensions_count,
         'pending_leaves_count': pending_leaves_count,
-        'total_action_required': pending_submissions_count + pending_extensions_count + pending_leaves_count,
+        'pending_mgr_client_reviews': pending_mgr_client_reviews,
+        'total_action_required': pending_submissions_count + pending_extensions_count + pending_leaves_count + pending_mgr_client_reviews,
         'page_title': f'Creative Operations Control Center &bull; {dept.name if dept else "General"}',
     })
 
@@ -283,10 +290,16 @@ def employee_dashboard_view(request):
     # Client assignments for this employee
     executive_client_assignments = []
     member_client_assignments = []
+    pending_exec_reviews_count = 0
+
     if user.role == User.Role.EXECUTIVE:
         executive_client_assignments = ClientAssignment.objects.filter(
             Q(executive=user) | Q(branch=branch)
         ).select_related('client', 'branch', 'assigned_by', 'delegated_member').order_by('-created_at')
+        pending_exec_reviews_count = ClientAssignment.objects.filter(
+            executive=user,
+            status=ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW
+        ).count()
     else:
         member_client_assignments = ClientAssignment.objects.filter(
             delegated_member=user
@@ -303,6 +316,7 @@ def employee_dashboard_view(request):
         'branch_tasks': branch_tasks,
         'executive_client_assignments': executive_client_assignments,
         'member_client_assignments': member_client_assignments,
+        'pending_exec_reviews_count': pending_exec_reviews_count,
         'page_title': f'Employee Portal: {user.get_full_name() or user.username}',
     })
 

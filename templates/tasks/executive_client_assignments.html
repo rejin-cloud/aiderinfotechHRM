@@ -128,21 +128,33 @@
               {% endif %}
             </td>
             <td class="text-end pe-4">
-              {% if a.executive == request.user or is_creative_manager %}
-                {% if not a.delegated_member or a.status == 'ASSIGNED_TO_EXECUTIVE' %}
-                <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
-                  <i class="bi bi-person-plus-fill me-1"></i> Delegate
-                </a>
-                {% else %}
-                <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-outline-secondary">
-                  <i class="bi bi-pencil-square me-1"></i> Re-assign
+              <div class="d-flex justify-content-end gap-1">
+                {% if a.delegated_member == request.user and a.status in 'DELEGATED,IN_PROGRESS,EXECUTIVE_REVISION,DEPT_MANAGER_REVISION' %}
+                <a href="{% url 'client_assignment_submit' a.id %}" class="btn btn-sm btn-success fw-bold px-2 py-1" title="Submit Deliverables">
+                  <i class="bi bi-upload me-1"></i> Submit
                 </a>
                 {% endif %}
-              {% else %}
-                <a href="{% url 'client_detail' a.client.id %}" class="btn btn-sm btn-outline-primary">
-                  <i class="bi bi-eye"></i> View Client
+
+                {% if a.executive == request.user and a.status == 'UNDER_EXECUTIVE_REVIEW' %}
+                <a href="{% url 'client_assignment_executive_review' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold px-2 py-1" title="Executive Review">
+                  <i class="bi bi-shield-check me-1"></i> Review
                 </a>
-              {% endif %}
+                {% elif a.executive == request.user and not a.delegated_member %}
+                <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold px-2 py-1" title="Delegate to Member">
+                  <i class="bi bi-person-plus-fill me-1"></i> Delegate
+                </a>
+                {% endif %}
+
+                {% if is_creative_manager and a.status == 'UNDER_DEPT_MANAGER_REVIEW' %}
+                <a href="{% url 'client_assignment_manager_review' a.id %}" class="btn btn-sm btn-primary fw-bold px-2 py-1" style="background: #0d9488; border-color: #0d9488;" title="Final Approval">
+                  <i class="bi bi-patch-check-fill me-1"></i> Approval
+                </a>
+                {% endif %}
+
+                <a href="{% url 'client_assignment_detail' a.id %}" class="btn btn-sm btn-light border py-1 px-2" title="View Dossier">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </div>
             </td>
           </tr>
           {% empty %}

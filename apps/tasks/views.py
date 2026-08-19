@@ -11,7 +11,10 @@ from django.utils.dateparse import parse_date, parse_datetime
 from apps.departments.models import Branch, Department
 from apps.hierarchy.permissions import get_user_level
 from apps.tasks.forms import (
+    ClientAssignmentExecutiveReviewForm,
     ClientAssignmentForm,
+    ClientAssignmentManagerReviewForm,
+    ClientAssignmentSubmissionForm,
     ClientFilterForm,
     ClientForm,
     ExecutiveDelegationForm,
@@ -25,6 +28,8 @@ from apps.tasks.forms import (
 from apps.tasks.models import (
     Client,
     ClientAssignment,
+    ClientAssignmentSubmission,
+    ClientAssignmentSubmissionAttachment,
     Task,
     TaskAttachment,
     TaskExtensionRequest,
@@ -1183,5 +1188,363 @@ def branch_executives_api(request, branch_id):
         for e in executives
     ]
     return JsonResponse({'executives': data})
+
+
+@login_required
+def client_assignment_detail_view(request, assignment_id):
+    """
+    Comprehensive Dossier View for a Multi-Branch Client Assignment:
+    - View client briefs, branch deliverables scope, timeline, delegation details.
+    - View complete deliverables submission history, attached files, executive feedback, and manager reviews.
+    - Contextual action buttons:
+      - Assigned Delegate: Submit Completed Work / Resubmit Revisions.
+      - Branch Executive: Review Delegate Submissions / Reassign Delegate.
+      - Department Manager: Final Review & Approval.
+    """
+    user = request.user
+    if not can_view_creative_tasks(user):
+        messages.error(request, "Access restricted: You cannot view this client assignment.")
+        return redirect('dashboard_router')
+
+    assignment = get_object_or_404(
+        ClientAssignment.objects.select_related(
+            'client', 'branch', 'assigned_by', 'executive', 'delegated_member'
+        ).prefetch_related(
+            'submissions__attachments',
+            'submissions__submitted_by',
+            'submissions__executive_reviewed_by',
+            'submissions__manager_reviewed_by'
+        ),
+        pk=assignment_id
+    )
+
+    is_creative_manager = can_manage_creative_tasks(user)
+    is_leadership = get_user_level(user) <= 2 or is_creative_manager
+    is_executive_lead = (assignment.executive == user)
+    is_assigned_delegate = (assignment.delegated_member == user)
+
+    # Permission check for regular members: must belong to branch or be assigned
+    if not is_leadership and not is_executive_lead and not is_assigned_delegate:
+        if assignment.branch != user.branch:
+            messages.error(request, "Access restricted: This client assignment belongs to another branch.")
+            return redirect('executive_client_assignments')
+
+    latest_submission = assignment.submissions.order_by('-submitted_at').first()
+
+    # Can this user submit work? (Assigned delegate when status allows submission)
+    can_submit_work = is_assigned_delegate and assignment.status in [
+        ClientAssignment.Status.DELEGATED,
+        ClientAssignment.Status.IN_PROGRESS,
+        ClientAssignment.Status.EXECUTIVE_REVISION,
+        ClientAssignment.Status.DEPT_MANAGER_REVISION,
+    ]
+
+    # Can executive review?
+    can_executive_review = (is_executive_lead or is_leadership) and assignment.status in [
+        ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW,
+        ClientAssignment.Status.DELEGATED,
+        ClientAssignment.Status.IN_PROGRESS,
+    ]
+
+    # Can department manager review?
+    can_manager_review = is_leadership and assignment.status in [
+        ClientAssignment.Status.UNDER_DEPT_MANAGER_REVIEW,
+        ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW,
+        ClientAssignment.Status.DELEGATED,
+        ClientAssignment.Status.IN_PROGRESS,
+    ]
+
+    context = {
+        'assignment': assignment,
+        'latest_submission': latest_submission,
+        'is_creative_manager': is_creative_manager,
+        'is_leadership': is_leadership,
+        'is_executive_lead': is_executive_lead,
+        'is_assigned_delegate': is_assigned_delegate,
+        'can_submit_work': can_submit_work,
+        'can_executive_review': can_executive_review,
+        'can_manager_review': can_manager_review,
+        'page_title': f'Client Directive &bull; [{assignment.client.client_number}] {assignment.task_title}',
+    }
+    return render(request, 'tasks/client_assignment_detail.html', context)
+
+
+@login_required
+def client_assignment_submit_view(request, assignment_id):
+    """
+    Deliverables Submission Portal for Staff / Intern:
+    - Restricted to the assigned delegated_member.
+    - Uploads work details, completion remarks, and supporting media files (any format).
+    - Status transitions to UNDER_EXECUTIVE_REVIEW (Sent directly to Branch Executive).
+    """
+    user = request.user
+    assignment = get_object_or_404(
+        ClientAssignment.objects.select_related('client', 'branch', 'executive', 'delegated_member'),
+        pk=assignment_id
+    )
+
+    is_creative_manager = can_manage_creative_tasks(user)
+    if assignment.delegated_member != user and not is_creative_manager:
+        messages.error(request, "Permission Denied: Only the member delegated to this task can submit deliverables.")
+        return redirect('client_assignment_detail', assignment_id=assignment.id)
+
+    if assignment.status == ClientAssignment.Status.COMPLETED:
+        messages.info(request, "This assignment has already been completed and approved by the Department Manager.")
+        return redirect('client_assignment_detail', assignment_id=assignment.id)
+
+    if request.method == 'POST':
+        form = ClientAssignmentSubmissionForm(request.POST, request.FILES)
+        if form.is_valid():
+            submission = form.save(commit=False)
+            submission.assignment = assignment
+            submission.submitted_by = user
+            submission.review_stage = ClientAssignmentSubmission.ReviewStage.PENDING_EXECUTIVE
+            submission.save()
+
+            # Process attached media & documents
+            files = request.FILES.getlist('submission_files')
+            for f in files:
+                ClientAssignmentSubmissionAttachment.objects.create(
+                    submission=submission,
+                    file=f
+                )
+
+            # Move status to UNDER_EXECUTIVE_REVIEW
+            assignment.status = ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW
+            assignment.save()
+
+            messages.success(
+                request,
+                f"Work deliverables for '{assignment.task_title}' have been submitted to Executive "
+                f"{assignment.executive.get_full_name() or assignment.executive.username} for review."
+            )
+            return redirect('client_assignment_detail', assignment_id=assignment.id)
+    else:
+        form = ClientAssignmentSubmissionForm()
+
+    return render(request, 'tasks/client_assignment_submit.html', {
+        'assignment': assignment,
+        'form': form,
+        'page_title': f'Submit Deliverables &bull; {assignment.task_title}',
+    })
+
+
+@login_required
+def client_assignment_executive_review_view(request, assignment_id, submission_id=None):
+    """
+    Executive Review Portal:
+    - Restricted to the Branch Executive assigned to supervise this branch task.
+    - Evaluation options:
+      1. FORWARD_TO_MANAGER: Satisfied -> Forwards to Creative Department Manager for final approval.
+      2. REQUEST_REVISION: Not Satisfied -> Requests delegate to redo/revise with specific feedback.
+      3. REASSIGN: Reassigns the task to another staff member or intern in the branch.
+    """
+    user = request.user
+    assignment = get_object_or_404(
+        ClientAssignment.objects.select_related('client', 'branch', 'executive', 'delegated_member', 'assigned_by'),
+        pk=assignment_id
+    )
+
+    is_creative_manager = can_manage_creative_tasks(user)
+    if assignment.executive != user and not is_creative_manager and get_user_level(user) > 2:
+        messages.error(request, "Permission Denied: Only the Branch Executive can review these submissions.")
+        return redirect('client_assignment_detail', assignment_id=assignment.id)
+
+    if submission_id:
+        submission = get_object_or_404(ClientAssignmentSubmission, pk=submission_id, assignment=assignment)
+    else:
+        submission = assignment.submissions.order_by('-submitted_at').first()
+
+    if not submission:
+        messages.warning(request, "No deliverables have been submitted by the delegate yet.")
+        return redirect('client_assignment_detail', assignment_id=assignment.id)
+
+    branch = assignment.branch
+
+    if request.method == 'POST':
+        form = ClientAssignmentExecutiveReviewForm(request.POST, branch=branch)
+        if form.is_valid():
+            decision = form.cleaned_data['decision']
+            feedback = form.cleaned_data.get('feedback', '').strip()
+            new_deadline = form.cleaned_data.get('new_deadline')
+
+            submission.executive_feedback = feedback
+            submission.executive_reviewed_by = user
+            submission.executive_reviewed_at = timezone.now()
+
+            if decision == 'FORWARD_TO_MANAGER':
+                submission.review_stage = ClientAssignmentSubmission.ReviewStage.FORWARDED_TO_MANAGER
+                submission.save()
+
+                assignment.status = ClientAssignment.Status.UNDER_DEPT_MANAGER_REVIEW
+                assignment.save()
+
+                messages.success(
+                    request,
+                    f"Satisfied! Deliverables for '{assignment.task_title}' have been forwarded to Department Manager for final sign-off."
+                )
+
+            elif decision == 'REQUEST_REVISION':
+                submission.review_stage = ClientAssignmentSubmission.ReviewStage.EXECUTIVE_REVISION_REQUESTED
+                submission.save()
+
+                assignment.status = ClientAssignment.Status.EXECUTIVE_REVISION
+                if new_deadline:
+                    assignment.deadline = new_deadline
+                assignment.save()
+
+                delegate_name = assignment.delegated_member.get_full_name() or assignment.delegated_member.username if assignment.delegated_member else "the delegate"
+                messages.warning(
+                    request,
+                    f"Revision requested for '{assignment.task_title}'. {delegate_name} has been asked to redo / revise based on your feedback."
+                )
+
+            elif decision == 'REASSIGN':
+                new_delegate = form.cleaned_data.get('reassign_to')
+                if not new_delegate:
+                    messages.error(request, "Please select a branch member to reassign this task to.")
+                    return render(request, 'tasks/client_assignment_executive_review.html', {
+                        'assignment': assignment,
+                        'submission': submission,
+                        'form': form,
+                        'branch': branch,
+                        'page_title': f'Executive Review &bull; {assignment.task_title}',
+                    })
+
+                submission.review_stage = ClientAssignmentSubmission.ReviewStage.EXECUTIVE_REVISION_REQUESTED
+                submission.save()
+
+                assignment.delegated_member = new_delegate
+                assignment.delegated_at = timezone.now()
+                assignment.executive_notes = feedback or assignment.executive_notes
+                assignment.status = ClientAssignment.Status.DELEGATED
+                if new_deadline:
+                    assignment.deadline = new_deadline
+                assignment.save()
+
+                messages.success(
+                    request,
+                    f"Task '{assignment.task_title}' was reassigned to {new_delegate.get_full_name() or new_delegate.username}."
+                )
+
+            return redirect('client_assignment_detail', assignment_id=assignment.id)
+    else:
+        form = ClientAssignmentExecutiveReviewForm(branch=branch)
+
+    return render(request, 'tasks/client_assignment_executive_review.html', {
+        'assignment': assignment,
+        'submission': submission,
+        'form': form,
+        'branch': branch,
+        'page_title': f'Executive Review &bull; {assignment.task_title}',
+    })
+
+
+@login_required
+def client_assignment_manager_review_view(request, assignment_id, submission_id=None):
+    """
+    Department Manager Final Approval Portal:
+    - Restricted to Creative Department Manager & Corporate Leadership (Level <= 2).
+    - Evaluation options:
+      1. APPROVE: Verifies deliverables and marks assignment as COMPLETED.
+      2. REQUEST_REVISION: Requests revisions or adjustments from branch team.
+      3. REASSIGN_BRANCH: Reassigns client task to another branch / executive.
+    """
+    user = request.user
+    if not can_manage_creative_tasks(user):
+        messages.error(request, "Permission Denied: Only the Creative Department Manager can perform final approval.")
+        return redirect('executive_client_assignments')
+
+    creative_dept = get_creative_department_instance()
+    assignment = get_object_or_404(
+        ClientAssignment.objects.select_related('client', 'branch', 'executive', 'delegated_member', 'assigned_by'),
+        pk=assignment_id
+    )
+
+    if submission_id:
+        submission = get_object_or_404(ClientAssignmentSubmission, pk=submission_id, assignment=assignment)
+    else:
+        submission = assignment.submissions.order_by('-submitted_at').first()
+
+    if not submission:
+        messages.warning(request, "No deliverables have been submitted for this client task yet.")
+        return redirect('client_assignment_detail', assignment_id=assignment.id)
+
+    if request.method == 'POST':
+        form = ClientAssignmentManagerReviewForm(request.POST, department=creative_dept)
+        if form.is_valid():
+            decision = form.cleaned_data['decision']
+            feedback = form.cleaned_data.get('manager_feedback', '').strip()
+            new_deadline = form.cleaned_data.get('new_deadline')
+
+            submission.manager_feedback = feedback
+            submission.manager_reviewed_by = user
+            submission.manager_reviewed_at = timezone.now()
+
+            if decision == 'APPROVE':
+                submission.review_stage = ClientAssignmentSubmission.ReviewStage.MANAGER_APPROVED
+                submission.save()
+
+                assignment.status = ClientAssignment.Status.COMPLETED
+                assignment.save()
+
+                messages.success(
+                    request,
+                    f"Excellent! Client deliverable '{assignment.task_title}' for [{assignment.client.company}] "
+                    f"has been approved and marked as Completed."
+                )
+
+            elif decision == 'REQUEST_REVISION':
+                submission.review_stage = ClientAssignmentSubmission.ReviewStage.MANAGER_REVISION_REQUESTED
+                submission.save()
+
+                assignment.status = ClientAssignment.Status.DEPT_MANAGER_REVISION
+                if new_deadline:
+                    assignment.deadline = new_deadline
+                assignment.save()
+
+                messages.warning(
+                    request,
+                    f"Revision requested for '{assignment.task_title}'. The branch team has been notified with your directions."
+                )
+
+            elif decision == 'REASSIGN_BRANCH':
+                new_branch = form.cleaned_data.get('reassign_branch')
+                new_exec = form.cleaned_data.get('reassign_executive')
+
+                if not new_branch or not new_exec:
+                    messages.error(request, "Please select both a target branch and an executive to reassign.")
+                    return render(request, 'tasks/client_assignment_manager_review.html', {
+                        'assignment': assignment,
+                        'submission': submission,
+                        'form': form,
+                        'page_title': f'Department Manager Review &bull; {assignment.task_title}',
+                    })
+
+                assignment.branch = new_branch
+                assignment.executive = new_exec
+                assignment.delegated_member = None
+                assignment.delegated_at = None
+                assignment.status = ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE
+                if new_deadline:
+                    assignment.deadline = new_deadline
+                assignment.save()
+
+                messages.success(
+                    request,
+                    f"Client task '{assignment.task_title}' was reassigned to the {new_branch.name} Branch (Executive: {new_exec.get_full_name() or new_exec.username})."
+                )
+
+            return redirect('client_assignment_detail', assignment_id=assignment.id)
+    else:
+        form = ClientAssignmentManagerReviewForm(department=creative_dept)
+
+    return render(request, 'tasks/client_assignment_manager_review.html', {
+        'assignment': assignment,
+        'submission': submission,
+        'form': form,
+        'page_title': f'Department Manager Review &bull; {assignment.task_title}',
+    })
+
 
 

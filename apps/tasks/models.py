@@ -78,9 +78,13 @@ class ClientAssignment(models.Model):
         ASSIGNED_TO_EXECUTIVE = 'ASSIGNED_TO_EXECUTIVE', 'Assigned to Branch Executive'
         DELEGATED = 'DELEGATED', 'Delegated to Member / Intern'
         IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
-        UNDER_REVIEW = 'UNDER_REVIEW', 'Completed / Under Review'
-        COMPLETED = 'COMPLETED', 'Completed'
+        UNDER_EXECUTIVE_REVIEW = 'UNDER_EXECUTIVE_REVIEW', 'Submitted / Under Executive Review'
+        EXECUTIVE_REVISION = 'EXECUTIVE_REVISION', 'Revision Requested by Executive'
+        UNDER_DEPT_MANAGER_REVIEW = 'UNDER_DEPT_MANAGER_REVIEW', 'Forwarded to Dept Manager / Final Review'
+        DEPT_MANAGER_REVISION = 'DEPT_MANAGER_REVISION', 'Revision Requested by Dept Manager'
+        COMPLETED = 'COMPLETED', 'Approved & Completed'
         ON_HOLD = 'ON_HOLD', 'On Hold'
+        UNDER_REVIEW = 'UNDER_REVIEW', 'Completed / Under Review'
 
     client = models.ForeignKey(
         Client,
@@ -117,7 +121,7 @@ class ClientAssignment(models.Model):
     deadline = models.DateTimeField(null=True, blank=True, help_text="Target completion deadline")
 
     status = models.CharField(
-        max_length=30,
+        max_length=35,
         choices=Status.choices,
         default=Status.ASSIGNED_TO_EXECUTIVE,
         db_index=True
@@ -156,6 +160,10 @@ class ClientAssignment(models.Model):
             self.Status.ASSIGNED_TO_EXECUTIVE: 'bg-warning text-dark',
             self.Status.DELEGATED: 'bg-info text-dark',
             self.Status.IN_PROGRESS: 'bg-primary text-white',
+            self.Status.UNDER_EXECUTIVE_REVIEW: 'bg-purple-subtle text-primary border',
+            self.Status.EXECUTIVE_REVISION: 'bg-warning-subtle text-warning border',
+            self.Status.UNDER_DEPT_MANAGER_REVIEW: 'bg-teal-subtle text-teal border',
+            self.Status.DEPT_MANAGER_REVISION: 'bg-danger-subtle text-danger border',
             self.Status.UNDER_REVIEW: 'bg-purple-subtle text-primary border',
             self.Status.COMPLETED: 'bg-success text-white',
             self.Status.ON_HOLD: 'bg-danger text-white',
@@ -164,9 +172,143 @@ class ClientAssignment(models.Model):
 
     @property
     def is_overdue(self):
-        if self.deadline and self.status not in [self.Status.COMPLETED, self.Status.UNDER_REVIEW]:
+        if self.deadline and self.status not in [self.Status.COMPLETED, self.Status.UNDER_EXECUTIVE_REVIEW, self.Status.UNDER_DEPT_MANAGER_REVIEW]:
             return timezone.now() > self.deadline
         return False
+
+
+class ClientAssignmentSubmission(models.Model):
+    """
+    Stores deliverable submissions by assigned Staff member or Intern for a Client Assignment.
+    Review Hierarchy:
+    1. Assigned delegate submits completion remarks & media files -> Status: UNDER_EXECUTIVE_REVIEW
+    2. Branch Executive reviews:
+       - Satisfied: Forwards to Creative Department Manager -> Status: UNDER_DEPT_MANAGER_REVIEW
+       - Revisions needed: Requests revision with feedback -> Status: EXECUTIVE_REVISION
+       - Reassign: Assigns to another member in the branch -> Status: DELEGATED
+    3. Creative Department Manager performs final evaluation:
+       - Approved: Marks client assignment -> Status: COMPLETED
+       - Revision: Requests further changes -> Status: DEPT_MANAGER_REVISION
+    """
+    class ReviewStage(models.TextChoices):
+        PENDING_EXECUTIVE = 'PENDING_EXECUTIVE', 'Pending Executive Review'
+        EXECUTIVE_REVISION_REQUESTED = 'EXECUTIVE_REVISION_REQUESTED', 'Revision Requested by Executive'
+        FORWARDED_TO_MANAGER = 'FORWARDED_TO_MANAGER', 'Forwarded to Dept Manager'
+        MANAGER_REVISION_REQUESTED = 'MANAGER_REVISION_REQUESTED', 'Revision Requested by Dept Manager'
+        MANAGER_APPROVED = 'MANAGER_APPROVED', 'Approved by Dept Manager'
+
+    assignment = models.ForeignKey(
+        ClientAssignment,
+        on_delete=models.CASCADE,
+        related_name='submissions',
+        db_index=True
+    )
+    submitted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='client_assignment_submissions'
+    )
+    remarks = models.TextField(help_text="Deliverables summary, output specs, links, and remarks")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    review_stage = models.CharField(
+        max_length=35,
+        choices=ReviewStage.choices,
+        default=ReviewStage.PENDING_EXECUTIVE,
+        db_index=True
+    )
+
+    # Executive Review Stage
+    executive_feedback = models.TextField(blank=True, null=True, help_text="Executive review feedback or revision instructions")
+    executive_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='exec_reviewed_client_submissions'
+    )
+    executive_reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # Department Manager Review Stage
+    manager_feedback = models.TextField(blank=True, null=True, help_text="Department Manager final evaluation remarks")
+    manager_reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mgr_reviewed_client_submissions'
+    )
+    manager_reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        verbose_name = 'Client Assignment Submission'
+        verbose_name_plural = 'Client Assignment Submissions'
+
+    def __str__(self):
+        return f"Submission for [{self.assignment.client.client_number}] {self.assignment.task_title} by {self.submitted_by.username}"
+
+
+class ClientAssignmentSubmissionAttachment(models.Model):
+    """Stores media files & documents of ANY format uploaded for client deliverables."""
+    submission = models.ForeignKey(
+        ClientAssignmentSubmission,
+        on_delete=models.CASCADE,
+        related_name='attachments'
+    )
+    file = models.FileField(upload_to='tasks/client_submissions/%Y/%m/')
+    filename = models.CharField(max_length=255, blank=True)
+    file_size_bytes = models.PositiveIntegerField(default=0)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['uploaded_at']
+
+    def __str__(self):
+        return f"{self.filename or os.path.basename(self.file.name)}"
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.filename:
+            self.filename = os.path.basename(self.file.name)
+            try:
+                self.file_size_bytes = self.file.size
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
+    @property
+    def formatted_file_size(self):
+        bytes_val = self.file_size_bytes or 0
+        if bytes_val < 1024:
+            return f"{bytes_val} B"
+        elif bytes_val < 1024 * 1024:
+            return f"{bytes_val / 1024:.1f} KB"
+        return f"{bytes_val / (1024 * 1024):.1f} MB"
+
+    @property
+    def file_extension(self):
+        if self.filename:
+            ext = os.path.splitext(self.filename)[1].lower()
+            return ext.lstrip('.')
+        return 'file'
+
+    @property
+    def icon_class(self):
+        ext = self.file_extension
+        if ext in ['pdf']:
+            return 'bi-file-earmark-pdf text-danger'
+        elif ext in ['doc', 'docx', 'txt', 'rtf']:
+            return 'bi-file-earmark-word text-primary'
+        elif ext in ['xls', 'xlsx', 'csv']:
+            return 'bi-file-earmark-excel text-success'
+        elif ext in ['zip', 'rar', '7z', 'tar', 'gz']:
+            return 'bi-file-earmark-zip text-warning'
+        elif ext in ['psd', 'ai', 'eps', 'svg', 'png', 'jpg', 'jpeg', 'webp', 'gif']:
+            return 'bi-file-earmark-image text-info'
+        elif ext in ['mp4', 'mov', 'avi', 'mkv']:
+            return 'bi-file-earmark-play text-primary'
+        return 'bi-file-earmark-text text-secondary'
+
 
 
 class Task(models.Model):

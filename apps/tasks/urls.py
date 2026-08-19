@@ -27,6 +27,11 @@ urlpatterns = [
     path('clients/<int:client_id>/edit/', views.client_edit_view, name='client_edit'),
     path('clients/<int:client_id>/delete/', views.client_delete_view, name='client_delete'),
     path('clients/assignments/all/', views.executive_client_assignments_view, name='executive_client_assignments'),
+    path('clients/assignments/<int:assignment_id>/', views.client_assignment_detail_view, name='client_assignment_detail'),
     path('clients/assignments/<int:assignment_id>/delegate/', views.executive_client_delegate_view, name='executive_client_delegate'),
+    path('clients/assignments/<int:assignment_id>/submit/', views.client_assignment_submit_view, name='client_assignment_submit'),
+    path('clients/assignments/<int:assignment_id>/executive-review/', views.client_assignment_executive_review_view, name='client_assignment_executive_review'),
+    path('clients/assignments/<int:assignment_id>/manager-review/', views.client_assignment_manager_review_view, name='client_assignment_manager_review'),
     path('api/branch-executives/<int:branch_id>/', views.branch_executives_api, name='branch_executives_api'),
 ]
+

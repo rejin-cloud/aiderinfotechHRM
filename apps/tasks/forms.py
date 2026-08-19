@@ -5,6 +5,8 @@ from apps.departments.models import Branch, Department
 from apps.tasks.models import (
     Client,
     ClientAssignment,
+    ClientAssignmentSubmission,
+    ClientAssignmentSubmissionAttachment,
     Task,
     TaskExtensionRequest,
     TaskSubmission,
@@ -430,4 +432,130 @@ class ExecutiveDelegationForm(forms.ModelForm):
         self.fields['delegated_member'].queryset = member_qs
         self.fields['delegated_member'].required = True
         self.fields['delegated_member'].label = "Assign to Branch Member / Intern"
+
+
+class ClientAssignmentSubmissionForm(forms.ModelForm):
+    """
+    Used by assigned Staff member or Intern to submit deliverable details & media files
+    to their direct Branch Executive.
+    """
+    class Meta:
+        model = ClientAssignmentSubmission
+        fields = ['remarks']
+        widgets = {
+            'remarks': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Detail your completed work, output specifications, design/campaign links, and deliverables overview...',
+                'required': True,
+            })
+        }
+        labels = {
+            'remarks': 'Work Completion Summary & Deliverables Overview'
+        }
+
+
+class ClientAssignmentExecutiveReviewForm(forms.Form):
+    """
+    Used by Branch Executive to review delegate's submission:
+    1. FORWARD_TO_MANAGER: Satisfied -> Forward to Department Manager for final approval.
+    2. REQUEST_REVISION: Not Satisfied -> Request delegate to redo / revise with feedback.
+    3. REASSIGN: Reassign task to another member/intern in the branch.
+    """
+    DECISION_CHOICES = [
+        ('FORWARD_TO_MANAGER', 'Satisfied — Forward to Department Manager for Final Approval'),
+        ('REQUEST_REVISION', 'Not Satisfied — Request Delegate to Redo / Revise'),
+        ('REASSIGN', 'Reassign Task to Another Branch Member / Intern'),
+    ]
+
+    decision = forms.ChoiceField(
+        choices=DECISION_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input', 'required': True})
+    )
+    feedback = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Provide feedback, specific revision requirements, or recommendation notes for your Department Manager...'
+        })
+    )
+    reassign_to = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        empty_label="Select New Delegate",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_reassign_to'})
+    )
+    new_deadline = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
+    )
+
+    def __init__(self, *args, branch=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if branch:
+            self.fields['reassign_to'].queryset = User.objects.filter(
+                branch=branch,
+                role__in=[User.Role.STAFF, User.Role.INTERN]
+            )
+        else:
+            self.fields['reassign_to'].queryset = User.objects.filter(
+                role__in=[User.Role.STAFF, User.Role.INTERN]
+            )
+
+
+class ClientAssignmentManagerReviewForm(forms.Form):
+    """
+    Used by Creative Department Manager for final approval and completion.
+    1. APPROVE: Verifies deliverables and marks assignment COMPLETED.
+    2. REQUEST_REVISION: Requests revision or adjustments from branch team.
+    3. REASSIGN_BRANCH: Reassigns client task to another branch / executive.
+    """
+    DECISION_CHOICES = [
+        ('APPROVE', 'Final Approval — Mark Completed (Deliverables Verified)'),
+        ('REQUEST_REVISION', 'Request Modifications / Revisions from Branch Team'),
+        ('REASSIGN_BRANCH', 'Reassign to Another Branch & Executive'),
+    ]
+
+    decision = forms.ChoiceField(
+        choices=DECISION_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input', 'required': True})
+    )
+    manager_feedback = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Add executive feedback, appreciation notes, or revision directions...'
+        })
+    )
+    reassign_branch = forms.ModelChoiceField(
+        queryset=Branch.objects.none(),
+        required=False,
+        empty_label="Select Target Branch",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_mgr_reassign_branch'})
+    )
+    reassign_executive = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        empty_label="Select Branch Executive",
+        widget=forms.Select(attrs={'class': 'form-select', 'id': 'id_mgr_reassign_executive'})
+    )
+    new_deadline = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'})
+    )
+
+    def __init__(self, *args, department=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if department:
+            self.fields['reassign_branch'].queryset = Branch.objects.filter(department=department)
+            self.fields['reassign_executive'].queryset = User.objects.filter(
+                department=department,
+                role=User.Role.EXECUTIVE
+            )
+        else:
+            self.fields['reassign_branch'].queryset = Branch.objects.all()
+            self.fields['reassign_executive'].queryset = User.objects.filter(role=User.Role.EXECUTIVE)
+
 

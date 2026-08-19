@@ -286,9 +286,20 @@
                 <span class="text-warning fw-bold"><i class="bi bi-exclamation-circle me-1"></i> Not yet delegated</span>
               {% endif %}
             </span>
-            <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
-              {% if not a.delegated_member %}Delegate{% else %}Re-assign{% endif %}
-            </a>
+            <div class="d-flex gap-1">
+              {% if a.status == 'UNDER_EXECUTIVE_REVIEW' %}
+              <a href="{% url 'client_assignment_executive_review' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
+                <i class="bi bi-shield-check me-1"></i> Review Work
+              </a>
+              {% elif not a.delegated_member %}
+              <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold">
+                <i class="bi bi-person-plus-fill me-1"></i> Delegate
+              </a>
+              {% endif %}
+              <a href="{% url 'client_assignment_detail' a.id %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-eye"></i> Details
+              </a>
+            </div>
           </div>
         </div>
         {% endfor %}
@@ -331,9 +342,16 @@
             <span class="small text-muted">
               {% if a.deadline %}Deadline: <strong>{{ a.deadline|date:"M d, Y" }}</strong>{% else %}No deadline{% endif %}
             </span>
-            <a href="{% url 'client_detail' a.client.id %}" class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-eye me-1"></i> View Client
-            </a>
+            <div class="d-flex gap-1">
+              {% if a.status in 'DELEGATED,IN_PROGRESS,EXECUTIVE_REVISION,DEPT_MANAGER_REVISION' %}
+              <a href="{% url 'client_assignment_submit' a.id %}" class="btn btn-sm btn-success fw-bold">
+                <i class="bi bi-upload me-1"></i> Submit Work
+              </a>
+              {% endif %}
+              <a href="{% url 'client_assignment_detail' a.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye me-1"></i> View Directive
+              </a>
+            </div>
           </div>
         </div>
         {% endfor %}

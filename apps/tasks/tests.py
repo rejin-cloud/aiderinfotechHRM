@@ -8,6 +8,8 @@ from apps.departments.models import Branch, Department
 from apps.tasks.models import (
     Client as ClientModel,
     ClientAssignment,
+    ClientAssignmentSubmission,
+    ClientAssignmentSubmissionAttachment,
     Task,
     TaskAttachment,
     TaskExtensionRequest,
@@ -964,6 +966,260 @@ class CreativeTasksTestCase(TestCase):
         self.assertContains(res, "CR-CL-500")
         self.assertContains(res, "Avalon Logo and Motion Bumpers")
         self.assertContains(res, "Level 3 Management")
+
+    def test_client_assignment_submit_work_by_delegate(self):
+        """Assigned delegate can submit deliverables and files to the branch executive."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-600',
+            name='Elena Vance',
+            company='Vance Tech',
+            needs='Web brand identity'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            task_title='Vance Identity Guide',
+            task_scope='Create 15-page brand guide PDF.',
+            status=ClientAssignment.Status.DELEGATED
+        )
+
+        # Intern Sam logs in and submits deliverables
+        self.client.login(username="intern_sam", password="password123")
+        sample_file = SimpleUploadedFile("brand_guide.pdf", b"%PDF-1.4 sample pdf content", content_type="application/pdf")
+
+        res = self.client.post(
+            reverse('client_assignment_submit', kwargs={'assignment_id': assignment.id}),
+            {
+                'remarks': 'Completed 15-page brand manual according to executive instructions.',
+                'submission_files': [sample_file],
+            },
+            follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+
+        # Verify DB state
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW)
+        self.assertEqual(assignment.submissions.count(), 1)
+        sub = assignment.submissions.first()
+        self.assertEqual(sub.submitted_by, self.creative_intern_sam)
+        self.assertEqual(sub.review_stage, ClientAssignmentSubmission.ReviewStage.PENDING_EXECUTIVE)
+        self.assertEqual(sub.attachments.count(), 1)
+
+    def test_client_assignment_submit_permission_denied_for_non_delegate(self):
+        """Non-assigned member cannot submit deliverables."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-601',
+            name='David Kim',
+            company='Kim Arts',
+            needs='Illustrations'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            task_title='Kim Poster Series',
+            task_scope='Design 3 posters.',
+            status=ClientAssignment.Status.DELEGATED
+        )
+
+        # Staff Liam (not assigned) attempts to submit
+        self.client.login(username="staff_liam", password="password123")
+        res = self.client.post(
+            reverse('client_assignment_submit', kwargs={'assignment_id': assignment.id}),
+            {'remarks': 'Unauthorized submission'},
+            follow=True
+        )
+        self.assertContains(res, "Permission Denied")
+        self.assertEqual(assignment.submissions.count(), 0)
+
+    def test_client_assignment_executive_review_forward_to_manager(self):
+        """Branch Executive reviews submission and forwards to Department Manager."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-602',
+            name='Sarah Connor',
+            company='Cyberdyne Corp',
+            needs='Logo revision'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            task_title='Cyberdyne Logo Polish',
+            task_scope='Refine vector nodes.',
+            status=ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW
+        )
+        sub = ClientAssignmentSubmission.objects.create(
+            assignment=assignment,
+            submitted_by=self.creative_intern_sam,
+            remarks='Vector nodes cleaned up and exported.'
+        )
+
+        # Executive Daniel reviews and forwards to Dept Manager
+        self.client.login(username="staff_daniel", password="password123")
+        res = self.client.post(
+            reverse('client_assignment_executive_review', kwargs={'assignment_id': assignment.id}),
+            {
+                'decision': 'FORWARD_TO_MANAGER',
+                'feedback': 'Excellent work by Sam. Ready for Department Manager final approval.'
+            },
+            follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+
+        assignment.refresh_from_db()
+        sub.refresh_from_db()
+        self.assertEqual(assignment.status, ClientAssignment.Status.UNDER_DEPT_MANAGER_REVIEW)
+        self.assertEqual(sub.review_stage, ClientAssignmentSubmission.ReviewStage.FORWARDED_TO_MANAGER)
+        self.assertEqual(sub.executive_reviewed_by, self.creative_staff_daniel)
+
+    def test_client_assignment_executive_review_request_revision(self):
+        """Branch Executive can ask the delegate to redo/revise with feedback."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-603',
+            name='Marcus Wright',
+            company='Resistance Media',
+            needs='Audio effects'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            task_title='Resistance Intro FX',
+            task_scope='Audio sound design.',
+            status=ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW
+        )
+        sub = ClientAssignmentSubmission.objects.create(
+            assignment=assignment,
+            submitted_by=self.creative_intern_sam,
+            remarks='First draft audio mix.'
+        )
+
+        # Executive Daniel requests changes
+        self.client.login(username="staff_daniel", password="password123")
+        res = self.client.post(
+            reverse('client_assignment_executive_review', kwargs={'assignment_id': assignment.id}),
+            {
+                'decision': 'REQUEST_REVISION',
+                'feedback': 'Please reduce bass frequencies and boost mid-range clarity.'
+            },
+            follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+
+        assignment.refresh_from_db()
+        sub.refresh_from_db()
+        self.assertEqual(assignment.status, ClientAssignment.Status.EXECUTIVE_REVISION)
+        self.assertEqual(sub.review_stage, ClientAssignmentSubmission.ReviewStage.EXECUTIVE_REVISION_REQUESTED)
+        self.assertIn("reduce bass frequencies", sub.executive_feedback)
+
+    def test_client_assignment_executive_review_reassign(self):
+        """Branch Executive can reassign the client task to another branch member."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-604',
+            name='Miles Dyson',
+            company='Skynet Systems',
+            needs='3D Render'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            task_title='Skynet 3D CPU Render',
+            task_scope='Blender 3D render.',
+            status=ClientAssignment.Status.UNDER_EXECUTIVE_REVIEW
+        )
+        ClientAssignmentSubmission.objects.create(
+            assignment=assignment,
+            submitted_by=self.creative_intern_sam,
+            remarks='Render is too heavy on CPU.'
+        )
+
+        # Executive Daniel reassigns to Liam
+        self.client.login(username="staff_daniel", password="password123")
+        res = self.client.post(
+            reverse('client_assignment_executive_review', kwargs={'assignment_id': assignment.id}),
+            {
+                'decision': 'REASSIGN',
+                'reassign_to': self.creative_staff_liam.id,
+                'feedback': 'Liam, please take over this Blender render and optimize polygons.'
+            },
+            follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.delegated_member, self.creative_staff_liam)
+        self.assertEqual(assignment.status, ClientAssignment.Status.DELEGATED)
+
+    def test_client_assignment_manager_final_approval(self):
+        """Creative Department Manager gives final evaluation and marks Completed."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-605',
+            name='John Connor',
+            company='Future Vanguard',
+            needs='Mobile app design'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_staff_liam,
+            task_title='Vanguard UI Mockups',
+            task_scope='10 mobile screens in Figma.',
+            status=ClientAssignment.Status.UNDER_DEPT_MANAGER_REVIEW
+        )
+        sub = ClientAssignmentSubmission.objects.create(
+            assignment=assignment,
+            submitted_by=self.creative_staff_liam,
+            remarks='Figma prototype link attached with all 10 mobile screens.',
+            review_stage=ClientAssignmentSubmission.ReviewStage.FORWARDED_TO_MANAGER,
+            executive_reviewed_by=self.creative_staff_daniel,
+            executive_feedback='Verified typography, color contrast, and UX flows.'
+        )
+
+        # Creative Manager Rachel performs final approval
+        self.client.login(username="deptmgr_rachel", password="password123")
+        res = self.client.post(
+            reverse('client_assignment_manager_review', kwargs={'assignment_id': assignment.id}),
+            {
+                'decision': 'APPROVE',
+                'manager_feedback': 'Outstanding execution across all mobile views. Approved and marked completed!'
+            },
+            follow=True
+        )
+        self.assertEqual(res.status_code, 200)
+
+        assignment.refresh_from_db()
+        sub.refresh_from_db()
+        self.assertEqual(assignment.status, ClientAssignment.Status.COMPLETED)
+        self.assertEqual(sub.review_stage, ClientAssignmentSubmission.ReviewStage.MANAGER_APPROVED)
+        self.assertEqual(sub.manager_reviewed_by, self.creative_mgr)
+
 
 
 
