@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Log Phone Call: {{ candidate.name }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8 col-xl-7">
+    
+    <!-- Header Card -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #075985 100%);">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-circle bg-white text-info shadow-sm" style="width: 50px; height: 50px; font-size: 1.4rem;">
+            <i class="bi bi-telephone-outbound-fill"></i>
+          </div>
+          <div>
+            <span class="badge bg-white bg-opacity-25 text-white fw-bold mb-1">Stage 2: Phone Screening</span>
+            <h3 class="fw-extrabold text-white mb-0">Log Phone Call with Candidate</h3>
+            <span class="text-white-50 small">Candidate: <strong>{{ candidate.name }}</strong> &bull; {{ candidate.phone }}</span>
+          </div>
+        </div>
+        <a href="{% url 'candidate_detail' candidate.id %}" class="btn btn-outline-light rounded-3 px-3">
+          <i class="bi bi-arrow-left me-1"></i> Back to Dossier
+        </a>
+      </div>
+    </div>
+
+    <!-- Candidate Quick Profile Summary -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 p-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <div class="fw-bold text-dark fs-6">{{ candidate.name }}</div>
+          <div class="text-muted small">
+            <i class="bi bi-telephone text-primary me-1"></i> {{ candidate.phone }} &bull;
+            <i class="bi bi-geo-alt text-danger me-1"></i> {{ candidate.place }} &bull;
+            <i class="bi bi-building text-secondary me-1"></i> {{ candidate.department.name|default:"General Dept" }}
+          </div>
+        </div>
+        <a href="tel:{{ candidate.phone }}" class="btn btn-sm btn-success fw-bold px-3 py-2 rounded-pill shadow-sm">
+          <i class="bi bi-telephone-fill me-1"></i> Dial Phone Number
+        </a>
+      </div>
+    </div>
+
+    <!-- Call Form Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-chat-square-quote me-2 text-primary"></i> Call Discussion & Status Update
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger rounded-3 mb-4">
+            {{ form.non_field_errors }}
+          </div>
+          {% endif %}
+
+          <!-- Call Outcome Selection -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">
+              <i class="bi bi-flag-fill text-warning me-1"></i> Call Outcome & Pipeline Stage Transition <span class="text-danger">*</span>
+            </label>
+            <div class="p-3 bg-light rounded-3 border">
+              {% for radio in form.call_outcome %}
+              <div class="form-check mb-2">
+                {{ radio.tag }}
+                <label class="form-check-label fw-semibold text-dark" for="{{ radio.id_for_label }}">
+                  {{ radio.choice_label }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+            {% if form.call_outcome.errors %}<div class="text-danger small mt-1">{{ form.call_outcome.errors }}</div>{% endif %}
+          </div>
+
+          <!-- Discussion Notes -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">
+              <i class="bi bi-pencil-square text-primary me-1"></i> Phone Discussion Notes & Feedback <span class="text-danger">*</span>
+            </label>
+            {{ form.call_notes }}
+            <div class="text-muted small mt-1">Record key points: communication clarity, salary expectation, notice period, location willingness, candidate enthusiasm.</div>
+            {% if form.call_notes.errors %}<div class="text-danger small mt-1">{{ form.call_notes.errors }}</div>{% endif %}
+          </div>
+
+          <!-- Call Rating -->
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark">
+              <i class="bi bi-star-fill text-warning me-1"></i> Screening Evaluation Rating (Optional)
+            </label>
+            {{ form.call_rating }}
+            {% if form.call_rating.errors %}<div class="text-danger small mt-1">{{ form.call_rating.errors }}</div>{% endif %}
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'candidate_detail' candidate.id %}" class="btn btn-outline-secondary px-4">
+              Cancel
+            </a>
+            <button type="submit" class="btn btn-info text-dark fw-bold px-4 shadow-sm">
+              <i class="bi bi-check-circle-fill me-1"></i> Save & Log Phone Call
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

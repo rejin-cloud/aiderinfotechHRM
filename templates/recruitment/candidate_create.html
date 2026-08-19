@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}Register Candidate Application | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+    
+    <!-- Header Card -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #4338ca 100%);">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-circle bg-warning text-dark shadow-sm" style="width: 50px; height: 50px; font-size: 1.3rem;">
+            <i class="bi bi-person-plus-fill"></i>
+          </div>
+          <div>
+            <span class="badge bg-warning text-dark fw-bold mb-1">Stage 1: Intake</span>
+            <h3 class="fw-extrabold text-white mb-0">Register New Candidate</h3>
+            <span class="text-white-50 small">Enters applicant directly into the "1. To Be Called" queue.</span>
+          </div>
+        </div>
+        <a href="{% url 'candidate_list' %}" class="btn btn-outline-light rounded-3 px-3">
+          <i class="bi bi-arrow-left me-1"></i> Back to Pipeline
+        </a>
+      </div>
+    </div>
+
+    <!-- Candidate Form Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-person-vcard me-2 text-primary"></i> Applicant Details & Applying Scope
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger rounded-3 mb-4">
+            {{ form.non_field_errors }}
+          </div>
+          {% endif %}
+
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                <i class="bi bi-person me-1"></i> Personal & Contact Information
+              </h6>
+            </div>
+
+            <!-- Candidate Name -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Full Legal Name <span class="text-danger">*</span></label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Contact Phone -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Contact Phone Number <span class="text-danger">*</span></label>
+              {{ form.phone }}
+              {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Email Address -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Email Address (Optional)</label>
+              {{ form.email }}
+              {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Place / City -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Place / City / Location <span class="text-danger">*</span></label>
+              {{ form.place }}
+              {% if form.place.errors %}<div class="text-danger small mt-1">{{ form.place.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                <i class="bi bi-building me-1"></i> Applying Department, Branch & Role
+              </h6>
+            </div>
+
+            <!-- Department -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Applying Department</label>
+              {{ form.department }}
+              {% if form.department.errors %}<div class="text-danger small mt-1">{{ form.department.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Branch Wing -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Applying Branch Wing</label>
+              {{ form.branch }}
+              {% if form.branch.errors %}<div class="text-danger small mt-1">{{ form.branch.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Role Level -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Role Level</label>
+              {{ form.role_applied }}
+              {% if form.role_applied.errors %}<div class="text-danger small mt-1">{{ form.role_applied.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Position / Designation Title -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Position / Designation Title</label>
+              {{ form.designation_applied }}
+              {% if form.designation_applied.errors %}<div class="text-danger small mt-1">{{ form.designation_applied.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12">
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">
+                <i class="bi bi-briefcase me-1"></i> Qualifications & Attachments
+              </h6>
+            </div>
+
+            <!-- Highest Qualification -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Highest Educational Qualification</label>
+              {{ form.qualification }}
+              {% if form.qualification.errors %}<div class="text-danger small mt-1">{{ form.qualification.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Relevant Experience -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold text-dark">Total Relevant Experience</label>
+              {{ form.experience_years }}
+              {% if form.experience_years.errors %}<div class="text-danger small mt-1">{{ form.experience_years.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Resume / CV File -->
+            <div class="col-12">
+              <label class="form-label fw-semibold text-dark">Resume / CV / Portfolio Attachment</label>
+              {{ form.resume }}
+              <div class="text-muted small">Upload PDF, DOCX, or portfolio document.</div>
+              {% if form.resume.errors %}<div class="text-danger small mt-1">{{ form.resume.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Application Notes -->
+            <div class="col-12">
+              <label class="form-label fw-semibold text-dark">Candidate Notes / Initial Summary</label>
+              {{ form.notes }}
+              {% if form.notes.errors %}<div class="text-danger small mt-1">{{ form.notes.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'candidate_list' %}" class="btn btn-outline-secondary px-4">
+              Cancel
+            </a>
+            <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">
+              <i class="bi bi-check-lg me-1"></i> Register Candidate Application
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

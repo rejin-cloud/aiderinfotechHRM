@@ -12,6 +12,7 @@ from apps.tasks.models import (
     TaskExtensionRequest,
     TaskSubmission,
 )
+from apps.recruitment.models import Candidate
 from apps.users.models import User
 
 @login_required
@@ -169,6 +170,14 @@ def hr_dashboard_view(request):
     interns_count = role_dict.get(User.Role.INTERN, 0)
     managers_count = role_dict.get(User.Role.MANAGER, 0) + role_dict.get(User.Role.DEPT_MANAGER, 0)
 
+    # Recruitment & Candidate Pipeline metrics
+    candidates_to_be_called_count = Candidate.objects.filter(status=Candidate.Status.TO_BE_CALLED).count()
+    candidates_called_count = Candidate.objects.filter(status=Candidate.Status.CALLED).count()
+    candidates_approved_count = Candidate.objects.filter(status=Candidate.Status.APPROVED).count()
+    candidates_interview_count = Candidate.objects.filter(status=Candidate.Status.INTERVIEW_SCHEDULED).count()
+    total_candidates_count = Candidate.objects.count()
+    recent_candidates = Candidate.objects.select_related('department', 'branch').order_by('-created_at')[:6]
+
     return render(request, 'dashboards/hr.html', {
         'total_employees': total_employees,
         'departments': departments,
@@ -186,6 +195,12 @@ def hr_dashboard_view(request):
         'on_leave_today_count': on_leave_today_count,
         'pending_leaves_count': pending_leaves_count,
         'recent_leaves': recent_leaves,
+        'candidates_to_be_called_count': candidates_to_be_called_count,
+        'candidates_called_count': candidates_called_count,
+        'candidates_approved_count': candidates_approved_count,
+        'candidates_interview_count': candidates_interview_count,
+        'total_candidates_count': total_candidates_count,
+        'recent_candidates': recent_candidates,
         'page_title': 'Human Resources Governance Center',
     })
 

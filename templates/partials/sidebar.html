@@ -44,6 +44,22 @@
     </a>
     {% endif %}
 
+    {% if user.role in 'SUPERADMIN SERVER_ADMIN HR MANAGER DEPT_MANAGER' %}
+    <div class="sidebar-heading">Recruitment & Talent</div>
+    <a href="{% url 'candidate_list' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'candidate_list' %}active{% endif %}">
+      <i class="bi bi-person-lines-fill"></i>
+      <span>Candidate Pipeline</span>
+    </a>
+    <a href="{% url 'candidate_approved_list' %}" class="sidebar-nav-link text-success {% if request.resolver_match.url_name == 'candidate_approved_list' %}active{% endif %}">
+      <i class="bi bi-patch-check-fill"></i>
+      <span>Approved Candidates</span>
+    </a>
+    <a href="{% url 'candidate_create' %}" class="sidebar-nav-link text-info {% if request.resolver_match.url_name == 'candidate_create' %}active{% endif %}">
+      <i class="bi bi-person-plus-fill"></i>
+      <span>+ Add Candidate</span>
+    </a>
+    {% endif %}
+
     <div class="sidebar-heading">Creative Operations</div>
     <a href="{% url 'creative_calendar' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'creative_calendar' %}active{% endif %}">
       <i class="bi bi-calendar3"></i>

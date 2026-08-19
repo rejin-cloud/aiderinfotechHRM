@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+
+{% block title %}Candidate Dossier: {{ candidate.name }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Candidate Executive Dossier Banner -->
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #4338ca 100%);">
+  <div class="row align-items-center">
+    <div class="col-12 col-xl-7">
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="avatar-circle avatar-lg shadow-lg border border-2 border-white border-opacity-25" style="background-color: #4f46e5; width: 68px; height: 68px; font-size: 1.8rem; color: #ffffff;">
+          {{ candidate.name|first|upper }}
+        </div>
+        <div>
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+            <span class="badge {{ candidate.status_badge_class }} px-3 py-1 fw-bold font-monospace">
+              <i class="bi bi-tag-fill me-1"></i> {{ candidate.get_status_display }}
+            </span>
+            <span class="badge px-3 py-1 fw-semibold text-white border" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25) !important;">
+              <i class="bi bi-geo-alt me-1"></i> {{ candidate.place }}
+            </span>
+            {% if candidate.department %}
+            <span class="badge text-white fw-semibold px-3 py-1" style="background: #0d9488;">
+              <i class="bi bi-building me-1"></i> {{ candidate.department.name }}
+            </span>
+            {% endif %}
+          </div>
+          <h2 class="fw-extrabold mb-0 text-white">{{ candidate.name }}</h2>
+          <span class="text-white-50 small">
+            Applied for <strong>{{ candidate.designation_applied|default:candidate.get_role_applied_display }}</strong> &bull; Applied on {{ candidate.created_at|date:"M d, Y" }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-5 text-xl-end mt-3 mt-xl-0 d-flex flex-wrap justify-content-xl-end gap-2">
+      <a href="tel:{{ candidate.phone }}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+        <i class="bi bi-telephone-fill me-1"></i> Call ({{ candidate.phone }})
+      </a>
+      {% if candidate.email %}
+      <a href="mailto:{{ candidate.email }}" class="btn btn-outline-light px-3 py-2 rounded-3 shadow-sm">
+        <i class="bi bi-envelope me-1"></i> Email
+      </a>
+      {% endif %}
+      <a href="{% url 'candidate_list' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
+        <i class="bi bi-arrow-left me-1"></i> Pipeline
+      </a>
+      <a href="{% url 'candidate_approved_list' %}" class="btn btn-success px-3 py-2 rounded-3 shadow-sm">
+        <i class="bi bi-check2-circle me-1"></i> Approved Roster
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  
+  <!-- Left Column: Personal Profile, Contact & Organizational Target -->
+  <div class="col-12 col-lg-5">
+    
+    <!-- Profile & Contact Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-person-lines-fill me-2 text-primary"></i> Personal & Contact Profile
+        </h5>
+        <a href="{% url 'candidate_edit' candidate.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+          <i class="bi bi-pencil me-1"></i> Edit Profile
+        </a>
+      </div>
+      <div class="card-body p-4">
+        <ul class="list-group list-group-flush small">
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Full Legal Name:</span>
+            <span class="fw-bold text-dark fs-6">{{ candidate.name }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Contact Phone:</span>
+            <a href="tel:{{ candidate.phone }}" class="fw-bold font-monospace text-primary text-decoration-none">
+              <i class="bi bi-telephone me-1"></i> {{ candidate.phone }}
+            </a>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Place / Location:</span>
+            <span class="fw-bold text-dark">
+              <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ candidate.place }}
+            </span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Email Address:</span>
+            {% if candidate.email %}
+            <a href="mailto:{{ candidate.email }}" class="fw-bold text-dark text-decoration-none">
+              {{ candidate.email }}
+            </a>
+            {% else %}
+            <span class="text-muted">Not provided</span>
+            {% endif %}
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Highest Qualification:</span>
+            <span class="fw-semibold text-dark">{{ candidate.qualification|default:"Not specified" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Total Relevant Experience:</span>
+            <span class="badge bg-light text-dark border">{{ candidate.experience_years|default:"Fresher" }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Resume / Portfolio:</span>
+            {% if candidate.resume %}
+            <a href="{{ candidate.resume.url }}" target="_blank" class="btn btn-sm btn-primary text-white fw-semibold rounded-pill px-3">
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i> Download Resume
+            </a>
+            {% else %}
+            <span class="badge bg-light text-muted border">No file attached</span>
+            {% endif %}
+          </li>
+        </ul>
+
+        {% if candidate.notes %}
+        <div class="mt-3 p-3 bg-light rounded-3 border">
+          <div class="fw-bold small text-secondary mb-1">
+            <i class="bi bi-journal-text me-1"></i> Candidate Background & Initial Notes:
+          </div>
+          <p class="small text-dark mb-0">{{ candidate.notes }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Applied Department & Branch Allocation -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-diagram-3-fill me-2 text-primary"></i> Target Department & Role
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <ul class="list-group list-group-flush small">
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Applying Department:</span>
+            {% if candidate.department %}
+            <span class="fw-bold text-primary">{{ candidate.department.name }}</span>
+            {% else %}
+            <span class="text-muted">General Pool</span>
+            {% endif %}
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Branch Wing:</span>
+            {% if candidate.branch %}
+            <span class="badge bg-light text-secondary border">{{ candidate.branch.name }}</span>
+            {% else %}
+            <span class="text-muted">All Branches / HQ</span>
+            {% endif %}
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+            <span class="text-muted">Role Hierarchy Level:</span>
+            <span class="badge bg-secondary-subtle text-secondary border">{{ candidate.get_role_applied_display }}</span>
+          </li>
+          <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+            <span class="text-muted">Position / Designation:</span>
+            <span class="fw-bold text-dark">{{ candidate.designation_applied|default:candidate.get_role_applied_display }}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Administrative Quick Actions -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-gear-wide-connected me-2 text-primary"></i> Administrative Actions
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <div class="d-flex flex-column gap-2">
+          <a href="{% url 'user_create' %}" class="btn btn-outline-success fw-semibold">
+            <i class="bi bi-person-badge-fill me-1"></i> Onboard into Employee Directory
+          </a>
+          <a href="{% url 'candidate_edit' candidate.id %}" class="btn btn-outline-primary fw-semibold">
+            <i class="bi bi-pencil-square me-1"></i> Edit Candidate Details
+          </a>
+          <a href="{% url 'candidate_delete' candidate.id %}" class="btn btn-outline-danger fw-semibold">
+            <i class="bi bi-trash3 me-1"></i> Delete Candidate Record
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Column: Screening Lifecycle & Workflow Stages -->
+  <div class="col-12 col-lg-7">
+    
+    <!-- Stage 1 & 2: Telephonic Screening & Calling Log -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border-left: 5px solid #0284c7 !important;">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-telephone-outbound-fill me-2 text-info"></i> Stage 1 & 2: Telephonic Screening Call
+          </h5>
+          <span class="text-muted small">Initial phone reach-out, discussion notes, and candidate interest verification</span>
+        </div>
+        <a href="{% url 'candidate_mark_called' candidate.id %}" class="btn btn-sm btn-info text-dark fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-telephone-plus me-1"></i> Log / Update Call
+        </a>
+      </div>
+      <div class="card-body p-4">
+        {% if candidate.called_at %}
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1">Call Completed On:</span>
+              <span class="fw-bold text-dark"><i class="bi bi-calendar-check me-1 text-info"></i> {{ candidate.called_at|date:"M d, Y @ h:i A" }}</span>
+            </div>
+          </div>
+          <div class="col-12 col-md-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1">HR Executive Caller:</span>
+              <span class="fw-bold text-dark"><i class="bi bi-person-check me-1 text-primary"></i> {{ candidate.called_by.get_full_name|default:candidate.called_by.username|default:"HR Team" }}</span>
+            </div>
+          </div>
+          {% if candidate.call_rating %}
+          <div class="col-12">
+            <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+              <span class="text-muted small">Screening Rating:</span>
+              <div class="text-warning">
+                {% for i in "12345" %}
+                  {% if forloop.counter <= candidate.call_rating %}
+                    <i class="bi bi-star-fill text-warning fs-5"></i>
+                  {% else %}
+                    <i class="bi bi-star text-muted opacity-25 fs-5"></i>
+                  {% endif %}
+                {% endfor %}
+                <span class="badge bg-light text-dark border ms-2">{{ candidate.call_rating }} / 5</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          <div class="col-12">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1 fw-bold">Discussion Summary & Candidate Feedback:</span>
+              <p class="small text-dark mb-0" style="white-space: pre-line;">{{ candidate.call_notes|default:"No detailed notes recorded." }}</p>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center py-4 bg-light rounded-3 border border-dashed">
+          <i class="bi bi-telephone-x fs-1 text-warning d-block mb-2"></i>
+          <h6 class="fw-bold text-dark">Candidate Has Not Been Called Yet</h6>
+          <p class="small text-muted mb-3">This candidate is currently in <strong>Stage 1: To Be Called</strong>. Reach out via phone to discuss availability, compensation, and qualifications.</p>
+          <a href="{% url 'candidate_mark_called' candidate.id %}" class="btn btn-warning text-dark fw-bold px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-telephone-outbound-fill me-1"></i> Log Phone Call Now
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Stage 3: HR Shortlisting & Decision -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border-left: 5px solid {% if candidate.status == 'APPROVED' or candidate.status == 'INTERVIEW_SCHEDULED' %}#059669{% elif candidate.status == 'REJECTED' %}#dc2626{% else %}#f59e0b{% endif %} !important;">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-shield-check me-2 text-success"></i> Stage 3: Shortlisting & Screening Decision
+          </h5>
+          <span class="text-muted small">Official decision to approve (shortlist for interview) or reject application</span>
+        </div>
+        <a href="{% url 'candidate_decide' candidate.id %}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+          <i class="bi bi-hand-thumbs-up me-1"></i> Approve / Reject Decision
+        </a>
+      </div>
+      <div class="card-body p-4">
+        {% if candidate.status == 'APPROVED' or candidate.status == 'INTERVIEW_SCHEDULED' or candidate.status == 'INTERVIEWED' or candidate.status == 'SELECTED' or candidate.status == 'ONBOARDED' %}
+        <div class="p-3 bg-success bg-opacity-10 border border-success rounded-3 mb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-check-circle-fill text-success fs-4"></i>
+            <h6 class="fw-bold text-success mb-0">Candidate Approved & Shortlisted</h6>
+          </div>
+          <p class="small text-dark mb-1">
+            Reviewed by: <strong>{{ candidate.reviewed_by.get_full_name|default:candidate.reviewed_by.username|default:"HR Management" }}</strong> 
+            {% if candidate.reviewed_at %}on {{ candidate.reviewed_at|date:"M d, Y @ h:i A" }}{% endif %}
+          </p>
+          {% if candidate.approval_notes %}
+          <div class="small text-muted mt-2 pt-2 border-top">
+            <strong>Decision Remarks:</strong> {{ candidate.approval_notes }}
+          </div>
+          {% endif %}
+        </div>
+        {% elif candidate.status == 'REJECTED' %}
+        <div class="p-3 bg-danger bg-opacity-10 border border-danger rounded-3 mb-3">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-x-circle-fill text-danger fs-4"></i>
+            <h6 class="fw-bold text-danger mb-0">Candidate Rejected</h6>
+          </div>
+          <p class="small text-dark mb-1">
+            Reviewed by: <strong>{{ candidate.reviewed_by.get_full_name|default:candidate.reviewed_by.username|default:"HR Management" }}</strong>
+            {% if candidate.reviewed_at %}on {{ candidate.reviewed_at|date:"M d, Y" }}{% endif %}
+          </p>
+          {% if candidate.approval_notes %}
+          <div class="small text-muted mt-2 pt-2 border-top">
+            <strong>Rejection Reason / Notes:</strong> {{ candidate.approval_notes }}
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-3 bg-light rounded-3 border">
+          <p class="small text-muted mb-2">Awaiting official screening decision after telephonic review.</p>
+          <a href="{% url 'candidate_decide' candidate.id %}" class="btn btn-sm btn-success text-white fw-semibold rounded-pill px-3">
+            <i class="bi bi-check-lg me-1"></i> Record Screening Decision
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Stage 4: Official Interview Arrangement -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden" style="border-left: 5px solid #4f46e5 !important;">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-calendar2-check-fill me-2 text-primary"></i> Stage 4: Interview Arrangement
+          </h5>
+          <span class="text-muted small">Date, time, mode (In-Person / Online), interviewer panel, and instructions</span>
+        </div>
+        <a href="{% url 'candidate_schedule_interview' candidate.id %}" class="btn btn-sm btn-primary rounded-pill px-3">
+          <i class="bi bi-calendar-plus me-1"></i> {% if candidate.interview_date %}Reschedule{% else %}Arrange Interview{% endif %}
+        </a>
+      </div>
+      <div class="card-body p-4">
+        {% if candidate.interview_date %}
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1">Interview Date & Time:</span>
+              <span class="fw-bold text-primary fs-6">
+                <i class="bi bi-calendar-event me-1"></i> {{ candidate.interview_date|date:"l, M d, Y" }}
+              </span>
+              <div class="fw-bold text-dark font-monospace mt-1">
+                <i class="bi bi-clock me-1"></i> {{ candidate.interview_time|time:"h:i A" }}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1">Interview Format / Mode:</span>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 py-2 px-3">
+                {{ candidate.get_interview_mode_display }}
+              </span>
+            </div>
+          </div>
+
+          {% if candidate.interview_location %}
+          <div class="col-12">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1 fw-bold">Venue / Meeting URL Link:</span>
+              {% if 'http' in candidate.interview_location %}
+              <a href="{{ candidate.interview_location }}" target="_blank" class="btn btn-sm btn-outline-primary fw-semibold">
+                <i class="bi bi-camera-video me-1"></i> Open Online Meeting Room
+              </a>
+              <div class="small text-muted font-monospace mt-1">{{ candidate.interview_location }}</div>
+              {% else %}
+              <span class="fw-semibold text-dark"><i class="bi bi-building me-1 text-secondary"></i> {{ candidate.interview_location }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
+
+          {% if candidate.interviewer_name %}
+          <div class="col-12">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1 fw-bold">Interviewer(s) / Panel:</span>
+              <span class="fw-bold text-dark">{{ candidate.interviewer_name }}</span>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if candidate.interview_instructions %}
+          <div class="col-12">
+            <div class="p-3 bg-light rounded-3 border">
+              <span class="text-muted small d-block mb-1 fw-bold">Instructions Provided to Candidate:</span>
+              <p class="small text-dark mb-0" style="white-space: pre-line;">{{ candidate.interview_instructions }}</p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 bg-light rounded-3 border border-dashed">
+          <i class="bi bi-calendar-x fs-1 text-secondary d-block mb-2"></i>
+          <h6 class="fw-bold text-dark">No Interview Scheduled Yet</h6>
+          <p class="small text-muted mb-3">
+            {% if candidate.status == 'APPROVED' %}
+            Candidate has been approved after calling. Proceed to arrange an official interview.
+            {% else %}
+            You can schedule an in-person or online interview once the candidate is screened and approved.
+            {% endif %}
+          </p>
+          <a href="{% url 'candidate_schedule_interview' candidate.id %}" class="btn btn-primary px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-calendar-plus-fill me-1"></i> Arrange Interview
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

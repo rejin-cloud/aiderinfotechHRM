@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Arrange Interview: {{ candidate.name }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8 col-xl-7">
+    
+    <!-- Header Card -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-circle bg-white text-primary shadow-sm" style="width: 50px; height: 50px; font-size: 1.4rem;">
+            <i class="bi bi-calendar2-plus-fill"></i>
+          </div>
+          <div>
+            <span class="badge bg-white bg-opacity-25 text-white fw-bold mb-1">Stage 4: Interview Arrangement</span>
+            <h3 class="fw-extrabold text-white mb-0">Arrange Official Interview</h3>
+            <span class="text-white-50 small">Candidate: <strong>{{ candidate.name }}</strong> &bull; {{ candidate.phone }}</span>
+          </div>
+        </div>
+        <a href="{% url 'candidate_detail' candidate.id %}" class="btn btn-outline-light rounded-3 px-3">
+          <i class="bi bi-arrow-left me-1"></i> Back to Dossier
+        </a>
+      </div>
+    </div>
+
+    <!-- Candidate Summary -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 p-3">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <div class="fw-bold text-dark fs-6">{{ candidate.name }}</div>
+          <div class="text-muted small">
+            <i class="bi bi-geo-alt text-danger me-1"></i> {{ candidate.place }} &bull;
+            <i class="bi bi-telephone text-primary me-1"></i> {{ candidate.phone }} &bull;
+            <i class="bi bi-briefcase text-secondary me-1"></i> {{ candidate.designation_applied|default:candidate.get_role_applied_display }}
+          </div>
+        </div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle py-2 px-3 fw-bold">
+          <i class="bi bi-check-circle me-1"></i> Shortlisted & Approved
+        </span>
+      </div>
+    </div>
+
+    <!-- Interview Form Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-calendar-check me-2 text-primary"></i> Interview Schedule & Logistic Details
+        </h5>
+      </div>
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger rounded-3 mb-4">
+            {{ form.non_field_errors }}
+          </div>
+          {% endif %}
+
+          <div class="row g-3 mb-4">
+            <!-- Interview Date -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-calendar-event text-primary me-1"></i> Interview Date <span class="text-danger">*</span>
+              </label>
+              {{ form.interview_date }}
+              {% if form.interview_date.errors %}<div class="text-danger small mt-1">{{ form.interview_date.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Interview Time -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-clock text-primary me-1"></i> Interview Time <span class="text-danger">*</span>
+              </label>
+              {{ form.interview_time }}
+              {% if form.interview_time.errors %}<div class="text-danger small mt-1">{{ form.interview_time.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Interview Mode -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-display text-primary me-1"></i> Interview Mode / Format <span class="text-danger">*</span>
+              </label>
+              {{ form.interview_mode }}
+              {% if form.interview_mode.errors %}<div class="text-danger small mt-1">{{ form.interview_mode.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Interview Location / URL -->
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-geo-alt text-danger me-1"></i> Venue / Meeting Room Link
+              </label>
+              {{ form.interview_location }}
+              {% if form.interview_location.errors %}<div class="text-danger small mt-1">{{ form.interview_location.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Interviewer Name / Panel -->
+            <div class="col-12">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-people text-secondary me-1"></i> Interviewer(s) / Panel Members
+              </label>
+              {{ form.interviewer_name }}
+              {% if form.interviewer_name.errors %}<div class="text-danger small mt-1">{{ form.interviewer_name.errors }}</div>{% endif %}
+            </div>
+
+            <!-- Instructions for Candidate -->
+            <div class="col-12">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-card-text text-secondary me-1"></i> Instructions / Agenda for Candidate
+              </label>
+              {{ form.interview_instructions }}
+              {% if form.interview_instructions.errors %}<div class="text-danger small mt-1">{{ form.interview_instructions.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+            <a href="{% url 'candidate_detail' candidate.id %}" class="btn btn-outline-secondary px-4">
+              Cancel
+            </a>
+            <button type="submit" class="btn btn-primary fw-bold px-4 shadow-sm">
+              <i class="bi bi-calendar2-check me-1"></i> Confirm & Schedule Interview
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -51,11 +51,17 @@
 
         <!-- Right: Primary Quick Action CTAs -->
         <div class="col-12 col-xl-5 text-xl-end d-flex flex-wrap justify-content-xl-end gap-2">
-          <a href="{% url 'user_create' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
-            <i class="bi bi-person-plus-fill me-1"></i> Onboard Employee
+          <a href="{% url 'candidate_list' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm position-relative">
+            <i class="bi bi-people-fill me-1"></i> Candidates
+            {% if candidates_to_be_called_count > 0 %}
+            <span class="badge bg-danger text-white rounded-pill ms-1">{{ candidates_to_be_called_count }} to call</span>
+            {% endif %}
           </a>
-          <a href="{% url 'assign_employee' %}" class="btn btn-light text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
-            <i class="bi bi-person-gear me-1"></i> Assign Employee
+          <a href="{% url 'candidate_approved_list' %}" class="btn btn-light text-success fw-bold px-3 py-2 rounded-3 shadow-sm">
+            <i class="bi bi-check2-circle me-1"></i> Approved ({{ candidates_approved_count }})
+          </a>
+          <a href="{% url 'user_create' %}" class="btn btn-outline-light px-3 py-2 rounded-3 shadow-sm">
+            <i class="bi bi-person-plus-fill me-1"></i> Onboard Employee
           </a>
           <a href="{% url 'manager_leave_approvals' %}" class="btn btn-outline-light px-3 py-2 rounded-3 position-relative">
             <i class="bi bi-patch-check-fill me-1"></i> Leave Approvals
@@ -64,9 +70,6 @@
               {{ pending_leaves_count }}
             </span>
             {% endif %}
-          </a>
-          <a href="{% url 'department_attendance_roster' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
-            <i class="bi bi-calendar-check me-1"></i> Daily Roster
           </a>
         </div>
 
@@ -169,6 +172,15 @@
       </div>
 
       <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'candidate_list' %}" class="btn btn-sm btn-primary text-white fw-bold shadow-sm rounded-pill px-3">
+          <i class="bi bi-people-fill me-1"></i> Candidates ({{ total_candidates_count }})
+        </a>
+        <a href="{% url 'candidate_approved_list' %}" class="btn btn-sm btn-success text-white fw-bold shadow-sm rounded-pill px-3">
+          <i class="bi bi-check2-circle me-1"></i> Approved ({{ candidates_approved_count }})
+        </a>
+        <a href="{% url 'candidate_create' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-person-plus-fill me-1"></i> Add Candidate
+        </a>
         <a href="{% url 'executive_leave_apply' %}" class="btn btn-sm btn-dark text-white fw-bold shadow-sm rounded-pill px-3" style="background: #1e1b4b; border-color: #1e1b4b;">
           <i class="bi bi-shield-plus me-1"></i> Apply Exec Leave
         </a>
@@ -187,6 +199,173 @@
         <a href="{% url 'export_pdf' %}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
           <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated Recruitment & Candidate Screening Hub -->
+  <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden" style="border-left: 5px solid #0284c7 !important;">
+    <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-3 p-2 bg-primary-subtle text-primary">
+          <i class="bi bi-person-lines-fill fs-5"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold text-dark mb-0">Candidate Intake & Screening Desk</h5>
+          <span class="text-muted small">Manage applicant calling, phone screening evaluations, approved talent, and interview arrangements</span>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'candidate_create' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-person-plus-fill me-1"></i> + Register Candidate
+        </a>
+        <a href="{% url 'candidate_approved_list' %}" class="btn btn-sm btn-success text-white fw-semibold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-check-circle-fill me-1"></i> Approved Shortlist ({{ candidates_approved_count }})
+        </a>
+        <a href="{% url 'candidate_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+          <i class="bi bi-kanban me-1"></i> Full Pipeline ({{ total_candidates_count }})
+        </a>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <!-- 4-Stage Candidate Status Quick Pills -->
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{% url 'candidate_list' %}?status=TO_BE_CALLED" class="text-decoration-none">
+            <div class="p-3 rounded-3 border bg-warning bg-opacity-10 h-100 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="badge bg-warning text-dark fw-bold mb-1">Stage 1</span>
+                <div class="fw-bold text-dark fs-5">{{ candidates_to_be_called_count }}</div>
+                <div class="text-muted small">To Be Called</div>
+              </div>
+              <i class="bi bi-telephone-outbound fs-2 text-warning"></i>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{% url 'candidate_list' %}?status=CALLED" class="text-decoration-none">
+            <div class="p-3 rounded-3 border bg-info bg-opacity-10 h-100 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="badge bg-info text-dark fw-bold mb-1">Stage 2</span>
+                <div class="fw-bold text-dark fs-5">{{ candidates_called_count }}</div>
+                <div class="text-muted small">Called (Screened)</div>
+              </div>
+              <i class="bi bi-telephone-check fs-2 text-info"></i>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{% url 'candidate_approved_list' %}" class="text-decoration-none">
+            <div class="p-3 rounded-3 border bg-success bg-opacity-10 h-100 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="badge bg-success text-white fw-bold mb-1">Stage 3</span>
+                <div class="fw-bold text-success fs-5">{{ candidates_approved_count }}</div>
+                <div class="text-muted small">Approved Talent</div>
+              </div>
+              <i class="bi bi-patch-check-fill fs-2 text-success"></i>
+            </div>
+          </a>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+          <a href="{% url 'candidate_list' %}?status=INTERVIEW_SCHEDULED" class="text-decoration-none">
+            <div class="p-3 rounded-3 border bg-primary bg-opacity-10 h-100 d-flex align-items-center justify-content-between">
+              <div>
+                <span class="badge bg-primary text-white fw-bold mb-1">Stage 4</span>
+                <div class="fw-bold text-primary fs-5">{{ candidates_interview_count }}</div>
+                <div class="text-muted small">Interview Arranged</div>
+              </div>
+              <i class="bi bi-calendar2-check fs-2 text-primary"></i>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Recent Candidate Applications Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Candidate</th>
+              <th>Contact & Place</th>
+              <th>Department & Branch</th>
+              <th>Role Applied</th>
+              <th>Status / Stage</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cand in recent_candidates %}
+            <tr>
+              <td class="ps-3">
+                <a href="{% url 'candidate_detail' cand.id %}" class="d-flex align-items-center gap-2 text-decoration-none text-dark">
+                  <div class="avatar-circle" style="background-color: #4f46e5; width: 34px; height: 34px; font-size: 0.85rem; color: #ffffff;">
+                    {{ cand.name|first|upper }}
+                  </div>
+                  <div>
+                    <span class="fw-bold text-primary small d-block">{{ cand.name }}</span>
+                    <span class="text-muted" style="font-size: 0.72rem;">Applied {{ cand.created_at|date:"M d, Y" }}</span>
+                  </div>
+                </a>
+              </td>
+              <td>
+                <div class="small fw-semibold text-dark font-monospace"><i class="bi bi-telephone text-primary me-1"></i>{{ cand.phone }}</div>
+                <div class="small text-muted"><i class="bi bi-geo-alt text-danger me-1"></i>{{ cand.place }}</div>
+              </td>
+              <td>
+                {% if cand.department %}
+                <span class="badge bg-light text-dark border small">{{ cand.department.name }}</span>
+                {% else %}
+                <span class="text-muted small">General</span>
+                {% endif %}
+                {% if cand.branch %}
+                <div class="text-muted small" style="font-size: 0.72rem;">{{ cand.branch.name }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <div class="fw-bold small text-dark">{{ cand.designation_applied|default:cand.get_role_applied_display }}</div>
+                <span class="badge bg-secondary-subtle text-secondary small" style="font-size: 0.68rem;">{{ cand.get_role_applied_display }}</span>
+              </td>
+              <td>
+                <span class="badge {{ cand.status_badge_class }} small">{{ cand.get_status_display }}</span>
+              </td>
+              <td class="text-end pe-3">
+                <div class="d-inline-flex gap-1">
+                  {% if cand.status == 'TO_BE_CALLED' %}
+                  <a href="{% url 'candidate_mark_called' cand.id %}" class="btn btn-sm btn-warning text-dark fw-bold" title="Mark as Called">
+                    <i class="bi bi-telephone-outbound-fill me-1"></i> Call
+                  </a>
+                  {% elif cand.status == 'CALLED' %}
+                  <a href="{% url 'candidate_decide' cand.id %}" class="btn btn-sm btn-success text-white fw-bold" title="Evaluate">
+                    <i class="bi bi-check2-circle me-1"></i> Evaluate
+                  </a>
+                  {% elif cand.status == 'APPROVED' %}
+                  <a href="{% url 'candidate_schedule_interview' cand.id %}" class="btn btn-sm btn-primary text-white fw-bold" title="Arrange Interview">
+                    <i class="bi bi-calendar-plus me-1"></i> Interview
+                  </a>
+                  {% endif %}
+                  <a href="{% url 'candidate_detail' cand.id %}" class="btn btn-sm btn-outline-secondary" title="View Full Details">
+                    <i class="bi bi-person-lines-fill"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted">
+                <i class="bi bi-people fs-3 d-block mb-1 text-secondary"></i>
+                <p class="small mb-2">No candidate applications registered yet.</p>
+                <a href="{% url 'candidate_create' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3">
+                  <i class="bi bi-person-plus-fill me-1"></i> Register First Candidate
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

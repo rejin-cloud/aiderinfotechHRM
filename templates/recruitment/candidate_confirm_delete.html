@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Delete Candidate: {{ candidate.name }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden p-4">
+      <div class="text-center mb-3">
+        <div class="avatar-circle bg-danger bg-opacity-10 text-danger mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.8rem;">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <h4 class="fw-bold text-dark">Delete Candidate Record?</h4>
+        <p class="text-muted small">
+          Are you sure you want to permanently delete the candidate record for:
+        </p>
+        <div class="p-3 bg-light rounded-3 border text-start">
+          <div class="fw-bold text-dark fs-6">{{ candidate.name }}</div>
+          <div class="text-muted small">Phone: {{ candidate.phone }} &bull; Place: {{ candidate.place }}</div>
+          <div class="text-muted small">Department: {{ candidate.department.name|default:"General" }} &bull; Stage: {{ candidate.get_status_display }}</div>
+        </div>
+      </div>
+
+      <div class="alert alert-warning small py-2 mb-4">
+        <i class="bi bi-info-circle me-1"></i> This action cannot be undone. All screening notes, call logs, and attachments will be deleted.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="d-flex justify-content-end gap-2">
+          <a href="{% url 'candidate_detail' candidate.id %}" class="btn btn-outline-secondary px-4">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-danger fw-bold px-4">
+            <i class="bi bi-trash3 me-1"></i> Delete Candidate
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
