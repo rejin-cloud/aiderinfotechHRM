@@ -1,207 +1,560 @@
 {% extends 'base.html' %}
 
-{% block title %}HR Governance & Operations | Aider Infotech{% endblock %}
+{% block title %}Human Resources Governance Center | Aider Infotech{% endblock %}
 
 {% block content %}
-<!-- Top Header & Metrics -->
-<div class="row g-3 mb-4">
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon-wrapper bg-primary-subtle text-primary">
-        <i class="bi bi-people-fill"></i>
-      </div>
-      <div>
-        <div class="stat-val">{{ total_employees }}</div>
-        <div class="stat-lbl">Active Employees</div>
+<div class="container-fluid py-4">
+
+  <!-- Executive Hero Command Banner -->
+  <div class="card border-0 text-white shadow-sm rounded-4 mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #090d16 0%, #1e1b4b 50%, #4338ca 100%);">
+    <!-- Subtle decorative ambient circle -->
+    <div class="position-absolute rounded-circle opacity-10" style="width: 320px; height: 320px; background: radial-gradient(circle, #818cf8 0%, #c084fc 100%); top: -80px; right: -40px; pointer-events: none;"></div>
+
+    <div class="card-body p-4 p-md-5 position-relative">
+      <div class="row align-items-center g-4">
+        
+        <!-- Left: HR Profile & Governance Authority -->
+        <div class="col-12 col-xl-7">
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="avatar-circle shadow-lg d-flex align-items-center justify-content-center fw-bold text-white fs-3" 
+                 style="width: 68px; height: 68px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: 3px solid rgba(255,255,255,0.2);">
+              {{ user.first_name|default:user.username|slice:":1"|upper }}
+            </div>
+            <div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h3 class="fw-bold mb-0 text-white">{{ user.get_full_name|default:user.username }}</h3>
+                <span class="badge bg-warning text-dark fw-bold rounded-pill px-3 py-1 font-monospace" style="font-size: 0.72rem;">
+                  <i class="bi bi-shield-check me-1"></i> Level 2 HR Governance
+                </span>
+                <span class="badge text-white fw-semibold px-3 py-1 border" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25) !important;">
+                  <i class="bi bi-building me-1"></i> {{ user.department.name|default:"Corporate HR & Operations" }}
+                </span>
+              </div>
+              <p class="text-white-50 small mb-0">
+                People Operations, Employee Lifecycle Governance & Corporate Attendance Desk &bull; <strong>{{ today|date:"l, F d, Y" }}</strong>
+              </p>
+            </div>
+          </div>
+
+          {% if pending_leaves_count > 0 %}
+          <!-- Real-time Action Alert Banner -->
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-danger bg-opacity-25 border border-danger border-opacity-50 text-white small mt-1 shadow-sm">
+            <span class="spinner-grow spinner-grow-sm text-warning" role="status"></span>
+            <span><strong>{{ pending_leaves_count }} Leave Application{{ pending_leaves_count|pluralize }}</strong> awaiting review & processing</span>
+          </div>
+          {% else %}
+          <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-10 border border-white border-opacity-10 text-white-50 small mt-1">
+            <i class="bi bi-check-circle-fill text-success"></i> All leave queues and workforce assignments are up-to-date
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Right: Primary Quick Action CTAs -->
+        <div class="col-12 col-xl-5 text-xl-end d-flex flex-wrap justify-content-xl-end gap-2">
+          <a href="{% url 'user_create' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+            <i class="bi bi-person-plus-fill me-1"></i> Onboard Employee
+          </a>
+          <a href="{% url 'assign_employee' %}" class="btn btn-light text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+            <i class="bi bi-person-gear me-1"></i> Assign Employee
+          </a>
+          <a href="{% url 'manager_leave_approvals' %}" class="btn btn-outline-light px-3 py-2 rounded-3 position-relative">
+            <i class="bi bi-patch-check-fill me-1"></i> Leave Approvals
+            {% if pending_leaves_count > 0 %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {{ pending_leaves_count }}
+            </span>
+            {% endif %}
+          </a>
+          <a href="{% url 'department_attendance_roster' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
+            <i class="bi bi-calendar-check me-1"></i> Daily Roster
+          </a>
+        </div>
+
       </div>
     </div>
   </div>
 
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon-wrapper bg-success-subtle text-success">
-        <i class="bi bi-person-badge-fill"></i>
-      </div>
-      <div>
-        <div class="stat-val">{{ dept_managers.count }}</div>
-        <div class="stat-lbl">Dept Managers</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon-wrapper bg-warning-subtle text-warning">
-        <i class="bi bi-building-check"></i>
-      </div>
-      <div>
-        <div class="stat-val">{{ departments.count }}</div>
-        <div class="stat-lbl">Depts Covered</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-sm-6 col-xl-3">
-    <div class="stat-card d-flex align-items-center gap-3">
-      <div class="stat-icon-wrapper bg-info-subtle text-info">
-        <i class="bi bi-shield-check"></i>
-      </div>
-      <div>
-        <div class="stat-val">Level 2</div>
-        <div class="stat-lbl">HR Operations</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Quick HR Actions Banner -->
-<div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <span class="fw-bold text-dark"><i class="bi bi-person-plus-fill text-primary me-1"></i> HR Workbench & Document Engine:</span>
-    <div class="d-flex flex-wrap gap-2">
-      <a href="{% url 'executive_leave_apply' %}" class="btn btn-sm btn-dark text-white fw-bold shadow-sm" style="background: #1e1b4b; border-color: #1e1b4b;">
-        <i class="bi bi-shield-plus me-1"></i> Apply Exec Leave
-      </a>
-      <a href="{% url 'attendance_monthly_reports' %}" class="btn btn-sm btn-outline-dark">
-        <i class="bi bi-table me-1"></i> Monthly Attendance
-      </a>
-      <a href="{% url 'manager_leave_approvals' %}" class="btn btn-sm btn-warning text-dark fw-bold">
-        <i class="bi bi-patch-check-fill me-1"></i> Leave Approvals
-      </a>
-      <a href="{% url 'user_create' %}" class="btn btn-sm btn-primary">
-        <i class="bi bi-person-plus me-1"></i> Onboard Employee
-      </a>
-      <a href="{% url 'export_excel' %}" class="btn btn-sm btn-outline-success">
-        <i class="bi bi-file-earmark-excel me-1"></i> Excel Roster
-      </a>
-      <a href="{% url 'export_pdf' %}" class="btn btn-sm btn-outline-danger">
-        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
-      </a>
-    </div>
-  </div>
-</div>
-
-<div class="row g-4">
-  <!-- Department Manager Assignment Panel -->
-  <div class="col-12 col-lg-6">
-    <div class="hrms-card h-100">
-      <div class="hrms-card-header">
-        <h5 class="hrms-card-title"><i class="bi bi-person-workspace me-2 text-primary"></i> Department Managers Authority</h5>
-        <a href="{% url 'user_create' %}" class="btn btn-sm btn-outline-primary">+ Assign New</a>
-      </div>
-      <div class="hrms-card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hrms align-middle">
-            <thead>
-              <tr>
-                <th>Manager</th>
-                <th>Department</th>
-                <th>Branch</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for dm in dept_managers %}
-              <tr>
-                <td>
-                  <div class="fw-bold text-dark">{{ dm.get_full_name|default:dm.username }}</div>
-                  <span class="text-muted small">{{ dm.employee_id|default:dm.username }}</span>
-                </td>
-                <td>{{ dm.department.name|default:"Unassigned" }}</td>
-                <td>{{ dm.branch.name|default:"Core / All" }}</td>
-                <td>
-                  <a href="{% url 'user_update' dm.id %}" class="btn btn-sm btn-light border py-0 px-2">Edit</a>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="4" class="text-center py-3 text-muted small">No department managers appointed yet.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <!-- Top KPI Stats Row -->
+  <div class="row g-3 mb-4">
+    
+    <!-- Active Workforce -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #4f46e5 !important;">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-indigo-subtle text-primary" style="background-color: #e0e7ff; color: #4338ca;">
+            <i class="bi bi-people-fill fs-3"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Active Workforce</div>
+            <div class="fw-bold fs-3 text-dark mb-0 font-monospace">{{ total_employees }}</div>
+            <span class="text-muted" style="font-size: 0.75rem;">
+              {{ staff_count }} Staff &bull; {{ interns_count }} Interns &bull; {{ executives_count }} Execs
+            </span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Department Headcount Overview -->
-  <div class="col-12 col-lg-6">
-    <div class="hrms-card h-100">
-      <div class="hrms-card-header">
-        <h5 class="hrms-card-title"><i class="bi bi-diagram-3 me-2 text-primary"></i> Departmental Distribution</h5>
-      </div>
-      <div class="hrms-card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hrms align-middle">
-            <thead>
-              <tr>
-                <th>Department</th>
-                <th>Branches</th>
-                <th>Personnel</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for d in departments %}
-              <tr>
-                <td class="fw-bold">{{ d.name }}</td>
-                <td><span class="badge bg-light text-dark border">{{ d.branches_count }}</span></td>
-                <td><span class="badge bg-primary-subtle text-primary fw-bold">{{ d.members_count }} staff</span></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+    <!-- Today's Attendance -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #10b981 !important;">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-success-subtle text-success">
+            <i class="bi bi-clock-history fs-3"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Checked-In Today</div>
+            <div class="fw-bold fs-3 text-dark mb-0 font-monospace">{{ present_today_count }}</div>
+            <span class="text-muted" style="font-size: 0.75rem;">
+              <span class="text-warning fw-bold">{{ late_today_count }} Late</span> &bull; <span class="text-primary fw-bold">{{ on_leave_today_count }} On Leave</span>
+            </span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Employee Lifecycle Directory -->
-<div class="hrms-card mt-4">
-  <div class="hrms-card-header">
-    <h5 class="hrms-card-title"><i class="bi bi-person-lines-fill me-2 text-primary"></i> Recent Employee Additions & Records</h5>
-    <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary">View Complete Directory</a>
+    <!-- Leave Approvals Queue -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #f59e0b !important;">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-warning-subtle text-warning">
+            <i class="bi bi-envelope-paper-heart-fill fs-3"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Leave Action Items</div>
+            <div class="fw-bold fs-3 text-dark mb-0 font-monospace">{{ pending_leaves_count }}</div>
+            <span class="text-muted" style="font-size: 0.75rem;">
+              {% if pending_leaves_count > 0 %}
+                <span class="badge bg-warning-subtle text-dark border border-warning-subtle">Review Required</span>
+              {% else %}
+                <span class="text-success"><i class="bi bi-check-all"></i> Queue Cleared</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Governance Topology -->
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #06b6d4 !important;">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 p-3 bg-info-subtle text-info">
+            <i class="bi bi-diagram-3-fill fs-3"></i>
+          </div>
+          <div class="flex-grow-1">
+            <div class="text-muted small text-uppercase fw-semibold" style="font-size: 0.72rem;">Operational Scope</div>
+            <div class="fw-bold fs-3 text-dark mb-0 font-monospace">{{ departments.count }} <span class="fs-6 text-muted fw-normal">Depts</span></div>
+            <span class="text-muted" style="font-size: 0.75rem;">
+              {{ total_branches }} Branches &bull; {{ dept_managers.count }} Dept Managers
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
-  <div class="hrms-card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hrms align-middle">
-        <thead>
-          <tr>
-            <th>Employee</th>
-            <th>Role</th>
-            <th>Department</th>
-            <th>Branch</th>
-            <th>Designation</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for emp in recent_employees %}
-          <tr>
-            <td>
+
+  <!-- HR Quick Workbench & Operations Toolbar -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-white">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+          <i class="bi bi-tools fs-5"></i>
+        </div>
+        <div>
+          <span class="fw-bold text-dark d-block small">HR Operations & Document Workbench</span>
+          <span class="text-muted" style="font-size: 0.72rem;">Centralized controls for employee management, reports, and governance</span>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'executive_leave_apply' %}" class="btn btn-sm btn-dark text-white fw-bold shadow-sm rounded-pill px-3" style="background: #1e1b4b; border-color: #1e1b4b;">
+          <i class="bi bi-shield-plus me-1"></i> Apply Exec Leave
+        </a>
+        <a href="{% url 'department_attendance_roster' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+          <i class="bi bi-table me-1"></i> Attendance Roster
+        </a>
+        <a href="{% url 'attendance_monthly_reports' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+          <i class="bi bi-calendar-range me-1"></i> Monthly Summary
+        </a>
+        <a href="{% url 'manager_leave_approvals' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-patch-check-fill me-1"></i> Leave Approvals
+        </a>
+        <a href="{% url 'export_excel' %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+          <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+        </a>
+        <a href="{% url 'export_pdf' %}" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Export PDF
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-Column Main Operations Grid -->
+  <div class="row g-4 mb-4">
+    
+    <!-- Left Column: Department Managers & Department Distribution -->
+    <div class="col-12 col-lg-7">
+      
+      <!-- Department Managers Authority & Appointments -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden">
+        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-3 p-2 bg-indigo-subtle text-primary" style="background-color: #e0e7ff; color: #4338ca;">
+              <i class="bi bi-person-workspace fs-5"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0">Department Managers Authority</h5>
+              <span class="text-muted small">Level 3 appointed department heads & supervisors</span>
+            </div>
+          </div>
+          <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-person-gear me-1"></i> Assign / Appoint
+          </a>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Department Manager</th>
+                  <th>Department Scope</th>
+                  <th>Branch Wing</th>
+                  <th class="text-end pe-4">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for dm in dept_managers %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="avatar-circle shadow-sm" style="background-color: {{ dm.avatar_color|default:'#4f46e5' }}; width: 36px; height: 36px; font-size: 0.85rem;">
+                        {{ dm.first_name|default:dm.username|slice:":1"|upper }}
+                      </div>
+                      <div>
+                        <a href="{% url 'user_detail' dm.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                          {{ dm.get_full_name|default:dm.username }}
+                        </a>
+                        <span class="text-muted font-monospace" style="font-size: 0.72rem;">{{ dm.employee_id|default:dm.username }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary-subtle text-primary fw-semibold px-2.5 py-1">
+                      <i class="bi bi-building me-1"></i> {{ dm.department.name|default:"Unassigned" }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-secondary small">{{ dm.branch.name|default:"Core / All Wings" }}</span>
+                  </td>
+                  <td class="text-end pe-4">
+                    <a href="{% url 'user_update' dm.id %}" class="btn btn-sm btn-light border rounded-pill px-3 py-1" title="Edit Profile & Permissions">
+                      <i class="bi bi-pencil me-1"></i> Edit
+                    </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center py-4 text-muted small">
+                    <i class="bi bi-shield-x fs-2 d-block mb-1 text-secondary"></i>
+                    No department managers appointed yet.
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Departmental Workforce Distribution Topology -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-3 p-2 bg-success-subtle text-success">
+              <i class="bi bi-diagram-3 fs-5"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0">Departmental Topology & Coverage</h5>
+              <span class="text-muted small">Workforce allocation across business units</span>
+            </div>
+          </div>
+          <a href="{% url 'department_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            Manage Depts
+          </a>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Department</th>
+                  <th>Active Branches</th>
+                  <th>Workforce Size</th>
+                  <th class="text-end pe-4">Roster</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in departments %}
+                <tr>
+                  <td class="ps-4">
+                    <div class="fw-bold text-dark">{{ d.name }}</div>
+                    {% if d.description %}
+                    <span class="text-muted small" style="font-size: 0.72rem;">{{ d.description|truncatechars:45 }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border px-2.5 py-1">
+                      <i class="bi bi-geo-alt me-1 text-muted"></i> {{ d.branches_count }} Wing{{ d.branches_count|pluralize }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-indigo-subtle text-primary fw-bold font-monospace px-2.5 py-1" style="background-color: #e0e7ff; color: #4338ca;">
+                        {{ d.members_count }} personnel
+                      </span>
+                    </div>
+                  </td>
+                  <td class="text-end pe-4">
+                    <a href="{% url 'department_attendance_roster' %}?department={{ d.id }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1">
+                      <i class="bi bi-people me-1"></i> Roster
+                    </a>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="4" class="text-center py-4 text-muted small">No departments configured.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Live Attendance Health, Leave Applications & Demographics -->
+    <div class="col-12 col-lg-5">
+      
+      <!-- Live Today's Attendance Pulse -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden">
+        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-3 p-2 bg-success-subtle text-success">
+              <i class="bi bi-activity fs-5"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0">Today's Attendance Pulse</h5>
+              <span class="text-muted small">{{ today|date:"M d, Y" }} Check-in Status</span>
+            </div>
+          </div>
+          <a href="{% url 'department_attendance_roster' %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+            Full Audit
+          </a>
+        </div>
+
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-light border mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success text-white px-2 py-1"><i class="bi bi-check2"></i></span>
+              <span class="fw-semibold text-dark small">Present & Working</span>
+            </div>
+            <span class="fw-bold font-monospace fs-6 text-success">{{ present_today_count }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-light border mb-3">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-alarm"></i></span>
+              <span class="fw-semibold text-dark small">Late Arrivals (> 09:30 AM)</span>
+            </div>
+            <span class="fw-bold font-monospace fs-6 text-warning">{{ late_today_count }}</span>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-light border">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary text-white px-2 py-1"><i class="bi bi-airplane"></i></span>
+              <span class="fw-semibold text-dark small">Approved / On Leave</span>
+            </div>
+            <span class="fw-bold font-monospace fs-6 text-primary">{{ on_leave_today_count }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Leave Applications Requiring Attention -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden">
+        <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-3 p-2 bg-warning-subtle text-warning">
+              <i class="bi bi-envelope-paper-fill fs-5"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold text-dark mb-0">Leave Applications</h5>
+              <span class="text-muted small">Recent submissions & reviews</span>
+            </div>
+          </div>
+          <a href="{% url 'manager_leave_approvals' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
+            Review All
+          </a>
+        </div>
+
+        <div class="card-body p-4">
+          {% for lr in recent_leaves %}
+          <div class="p-3 rounded-3 border mb-3 bg-light">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
               <div class="d-flex align-items-center gap-2">
-                <div class="avatar-circle" style="background-color: {{ emp.avatar_color|default:'#4f46e5' }}; width: 30px; height: 30px; font-size: 0.75rem;">
-                  {{ emp.first_name|default:emp.username|slice:":1"|upper }}
+                <div class="avatar-circle" style="background-color: {{ lr.user.avatar_color|default:'#4f46e5' }}; width: 28px; height: 28px; font-size: 0.7rem;">
+                  {{ lr.user.first_name|default:lr.user.username|slice:":1"|upper }}
                 </div>
                 <div>
-                  <a href="{% url 'user_detail' emp.id %}" class="fw-bold text-dark text-decoration-none small d-block">
-                    {{ emp.get_full_name|default:emp.username }}
-                  </a>
-                  <span class="text-muted" style="font-size: 0.75rem;">{{ emp.employee_id|default:emp.username }}</span>
+                  <strong class="text-dark small d-block">{{ lr.user.get_full_name|default:lr.user.username }}</strong>
+                  <span class="text-muted" style="font-size: 0.72rem;">{{ lr.user.department.name|default:"General" }}</span>
                 </div>
               </div>
-            </td>
-            <td><span class="badge {{ emp.role_badge_class }}">{{ emp.get_role_display }}</span></td>
-            <td>{{ emp.department.name|default:"—" }}</td>
-            <td>{{ emp.branch.name|default:"Core" }}</td>
-            <td class="text-muted small">{{ emp.designation|default:"Staff" }}</td>
-            <td>
-              <a href="{% url 'user_update' emp.id %}" class="btn btn-sm btn-light border py-0 px-2"><i class="bi bi-pencil"></i></a>
-            </td>
-          </tr>
+              <span class="badge {% if lr.status == 'APPROVED' %}bg-success{% elif lr.status == 'REJECTED' %}bg-danger{% else %}bg-warning text-dark{% endif %} font-monospace" style="font-size: 0.68rem;">
+                {{ lr.get_status_display }}
+              </span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center small text-secondary pt-1 border-top">
+              <span><i class="bi bi-calendar-event me-1"></i> {{ lr.start_date|date:"M d" }} - {{ lr.end_date|date:"M d, Y" }}</span>
+              <span class="fw-semibold text-primary">{{ lr.get_leave_type_display }}</span>
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center py-4 text-muted small">
+            <i class="bi bi-inbox fs-2 d-block mb-1 text-secondary"></i>
+            No recent leave applications.
+          </div>
           {% endfor %}
-        </tbody>
-      </table>
+        </div>
+      </div>
+
+      <!-- Workforce Role Demographics -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="card-header bg-white p-4 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="rounded-3 p-2 bg-indigo-subtle text-primary" style="background-color: #e0e7ff; color: #4338ca;">
+              <i class="bi bi-pie-chart-fill fs-5"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-0">Workforce Hierarchy Distribution</h5>
+          </div>
+        </div>
+        <div class="card-body p-4">
+          <div class="d-flex flex-column gap-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small fw-semibold text-dark"><i class="bi bi-person-workspace text-primary me-2"></i> Department Managers</span>
+              <span class="badge bg-primary px-3 py-1 font-monospace">{{ managers_count }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small fw-semibold text-dark"><i class="bi bi-person-badge text-warning me-2"></i> Branch Executives</span>
+              <span class="badge bg-warning text-dark px-3 py-1 font-monospace">{{ executives_count }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small fw-semibold text-dark"><i class="bi bi-person text-success me-2"></i> Core Staff Members</span>
+              <span class="badge bg-success px-3 py-1 font-monospace">{{ staff_count }}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="small fw-semibold text-dark"><i class="bi bi-mortarboard text-info me-2"></i> Department Interns</span>
+              <span class="badge bg-info text-dark px-3 py-1 font-monospace">{{ interns_count }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Employee Directory Table Card -->
+  <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+    <div class="card-header bg-white p-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-3 p-2 bg-primary-subtle text-primary">
+          <i class="bi bi-person-lines-fill fs-5"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold text-dark mb-0">Recent Personnel Additions & Registry</h5>
+          <span class="text-muted small">Latest onboarded team members across all branches</span>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'user_create' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-person-plus me-1"></i> Add Employee
+        </a>
+        <a href="{% url 'user_list' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+          Complete Directory ({{ total_employees }})
+        </a>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-4">Employee</th>
+              <th>Role & Authority</th>
+              <th>Department</th>
+              <th>Branch Wing</th>
+              <th>Official Designation</th>
+              <th class="text-end pe-4">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for emp in recent_employees %}
+            <tr>
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="avatar-circle shadow-sm" style="background-color: {{ emp.avatar_color|default:'#4f46e5' }}; width: 36px; height: 36px; font-size: 0.85rem;">
+                    {{ emp.first_name|default:emp.username|slice:":1"|upper }}
+                  </div>
+                  <div>
+                    <a href="{% url 'user_detail' emp.id %}" class="fw-bold text-dark text-decoration-none small d-block">
+                      {{ emp.get_full_name|default:emp.username }}
+                    </a>
+                    <span class="text-muted font-monospace" style="font-size: 0.72rem;">@{{ emp.username }} &bull; {{ emp.employee_id|default:"EMP-AUTO" }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge {{ emp.role_badge_class }} px-2.5 py-1">
+                  {{ emp.get_role_display }}
+                </span>
+              </td>
+              <td>
+                <span class="fw-semibold text-dark small">{{ emp.department.name|default:"—" }}</span>
+              </td>
+              <td>
+                <span class="text-muted small">{{ emp.branch.name|default:"Core" }}</span>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border px-2.5 py-1">{{ emp.designation|default:"Staff Member" }}</span>
+              </td>
+              <td class="text-end pe-4">
+                <div class="btn-group btn-group-sm">
+                  <a href="{% url 'user_detail' emp.id %}" class="btn btn-light border py-1 px-2.5 rounded-start-pill" title="View Dossier">
+                    <i class="bi bi-eye text-primary"></i>
+                  </a>
+                  <a href="{% url 'user_update' emp.id %}" class="btn btn-light border py-1 px-2.5 rounded-end-pill" title="Edit Profile">
+                    <i class="bi bi-pencil text-secondary"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-4 text-muted small">No employees found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}

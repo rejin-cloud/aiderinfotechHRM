@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
-from apps.attendance.models import LeaveRequest
+from django.utils import timezone
+from apps.attendance.models import Attendance, LeaveRequest
 from apps.departments.models import Department, Branch
 from apps.hierarchy.permissions import get_user_level
 from apps.tasks.models import (
@@ -125,12 +126,14 @@ def manager_dashboard_view(request):
 
 @login_required
 def hr_dashboard_view(request):
+    today = timezone.localdate()
     total_employees = User.objects.exclude(role__in=[User.Role.SUPERADMIN, User.Role.SERVER_ADMIN]).count()
     
     departments = Department.objects.annotate(
         members_count=Count('users', distinct=True),
         branches_count=Count('branches', distinct=True)
     ).all()
+    total_branches = Branch.objects.count()
 
     role_counts = User.objects.values('role').annotate(count=Count('id')).order_by('-count')
     role_dict = {item['role']: item['count'] for item in role_counts}
@@ -142,12 +145,47 @@ def hr_dashboard_view(request):
     # Department managers eligible for assignment review
     dept_managers = User.objects.filter(role=User.Role.DEPT_MANAGER).select_related('department', 'branch')
 
+    # Live Attendance stats for today
+    today_attendances = Attendance.objects.filter(date=today)
+    present_today_count = today_attendances.filter(
+        status__in=[Attendance.Status.PRESENT, Attendance.Status.LATE, Attendance.Status.HALF_DAY]
+    ).count()
+    late_today_count = today_attendances.filter(is_late=True).count()
+    on_leave_today_count = today_attendances.filter(status=Attendance.Status.ON_LEAVE).count()
+
+    # Pending Leave Governance
+    pending_leaves = LeaveRequest.objects.filter(
+        status__in=[
+            LeaveRequest.Status.PENDING_DEPT_REVIEW,
+            LeaveRequest.Status.PENDING_MANAGER_APPROVAL,
+            LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL,
+        ]
+    ).select_related('user', 'user__department')
+    pending_leaves_count = pending_leaves.count()
+    recent_leaves = LeaveRequest.objects.select_related('user', 'user__department').order_by('-id')[:5]
+
+    executives_count = role_dict.get(User.Role.EXECUTIVE, 0)
+    staff_count = role_dict.get(User.Role.STAFF, 0)
+    interns_count = role_dict.get(User.Role.INTERN, 0)
+    managers_count = role_dict.get(User.Role.MANAGER, 0) + role_dict.get(User.Role.DEPT_MANAGER, 0)
+
     return render(request, 'dashboards/hr.html', {
         'total_employees': total_employees,
         'departments': departments,
+        'total_branches': total_branches,
         'role_dict': role_dict,
+        'executives_count': executives_count,
+        'staff_count': staff_count,
+        'interns_count': interns_count,
+        'managers_count': managers_count,
         'recent_employees': recent_employees,
         'dept_managers': dept_managers,
+        'today': today,
+        'present_today_count': present_today_count,
+        'late_today_count': late_today_count,
+        'on_leave_today_count': on_leave_today_count,
+        'pending_leaves_count': pending_leaves_count,
+        'recent_leaves': recent_leaves,
         'page_title': 'Human Resources Governance Center',
     })
 
