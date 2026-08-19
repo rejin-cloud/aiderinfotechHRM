@@ -4,7 +4,13 @@ from django.db.models import Count, Q
 from apps.attendance.models import LeaveRequest
 from apps.departments.models import Department, Branch
 from apps.hierarchy.permissions import get_user_level
-from apps.tasks.models import Client, ClientAssignment
+from apps.tasks.models import (
+    Client,
+    ClientAssignment,
+    Task,
+    TaskExtensionRequest,
+    TaskSubmission,
+)
 from apps.users.models import User
 
 @login_required
@@ -171,13 +177,48 @@ def dept_manager_dashboard_view(request):
     recent_clients = []
     client_assignments_count = 0
     recent_client_assignments = []
-    if dept and 'creative' in dept.name.lower():
-        clients_count = Client.objects.filter(department=dept).count()
-        recent_clients = Client.objects.filter(department=dept).order_by('-created_at')[:5]
-        client_assignments_count = ClientAssignment.objects.filter(client__department=dept).count()
-        recent_client_assignments = ClientAssignment.objects.filter(
-            client__department=dept
-        ).select_related('client', 'branch', 'executive', 'delegated_member').order_by('-created_at')[:5]
+    active_tasks_count = 0
+    total_tasks_count = 0
+    recent_tasks = []
+    pending_submissions_count = 0
+    pending_extensions_count = 0
+    pending_leaves_count = 0
+
+    if dept:
+        pending_leaves_count = LeaveRequest.objects.filter(
+            user__department=dept,
+            status=LeaveRequest.Status.PENDING_DEPT_REVIEW
+        ).count()
+
+        if 'creative' in dept.name.lower():
+            clients_count = Client.objects.filter(department=dept).count()
+            recent_clients = Client.objects.filter(department=dept).order_by('-created_at')[:6]
+            client_assignments_count = ClientAssignment.objects.filter(client__department=dept).count()
+            recent_client_assignments = ClientAssignment.objects.filter(
+                client__department=dept
+            ).select_related('client', 'branch', 'executive', 'delegated_member').order_by('-created_at')[:6]
+
+            active_tasks_count = Task.objects.filter(department=dept, status=Task.Status.ACTIVE).count()
+            total_tasks_count = Task.objects.filter(department=dept).count()
+            recent_tasks = Task.objects.filter(department=dept).select_related(
+                'branch', 'assigned_to', 'created_by'
+            ).order_by('-created_at')[:6]
+
+            pending_submissions_count = TaskSubmission.objects.filter(
+                task__department=dept,
+                status=TaskSubmission.Status.PENDING
+            ).count()
+
+            pending_extensions_count = TaskExtensionRequest.objects.filter(
+                task__department=dept,
+                status=TaskExtensionRequest.Status.PENDING
+            ).count()
+
+    department_branches = []
+    if dept:
+        department_branches = Branch.objects.filter(department=dept).annotate(
+            users_count=Count('users', distinct=True)
+        )
 
     return render(request, 'dashboards/dept_manager.html', {
         'subordinates': subordinates,
@@ -187,11 +228,19 @@ def dept_manager_dashboard_view(request):
         'staff_count': staff_count,
         'current_dept': dept,
         'current_branch': branch,
+        'department_branches': department_branches,
         'clients_count': clients_count,
         'recent_clients': recent_clients,
         'client_assignments_count': client_assignments_count,
         'recent_client_assignments': recent_client_assignments,
-        'page_title': f'Department Manager Portal: {dept.name if dept else "General"}',
+        'active_tasks_count': active_tasks_count,
+        'total_tasks_count': total_tasks_count,
+        'recent_tasks': recent_tasks,
+        'pending_submissions_count': pending_submissions_count,
+        'pending_extensions_count': pending_extensions_count,
+        'pending_leaves_count': pending_leaves_count,
+        'total_action_required': pending_submissions_count + pending_extensions_count + pending_leaves_count,
+        'page_title': f'Creative Operations Control Center &bull; {dept.name if dept else "General"}',
     })
 
 @login_required
