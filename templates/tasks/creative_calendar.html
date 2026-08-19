@@ -1,0 +1,621 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .calendar-container {
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+  }
+  .calendar-grid-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #0f172a;
+    color: #ffffff;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .calendar-grid-header > div {
+    padding: 0.85rem 0.5rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .calendar-grid-header > div:last-child {
+    border-right: none;
+  }
+  .calendar-grid-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    border-left: 1px solid #e2e8f0;
+    border-top: 1px solid #e2e8f0;
+  }
+  .calendar-day-cell {
+    min-height: 140px;
+    max-height: 200px;
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0.5rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.15s ease;
+    overflow-y: auto;
+  }
+  .calendar-day-cell::-webkit-scrollbar {
+    width: 4px;
+  }
+  .calendar-day-cell::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  .calendar-day-cell.inactive-day {
+    background: #f8fafc;
+    opacity: 0.6;
+  }
+  .calendar-day-cell.is-today {
+    background: #f0fdf4 !important;
+  }
+  .calendar-day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+  }
+  .day-number {
+    font-weight: 700;
+    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #334155;
+  }
+  .day-number.today-pill {
+    background: #10b981;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+  }
+  .today-badge-text {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #059669;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Event Chips */
+  .event-chip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex-grow: 1;
+  }
+  .event-chip {
+    padding: 0.25rem 0.4rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none !important;
+    display: block;
+    line-height: 1.25;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 1px solid transparent;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .event-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+  }
+
+  /* Event Colors */
+  .chip-task-deadline {
+    background: #fee2e2;
+    color: #991b1b;
+    border-color: #fca5a5;
+  }
+  .chip-task-deadline.is-overdue {
+    background: #ef4444;
+    color: #ffffff;
+    border-color: #dc2626;
+  }
+  .chip-task-assigned {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-color: #a5b4fc;
+  }
+  .chip-client-deadline {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #fcd34d;
+  }
+  .chip-client-assigned {
+    background: #ccfbf1;
+    color: #0f766e;
+    border-color: #99f6e4;
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  @media (max-width: 991.98px) {
+    .calendar-grid-header {
+      font-size: 0.75rem;
+    }
+    .calendar-day-cell {
+      min-height: 110px;
+      padding: 0.35rem;
+    }
+    .event-chip {
+      font-size: 0.65rem;
+      padding: 0.2rem 0.3rem;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Hero Header Bar -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #047857 100%);">
+    <div class="card-body p-4">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 58px; height: 58px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px);">
+            <i class="bi bi-calendar3 fs-3 text-warning"></i>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-warning text-dark font-monospace fw-bold px-2 py-1">CREATIVE STUDIO</span>
+              <span class="badge bg-white bg-opacity-25 text-white">Monthly Operations</span>
+            </div>
+            <h3 class="fw-bold mb-0 text-white">Creative Department Operations Calendar</h3>
+            <span class="text-white-50 small">Automated milestone tracking for Studio Directives & Corporate Client Handover Schedules</span>
+          </div>
+        </div>
+
+        <!-- Quick Navigation & Month Switcher -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <a href="?year={{ prev_year }}&month={{ prev_month }}{% if selected_branch_id %}&branch={{ selected_branch_id }}{% endif %}{% if selected_event_type != 'ALL' %}&event_type={{ selected_event_type }}{% endif %}" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">
+            <i class="bi bi-chevron-left me-1"></i> Prev
+          </a>
+          
+          <a href="?year={% now 'Y' %}&month={% now 'n' %}{% if selected_branch_id %}&branch={{ selected_branch_id }}{% endif %}{% if selected_event_type != 'ALL' %}&event_type={{ selected_event_type }}{% endif %}" class="btn btn-sm btn-light text-dark rounded-pill px-3 fw-bold shadow-sm">
+            <i class="bi bi-calendar-event me-1"></i> Today
+          </a>
+
+          <a href="?year={{ next_year }}&month={{ next_month }}{% if selected_branch_id %}&branch={{ selected_branch_id }}{% endif %}{% if selected_event_type != 'ALL' %}&event_type={{ selected_event_type }}{% endif %}" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-bold">
+            Next <i class="bi bi-chevron-right ms-1"></i>
+          </a>
+
+          {% if is_creative_manager %}
+          <a href="{% url 'task_assign' %}" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold shadow-sm">
+            <i class="bi bi-plus-lg me-1"></i> Assign Task
+          </a>
+          <a href="{% url 'client_assign_general' %}" class="btn btn-sm btn-teal text-white rounded-pill px-3 fw-bold shadow-sm" style="background: #0d9488;">
+            <i class="bi bi-diagram-3-fill me-1"></i> Allocate Client
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Milestone Summary Bar -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+        <span class="text-muted small fw-bold text-uppercase d-block mb-1">Total Milestones</span>
+        <h3 class="fw-bold text-dark mb-0">{{ total_events_month }}</h3>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #ef4444 !important;">
+        <span class="text-danger small fw-bold text-uppercase d-block mb-1"><i class="bi bi-alarm-fill me-1"></i> Task Deadlines</span>
+        <h3 class="fw-bold text-danger mb-0">{{ task_deadlines_count }}</h3>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-2">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #f59e0b !important;">
+        <span class="text-warning small fw-bold text-uppercase d-block mb-1" style="color: #b45309 !important;"><i class="bi bi-flag-fill me-1"></i> Client Deadlines</span>
+        <h3 class="fw-bold text-warning mb-0" style="color: #b45309 !important;">{{ client_deadlines_count }}</h3>
+      </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #4f46e5 !important;">
+        <span class="text-primary small fw-bold text-uppercase d-block mb-1"><i class="bi bi-plus-circle-fill me-1"></i> Tasks Assigned</span>
+        <h3 class="fw-bold text-primary mb-0">{{ task_assigned_count }}</h3>
+      </div>
+    </div>
+    <div class="col-12 col-md-3 col-xl-3">
+      <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #0d9488 !important;">
+        <span class="small fw-bold text-uppercase d-block mb-1" style="color: #0f766e;"><i class="bi bi-diagram-3-fill me-1"></i> Client Directives</span>
+        <h3 class="fw-bold mb-0" style="color: #0f766e;">{{ client_assigned_count }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter & Legend Toolbar -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-white">
+    <form method="GET" action="" class="row g-3 align-items-center">
+      
+      <!-- Month & Year Selectors -->
+      <div class="col-auto d-flex align-items-center gap-2">
+        <label class="small text-muted fw-bold mb-0">Period:</label>
+        <select name="month" class="form-select form-select-sm fw-bold border-secondary-subtle" style="width: 140px;" onchange="this.form.submit()">
+          {% for m_val, m_lbl in month_choices %}
+          <option value="{{ m_val }}" {% if m_val == month %}selected{% endif %}>{{ m_lbl }}</option>
+          {% endfor %}
+        </select>
+        <select name="year" class="form-select form-select-sm fw-bold border-secondary-subtle" style="width: 100px;" onchange="this.form.submit()">
+          {% for y_val in year_choices %}
+          <option value="{{ y_val }}" {% if y_val == year %}selected{% endif %}>{{ y_val }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Branch Filter -->
+      <div class="col-auto d-flex align-items-center gap-2">
+        <label class="small text-muted fw-bold mb-0">Branch Wing:</label>
+        <select name="branch" class="form-select form-select-sm border-secondary-subtle" style="width: 160px;" onchange="this.form.submit()">
+          <option value="">All Branch Wings</option>
+          {% for b in branches %}
+          <option value="{{ b.id }}" {% if b.id == selected_branch_id %}selected{% endif %}>{{ b.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Event Type Filter -->
+      <div class="col-auto d-flex align-items-center gap-2">
+        <label class="small text-muted fw-bold mb-0">Milestone Type:</label>
+        <select name="event_type" class="form-select form-select-sm border-secondary-subtle" style="width: 180px;" onchange="this.form.submit()">
+          <option value="ALL" {% if selected_event_type == 'ALL' %}selected{% endif %}>All Milestones</option>
+          <option value="TASK_DEADLINE" {% if selected_event_type == 'TASK_DEADLINE' %}selected{% endif %}>Task Deadlines</option>
+          <option value="CLIENT_DEADLINE" {% if selected_event_type == 'CLIENT_DEADLINE' %}selected{% endif %}>Client Deadlines</option>
+          <option value="TASK_ASSIGNED" {% if selected_event_type == 'TASK_ASSIGNED' %}selected{% endif %}>Tasks Assigned Date</option>
+          <option value="CLIENT_ASSIGNED" {% if selected_event_type == 'CLIENT_ASSIGNED' %}selected{% endif %}>Client Directives Assigned</option>
+        </select>
+      </div>
+
+      <!-- Legend Pill Badges (Right side) -->
+      <div class="col-12 col-xl ms-xl-auto d-flex flex-wrap align-items-center justify-content-xl-end gap-3 pt-2 pt-xl-0 border-top border-xl-0">
+        <div class="d-flex align-items-center gap-1 small">
+          <span class="legend-dot" style="background: #ef4444;"></span>
+          <span class="text-dark fw-bold">Task Deadline</span>
+        </div>
+        <div class="d-flex align-items-center gap-1 small">
+          <span class="legend-dot" style="background: #f59e0b;"></span>
+          <span class="text-dark fw-bold">Client Deadline</span>
+        </div>
+        <div class="d-flex align-items-center gap-1 small">
+          <span class="legend-dot" style="background: #4f46e5;"></span>
+          <span class="text-dark fw-bold">Task Assigned</span>
+        </div>
+        <div class="d-flex align-items-center gap-1 small">
+          <span class="legend-dot" style="background: #0d9488;"></span>
+          <span class="text-dark fw-bold">Client Directive</span>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Main Calendar Container -->
+  <div class="calendar-container mb-4">
+    
+    <!-- Weekdays Header (Mon to Sun) -->
+    <div class="calendar-grid-header">
+      <div>Monday</div>
+      <div>Tuesday</div>
+      <div>Wednesday</div>
+      <div>Thursday</div>
+      <div>Friday</div>
+      <div>Saturday</div>
+      <div>Sunday</div>
+    </div>
+
+    <!-- Calendar Grid Body -->
+    <div class="calendar-grid-body">
+      {% for week in month_weeks %}
+        {% for day in week %}
+          {% if not day.is_current_month %}
+          <!-- Empty / Inactive day outside current month -->
+          <div class="calendar-day-cell inactive-day"></div>
+          {% else %}
+          <!-- Active day in current month -->
+          <div class="calendar-day-cell {% if day.is_today %}is-today{% endif %}">
+            
+            <div class="calendar-day-header">
+              <span class="day-number {% if day.is_today %}today-pill{% endif %}">
+                {{ day.day_num }}
+              </span>
+              {% if day.is_today %}
+              <span class="today-badge-text"><i class="bi bi-record-fill me-1"></i>Today</span>
+              {% elif day.events_count > 0 %}
+              <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.65rem;">
+                {{ day.events_count }}
+              </span>
+              {% endif %}
+            </div>
+
+            <!-- Event Chips Container -->
+            <div class="event-chip-list">
+              {% for ev in day.events %}
+                {% if ev.category == 'TASK_DEADLINE' %}
+                <div class="event-chip chip-task-deadline {% if ev.is_overdue %}is-overdue{% endif %}"
+                     onclick="openCalendarModal(this)"
+                     data-event-id="{{ ev.id }}"
+                     data-category-label="{{ ev.category_label }}"
+                     data-category="{{ ev.category }}"
+                     data-code="{{ ev.code }}"
+                     data-title="{{ ev.title }}"
+                     data-branch="{{ ev.branch_name }}"
+                     data-status="{{ ev.status }}"
+                     data-status-badge="{{ ev.status_badge }}"
+                     data-priority="{{ ev.priority }}"
+                     data-priority-badge="{{ ev.priority_badge }}"
+                     data-date-label="{{ ev.date_label }}"
+                     data-date-val="{{ ev.date_val }}"
+                     data-deadline-val="{{ ev.deadline_val }}"
+                     data-client="{{ ev.client_company }}"
+                     data-assignee="{{ ev.assignee }}"
+                     data-description="{{ ev.description }}"
+                     data-url="{{ ev.url }}"
+                     title="Task Deadline: {{ ev.code }} - {{ ev.title }}">
+                  <i class="bi {{ ev.icon }} me-1"></i>
+                  <strong>Due:</strong> {{ ev.code }} - {{ ev.title }}
+                </div>
+                {% elif ev.category == 'CLIENT_DEADLINE' %}
+                <div class="event-chip chip-client-deadline"
+                     onclick="openCalendarModal(this)"
+                     data-event-id="{{ ev.id }}"
+                     data-category-label="{{ ev.category_label }}"
+                     data-category="{{ ev.category }}"
+                     data-code="{{ ev.code }}"
+                     data-title="{{ ev.title }}"
+                     data-branch="{{ ev.branch_name }}"
+                     data-status="{{ ev.status }}"
+                     data-status-badge="{{ ev.status_badge }}"
+                     data-priority="{{ ev.priority }}"
+                     data-priority-badge="{{ ev.priority_badge }}"
+                     data-date-label="{{ ev.date_label }}"
+                     data-date-val="{{ ev.date_val }}"
+                     data-deadline-val="{{ ev.deadline_val }}"
+                     data-client="{{ ev.client_company }}"
+                     data-assignee="{{ ev.assignee }}"
+                     data-description="{{ ev.description }}"
+                     data-url="{{ ev.url }}"
+                     title="Client Deadline: {{ ev.code }} - {{ ev.title }}">
+                  <i class="bi {{ ev.icon }} me-1"></i>
+                  <strong>Due:</strong> {{ ev.code }} {{ ev.client_company }}
+                </div>
+                {% elif ev.category == 'TASK_ASSIGNED' %}
+                <div class="event-chip chip-task-assigned"
+                     onclick="openCalendarModal(this)"
+                     data-event-id="{{ ev.id }}"
+                     data-category-label="{{ ev.category_label }}"
+                     data-category="{{ ev.category }}"
+                     data-code="{{ ev.code }}"
+                     data-title="{{ ev.title }}"
+                     data-branch="{{ ev.branch_name }}"
+                     data-status="{{ ev.status }}"
+                     data-status-badge="{{ ev.status_badge }}"
+                     data-priority="{{ ev.priority }}"
+                     data-priority-badge="{{ ev.priority_badge }}"
+                     data-date-label="{{ ev.date_label }}"
+                     data-date-val="{{ ev.date_val }}"
+                     data-deadline-val="{{ ev.deadline_val }}"
+                     data-client="{{ ev.client_company }}"
+                     data-assignee="{{ ev.assignee }}"
+                     data-description="{{ ev.description }}"
+                     data-url="{{ ev.url }}"
+                     title="Task Assigned: {{ ev.code }} - {{ ev.title }}">
+                  <i class="bi {{ ev.icon }} me-1"></i>
+                  <strong>New Task:</strong> {{ ev.code }}
+                </div>
+                {% elif ev.category == 'CLIENT_ASSIGNED' %}
+                <div class="event-chip chip-client-assigned"
+                     onclick="openCalendarModal(this)"
+                     data-event-id="{{ ev.id }}"
+                     data-category-label="{{ ev.category_label }}"
+                     data-category="{{ ev.category }}"
+                     data-code="{{ ev.code }}"
+                     data-title="{{ ev.title }}"
+                     data-branch="{{ ev.branch_name }}"
+                     data-status="{{ ev.status }}"
+                     data-status-badge="{{ ev.status_badge }}"
+                     data-priority="{{ ev.priority }}"
+                     data-priority-badge="{{ ev.priority_badge }}"
+                     data-date-label="{{ ev.date_label }}"
+                     data-date-val="{{ ev.date_val }}"
+                     data-deadline-val="{{ ev.deadline_val }}"
+                     data-client="{{ ev.client_company }}"
+                     data-assignee="{{ ev.assignee }}"
+                     data-description="{{ ev.description }}"
+                     data-url="{{ ev.url }}"
+                     title="Client Directive: {{ ev.code }} - {{ ev.title }}">
+                  <i class="bi {{ ev.icon }} me-1"></i>
+                  <strong>Client:</strong> {{ ev.client_company }}
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+
+          </div>
+          {% endif %}
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Interactive Event Detail Modal -->
+<div class="modal fade" id="calendarEventModal" tabindex="-1" aria-labelledby="calendarEventModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+      
+      <div class="modal-header text-white p-3" id="modalHeaderBg" style="background: #0f172a;">
+        <div class="d-flex align-items-center gap-2">
+          <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center text-white" style="width: 38px; height: 38px;">
+            <i class="bi bi-calendar-event fs-5" id="modalIcon"></i>
+          </div>
+          <div>
+            <span class="badge bg-warning text-dark font-monospace fw-bold" id="modalCategoryBadge">CATEGORY</span>
+            <h6 class="modal-title fw-bold text-white mb-0 mt-1" id="modalEventCode">CR-CODE</h6>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body p-4 bg-light">
+        
+        <!-- Headline Title -->
+        <h5 class="fw-bold text-dark mb-2" id="modalTitle">Event Title</h5>
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-light text-dark border" id="modalBranchBadge">Branch Wing</span>
+          <span class="badge bg-secondary" id="modalStatusBadge">Status</span>
+          <span class="badge bg-info text-dark" id="modalPriorityBadge">Priority</span>
+        </div>
+
+        <!-- Scope / Summary Box -->
+        <div class="p-3 bg-white rounded-3 border mb-3">
+          <span class="text-muted small fw-bold d-block mb-1 text-uppercase" style="font-size: 0.7rem;">Directive Scope & Details:</span>
+          <p class="text-dark small mb-0" id="modalDescription" style="white-space: pre-line;">Directive description details...</p>
+        </div>
+
+        <!-- Key Dates & Personnel Grid -->
+        <div class="card border-0 bg-white rounded-3 p-3 mb-0 shadow-sm">
+          <div class="row g-2 small">
+            
+            <div class="col-6">
+              <span class="text-muted d-block" id="modalDateLabel">Assigned On:</span>
+              <strong class="text-dark" id="modalDateVal">-</strong>
+            </div>
+
+            <div class="col-6">
+              <span class="text-muted d-block">Target Deadline:</span>
+              <strong class="text-danger" id="modalDeadlineVal">-</strong>
+            </div>
+
+            <div class="col-6 pt-2 border-top">
+              <span class="text-muted d-block">Client / Account:</span>
+              <strong class="text-dark" id="modalClientVal">-</strong>
+            </div>
+
+            <div class="col-6 pt-2 border-top">
+              <span class="text-muted d-block">Assigned Delegate:</span>
+              <strong class="text-primary" id="modalAssigneeVal">-</strong>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer bg-white border-top p-3 d-flex justify-content-between">
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">
+          Close
+        </button>
+        <a href="#" id="modalDetailBtn" class="btn btn-sm btn-primary rounded-pill px-4 fw-bold">
+          <i class="bi bi-box-arrow-up-right me-1"></i> Open Full Directive Dossier
+        </a>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openCalendarModal(element) {
+    try {
+      const categoryLabel = element.getAttribute('data-category-label') || 'Milestone';
+      const category = element.getAttribute('data-category') || '';
+      const code = element.getAttribute('data-code') || 'CR-REF';
+      const title = element.getAttribute('data-title') || 'Directive Title';
+      const branch = element.getAttribute('data-branch') || 'All Wings';
+      const status = element.getAttribute('data-status') || 'Active';
+      const statusBadge = element.getAttribute('data-status-badge') || 'bg-secondary';
+      const priority = element.getAttribute('data-priority') || 'Standard';
+      const priorityBadge = element.getAttribute('data-priority-badge') || 'bg-info text-dark';
+      const description = element.getAttribute('data-description') || 'No description provided.';
+      const dateLabel = element.getAttribute('data-date-label') || 'Assigned On';
+      const dateVal = element.getAttribute('data-date-val') || '-';
+      const deadlineVal = element.getAttribute('data-deadline-val') || 'No Deadline';
+      const client = element.getAttribute('data-client') || 'Internal Studio';
+      const assignee = element.getAttribute('data-assignee') || 'Unassigned';
+      const url = element.getAttribute('data-url') || '';
+
+      // Populate Modal Fields
+      document.getElementById('modalCategoryBadge').textContent = categoryLabel;
+      document.getElementById('modalEventCode').textContent = code;
+      document.getElementById('modalTitle').textContent = title;
+      
+      const branchBadgeEl = document.getElementById('modalBranchBadge');
+      branchBadgeEl.textContent = 'Wing: ' + branch;
+
+      const statusBadgeEl = document.getElementById('modalStatusBadge');
+      statusBadgeEl.textContent = status;
+      statusBadgeEl.className = 'badge ' + statusBadge;
+
+      const priorityBadgeEl = document.getElementById('modalPriorityBadge');
+      priorityBadgeEl.textContent = priority;
+      priorityBadgeEl.className = 'badge ' + priorityBadge;
+
+      document.getElementById('modalDescription').textContent = description;
+      document.getElementById('modalDateLabel').textContent = dateLabel + ':';
+      document.getElementById('modalDateVal').textContent = dateVal;
+      document.getElementById('modalDeadlineVal').textContent = deadlineVal;
+      document.getElementById('modalClientVal').textContent = client;
+      document.getElementById('modalAssigneeVal').textContent = assignee;
+
+      const detailBtn = document.getElementById('modalDetailBtn');
+      if (url) {
+        detailBtn.href = url;
+        detailBtn.style.display = 'inline-block';
+      } else {
+        detailBtn.style.display = 'none';
+      }
+
+      // Dynamic header styling based on category
+      const headerBg = document.getElementById('modalHeaderBg');
+      if (category === 'TASK_DEADLINE') {
+        headerBg.style.background = 'linear-gradient(135deg, #991b1b 0%, #ef4444 100%)';
+      } else if (category === 'CLIENT_DEADLINE') {
+        headerBg.style.background = 'linear-gradient(135deg, #92400e 0%, #f59e0b 100%)';
+      } else if (category === 'CLIENT_ASSIGNED') {
+        headerBg.style.background = 'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)';
+      } else {
+        headerBg.style.background = 'linear-gradient(135deg, #0f172a 0%, #4338ca 100%)';
+      }
+
+      // Show Bootstrap Modal
+      const modalElement = document.getElementById('calendarEventModal');
+      const bsModal = new bootstrap.Modal(modalElement);
+      bsModal.show();
+
+    } catch (err) {
+      console.error('Error opening calendar event modal:', err);
+    }
+  }
+</script>
+{% endblock %}

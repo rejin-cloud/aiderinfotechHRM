@@ -49,6 +49,9 @@
       <div class="col-12 col-xl-6 text-xl-end">
         <div class="d-flex flex-wrap justify-content-xl-end gap-2">
           {% if 'creative' in current_dept.name.lower %}
+          <a href="{% url 'creative_calendar' %}" class="btn btn-outline-warning text-warning fw-bold shadow-sm px-3 py-2 rounded-3">
+            <i class="bi bi-calendar3 me-1"></i> Operations Calendar
+          </a>
           <a href="{% url 'client_create' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2 rounded-3">
             <i class="bi bi-person-plus-fill me-1"></i> Add Client
           </a>

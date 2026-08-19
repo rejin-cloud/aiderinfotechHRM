@@ -1220,6 +1220,76 @@ class CreativeTasksTestCase(TestCase):
         self.assertEqual(sub.review_stage, ClientAssignmentSubmission.ReviewStage.MANAGER_APPROVED)
         self.assertEqual(sub.manager_reviewed_by, self.creative_mgr)
 
+    def test_creative_calendar_view_renders_tasks_and_client_milestones(self):
+        """Creative Department calendar renders task assigned/deadline and client assigned/deadline milestones."""
+        now = timezone.localtime(timezone.now())
+        future_deadline = now + datetime.timedelta(days=5)
+
+        # 1. Create Creative Task with deadline in current month
+        task = Task.objects.create(
+            department=self.dept_creative,
+            branch=self.branch_design,
+            created_by=self.creative_mgr,
+            assigned_to=self.creative_staff_daniel,
+            title="Design Studio Billboard",
+            description="3D Billboard render",
+            deadline=future_deadline,
+            status=Task.Status.ACTIVE
+        )
+
+        # 2. Create Client Assignment with deadline in current month
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-777',
+            name='Helena Shaw',
+            company='Archetype Studios',
+            needs='Motion Graphics'
+        )
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            task_title='Archetype Reel',
+            task_scope='Showcase reel 60 seconds.',
+            deadline=future_deadline,
+            status=ClientAssignment.Status.DELEGATED
+        )
+
+        # Test Creative Manager access
+        self.client.login(username="deptmgr_rachel", password="password123")
+        res_mgr = self.client.get(reverse('creative_calendar'))
+        self.assertEqual(res_mgr.status_code, 200)
+        self.assertContains(res_mgr, "Creative Department Operations Calendar")
+        self.assertContains(res_mgr, task.task_number)
+        self.assertContains(res_mgr, "Archetype Studios")
+        self.assertContains(res_mgr, "CR-CL-777")
+
+        # Test Intern Sam access
+        self.client.login(username="intern_sam", password="password123")
+        res_intern = self.client.get(reverse('creative_calendar'))
+        self.assertEqual(res_intern.status_code, 200)
+        self.assertContains(res_intern, "Archetype Studios")
+
+    def test_creative_calendar_filter_by_branch_and_type(self):
+        """Calendar can filter by branch and milestone type."""
+        self.client.login(username="deptmgr_rachel", password="password123")
+        res = self.client.get(reverse('creative_calendar'), {
+            'branch': self.branch_design.id,
+            'event_type': 'TASK_DEADLINE'
+        })
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Task Deadlines")
+
+    def test_creative_calendar_restricted_for_non_creative_members(self):
+        """Non-creative department members cannot access Creative calendar."""
+        self.client.login(username="deptmgr_it", password="password123")
+        res = self.client.get(reverse('creative_calendar'), follow=True)
+        self.assertContains(res, "Access restricted")
+
+
 
 
 

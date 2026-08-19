@@ -45,6 +45,10 @@
     {% endif %}
 
     <div class="sidebar-heading">Creative Operations</div>
+    <a href="{% url 'creative_calendar' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'creative_calendar' %}active{% endif %}">
+      <i class="bi bi-calendar3"></i>
+      <span>Operations Calendar</span>
+    </a>
     <a href="{% url 'client_list' %}" class="sidebar-nav-link text-teal {% if 'client_list' in request.resolver_match.url_name or 'client_detail' in request.resolver_match.url_name %}active{% endif %}" style="color: #0d9488;">
       <i class="bi bi-people-fill"></i>
       <span>Clients Directory</span>

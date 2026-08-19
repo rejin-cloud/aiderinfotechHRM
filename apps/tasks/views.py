@@ -1,10 +1,13 @@
+import calendar
 import datetime
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db import models
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
@@ -1545,6 +1548,275 @@ def client_assignment_manager_review_view(request, assignment_id, submission_id=
         'form': form,
         'page_title': f'Department Manager Review &bull; {assignment.task_title}',
     })
+
+
+@login_required
+def creative_calendar_view(request):
+    """
+    Monthly Operational Calendar for Creative Department:
+    - Auto-populated with:
+      * Tasks: Assigned Date & Deadline Date
+      * Client Branch Allocations: Assigned Date & Deadline Date
+    - Detail drawers/modals for each event marker.
+    - Fully accessible to all Creative Department members, executives, and managers.
+    """
+    user = request.user
+    if not can_view_creative_tasks(user):
+        messages.error(request, "Access restricted: You do not have permission to view the Creative Department calendar.")
+        return redirect('dashboard_router')
+
+    dept = get_creative_department_instance()
+    is_creative_manager = can_manage_creative_tasks(user)
+    is_leadership = get_user_level(user) <= 2 or is_creative_manager
+
+    # Resolve requested Year & Month in IST
+    now = timezone.localtime(timezone.now())
+    try:
+        year = int(request.GET.get('year', now.year))
+        month = int(request.GET.get('month', now.month))
+        if not (1 <= month <= 12):
+            month = now.month
+        if not (2020 <= year <= 2040):
+            year = now.year
+    except (ValueError, TypeError):
+        year = now.year
+        month = now.month
+
+    # Navigation months
+    if month == 1:
+        prev_month = 12
+        prev_year = year - 1
+    else:
+        prev_month = month - 1
+        prev_year = year
+
+    if month == 12:
+        next_month = 1
+        next_year = year + 1
+    else:
+        next_month = month + 1
+        next_year = year
+
+    # Filter parameters
+    selected_branch_id = request.GET.get('branch', '')
+    selected_event_type = request.GET.get('event_type', 'ALL')
+
+    # Date range for target month
+    num_days = calendar.monthrange(year, month)[1]
+
+    # 1. Fetch Tasks
+    tasks_qs = Task.objects.filter(department=dept).select_related(
+        'branch', 'assigned_to', 'created_by', 'client'
+    )
+    if selected_branch_id:
+        tasks_qs = tasks_qs.filter(branch_id=selected_branch_id)
+    if not is_leadership and user.branch:
+        tasks_qs = tasks_qs.filter(Q(branch=user.branch) | Q(branch__isnull=True))
+
+    # 2. Fetch Client Branch Assignments
+    client_assign_qs = ClientAssignment.objects.filter(client__department=dept).select_related(
+        'client', 'branch', 'executive', 'delegated_member', 'assigned_by'
+    )
+    if selected_branch_id:
+        client_assign_qs = client_assign_qs.filter(branch_id=selected_branch_id)
+    if not is_leadership and user.branch:
+        client_assign_qs = client_assign_qs.filter(branch=user.branch)
+
+    # Organize events by day of the month {day_int: [event_dicts]}
+    days_events = {d: [] for d in range(1, num_days + 1)}
+
+    # Process Tasks
+    for t in tasks_qs:
+        # A. Task Assigned Date
+        t_assigned_dt = timezone.localtime(t.created_at)
+        if t_assigned_dt.year == year and t_assigned_dt.month == month:
+            d_num = t_assigned_dt.day
+            if selected_event_type in ['ALL', 'TASK_ASSIGNED']:
+                assignee_display = t.assigned_to.get_full_name() or t.assigned_to.username if (is_leadership or t.assigned_to == user) else "Assigned Member"
+                days_events[d_num].append({
+                    'id': f"task-assign-{t.id}",
+                    'category': 'TASK_ASSIGNED',
+                    'category_label': 'Task Assigned',
+                    'badge_class': 'bg-primary text-white',
+                    'pill_bg': '#4f46e5',
+                    'icon': 'bi-plus-circle-fill',
+                    'code': t.task_number,
+                    'title': t.title,
+                    'client_company': t.client.company if t.client else 'Internal Studio Directive',
+                    'branch_name': t.branch.name if t.branch else 'All Branches',
+                    'assignee': assignee_display,
+                    'status': t.get_status_display(),
+                    'status_badge': t.status_badge_class,
+                    'priority': t.get_priority_display(),
+                    'priority_badge': t.priority_badge_class,
+                    'date_label': 'Assigned Date',
+                    'date_val': t_assigned_dt.strftime('%b %d, %Y %I:%M %p'),
+                    'deadline_val': timezone.localtime(t.deadline).strftime('%b %d, %Y %I:%M %p') if t.deadline else 'None',
+                    'description': t.description,
+                    'url': reverse('task_detail', kwargs={'task_id': t.id}),
+                    'is_overdue': False,
+                })
+
+        # B. Task Deadline Date
+        if t.deadline:
+            t_deadline_dt = timezone.localtime(t.deadline)
+            if t_deadline_dt.year == year and t_deadline_dt.month == month:
+                d_num = t_deadline_dt.day
+                if selected_event_type in ['ALL', 'TASK_DEADLINE']:
+                    assignee_display = t.assigned_to.get_full_name() or t.assigned_to.username if (is_leadership or t.assigned_to == user) else "Assigned Member"
+                    days_events[d_num].append({
+                        'id': f"task-dead-{t.id}",
+                        'category': 'TASK_DEADLINE',
+                        'category_label': 'Task Deadline',
+                        'badge_class': 'bg-danger text-white' if t.is_overdue else 'bg-rose text-white',
+                        'pill_bg': '#ef4444' if t.is_overdue else '#e11d48',
+                        'icon': 'bi-alarm-fill',
+                        'code': t.task_number,
+                        'title': t.title,
+                        'client_company': t.client.company if t.client else 'Internal Studio Directive',
+                        'branch_name': t.branch.name if t.branch else 'All Branches',
+                        'assignee': assignee_display,
+                        'status': t.get_status_display(),
+                        'status_badge': t.status_badge_class,
+                        'priority': t.get_priority_display(),
+                        'priority_badge': t.priority_badge_class,
+                        'date_label': 'Task Deadline',
+                        'date_val': t_deadline_dt.strftime('%b %d, %Y %I:%M %p'),
+                        'deadline_val': t_deadline_dt.strftime('%b %d, %Y %I:%M %p'),
+                        'description': t.description,
+                        'url': reverse('task_detail', kwargs={'task_id': t.id}),
+                        'is_overdue': t.is_overdue,
+                    })
+
+    # Process Client Assignments
+    for a in client_assign_qs:
+        # A. Client Assignment Assigned Date
+        a_assigned_dt = timezone.localtime(a.created_at)
+        if a_assigned_dt.year == year and a_assigned_dt.month == month:
+            d_num = a_assigned_dt.day
+            if selected_event_type in ['ALL', 'CLIENT_ASSIGNED']:
+                days_events[d_num].append({
+                    'id': f"client-assign-{a.id}",
+                    'category': 'CLIENT_ASSIGNED',
+                    'category_label': 'Client Directive Assigned',
+                    'badge_class': 'bg-teal text-white',
+                    'pill_bg': '#0d9488',
+                    'icon': 'bi-diagram-3-fill',
+                    'code': a.client.client_number,
+                    'title': f"{a.client.company} - {a.task_title}",
+                    'client_company': a.client.company,
+                    'branch_name': a.branch.name,
+                    'executive': a.executive.get_full_name() or a.executive.username,
+                    'assignee': a.delegated_member.get_full_name() or a.delegated_member.username if a.delegated_member else 'Awaiting Exec Delegation',
+                    'status': a.get_status_display(),
+                    'status_badge': a.status_badge_class,
+                    'priority': 'Client Deliverable',
+                    'priority_badge': 'bg-teal text-white',
+                    'date_label': 'Allocated On',
+                    'date_val': a_assigned_dt.strftime('%b %d, %Y %I:%M %p'),
+                    'deadline_val': timezone.localtime(a.deadline).strftime('%b %d, %Y %I:%M %p') if a.deadline else 'None',
+                    'description': a.task_scope,
+                    'url': reverse('client_assignment_detail', kwargs={'assignment_id': a.id}),
+                    'is_overdue': False,
+                })
+
+        # B. Client Assignment Deadline Date
+        if a.deadline:
+            a_deadline_dt = timezone.localtime(a.deadline)
+            if a_deadline_dt.year == year and a_deadline_dt.month == month:
+                d_num = a_deadline_dt.day
+                if selected_event_type in ['ALL', 'CLIENT_DEADLINE']:
+                    days_events[d_num].append({
+                        'id': f"client-dead-{a.id}",
+                        'category': 'CLIENT_DEADLINE',
+                        'category_label': 'Client Deliverable Deadline',
+                        'badge_class': 'bg-warning text-dark',
+                        'pill_bg': '#f59e0b',
+                        'icon': 'bi-flag-fill',
+                        'code': a.client.client_number,
+                        'title': f"{a.client.company} - {a.task_title}",
+                        'client_company': a.client.company,
+                        'branch_name': a.branch.name,
+                        'executive': a.executive.get_full_name() or a.executive.username,
+                        'assignee': a.delegated_member.get_full_name() or a.delegated_member.username if a.delegated_member else 'Awaiting Exec Delegation',
+                        'status': a.get_status_display(),
+                        'status_badge': a.status_badge_class,
+                        'priority': 'Client Deliverable',
+                        'priority_badge': 'bg-warning text-dark',
+                        'date_label': 'Target Deadline',
+                        'date_val': a_deadline_dt.strftime('%b %d, %Y %I:%M %p'),
+                        'deadline_val': a_deadline_dt.strftime('%b %d, %Y %I:%M %p'),
+                        'description': a.task_scope,
+                        'url': reverse('client_assignment_detail', kwargs={'assignment_id': a.id}),
+                        'is_overdue': a.is_overdue,
+                    })
+
+    # Build matrix of weeks: monthcalendar returns list of [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+    cal = calendar.Calendar(firstweekday=0) # Monday first
+    month_weeks = []
+    
+    today_date = now.date()
+
+    for week in cal.monthdayscalendar(year, month):
+        week_days = []
+        for d in week:
+            if d == 0:
+                week_days.append({
+                    'day_num': 0,
+                    'is_current_month': False,
+                    'is_today': False,
+                    'events': [],
+                    'events_count': 0,
+                })
+            else:
+                d_date = datetime.date(year, month, d)
+                ev_list = days_events.get(d, [])
+                week_days.append({
+                    'day_num': d,
+                    'date': d_date,
+                    'is_current_month': True,
+                    'is_today': (d_date == today_date),
+                    'events': ev_list,
+                    'events_count': len(ev_list),
+                })
+        month_weeks.append(week_days)
+
+    # Monthly Summary Stats
+    total_events_month = sum(len(ev) for ev in days_events.values())
+    task_deadlines_count = sum(1 for ev_list in days_events.values() for ev in ev_list if ev['category'] == 'TASK_DEADLINE')
+    client_deadlines_count = sum(1 for ev_list in days_events.values() for ev in ev_list if ev['category'] == 'CLIENT_DEADLINE')
+    task_assigned_count = sum(1 for ev_list in days_events.values() for ev in ev_list if ev['category'] == 'TASK_ASSIGNED')
+    client_assigned_count = sum(1 for ev_list in days_events.values() for ev in ev_list if ev['category'] == 'CLIENT_ASSIGNED')
+
+    branches = Branch.objects.filter(department=dept).order_by('name')
+
+    month_name = calendar.month_name[month]
+    month_choices = [(i, calendar.month_name[i]) for i in range(1, 13)]
+    year_choices = list(range(now.year - 2, now.year + 4))
+
+    return render(request, 'tasks/creative_calendar.html', {
+        'year': year,
+        'month': month,
+        'month_name': month_name,
+        'prev_month': prev_month,
+        'prev_year': prev_year,
+        'next_month': next_month,
+        'next_year': next_year,
+        'month_weeks': month_weeks,
+        'month_choices': month_choices,
+        'year_choices': year_choices,
+        'branches': branches,
+        'selected_branch_id': int(selected_branch_id) if selected_branch_id.isdigit() else '',
+        'selected_event_type': selected_event_type,
+        'total_events_month': total_events_month,
+        'task_deadlines_count': task_deadlines_count,
+        'client_deadlines_count': client_deadlines_count,
+        'task_assigned_count': task_assigned_count,
+        'client_assigned_count': client_assigned_count,
+        'is_creative_manager': is_creative_manager,
+        'page_title': f'Creative Operations Calendar &bull; {month_name} {year}',
+    })
+
 
 
 

@@ -33,5 +33,8 @@ urlpatterns = [
     path('clients/assignments/<int:assignment_id>/executive-review/', views.client_assignment_executive_review_view, name='client_assignment_executive_review'),
     path('clients/assignments/<int:assignment_id>/manager-review/', views.client_assignment_manager_review_view, name='client_assignment_manager_review'),
     path('api/branch-executives/<int:branch_id>/', views.branch_executives_api, name='branch_executives_api'),
+    
+    # Creative Operations Monthly Calendar
+    path('calendar/', views.creative_calendar_view, name='creative_calendar'),
 ]
 
