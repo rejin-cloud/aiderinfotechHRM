@@ -206,7 +206,7 @@ def dept_manager_dashboard_view(request):
 
             pending_submissions_count = TaskSubmission.objects.filter(
                 task__department=dept,
-                status=TaskSubmission.Status.PENDING
+                review_status=TaskSubmission.ReviewStatus.PENDING
             ).count()
 
             pending_extensions_count = TaskExtensionRequest.objects.filter(

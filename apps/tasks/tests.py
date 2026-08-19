@@ -936,4 +936,34 @@ class CreativeTasksTestCase(TestCase):
         self.assertIn('executives', data)
         self.assertTrue(any(e['id'] == self.creative_staff_daniel.id for e in data['executives']))
 
+    def test_creative_department_manager_dashboard_renders_cleanly(self):
+        """Creative Department Manager dashboard renders all metrics, clients, and directives without error."""
+        # Create client and assignment
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-500',
+            name='Arthur Pendelton',
+            company='Avalon Media Lab',
+            needs='Motion branding and visual design suite.'
+        )
+        ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            task_title='Avalon Logo and Motion Bumpers',
+            task_scope='Create animated 3D intro bumpers.',
+            status=ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE
+        )
+
+        self.client.login(username="deptmgr_rachel", password="password123")
+        res = self.client.get(reverse('dept_manager_dashboard'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "Avalon Media Lab")
+        self.assertContains(res, "CR-CL-500")
+        self.assertContains(res, "Avalon Logo and Motion Bumpers")
+        self.assertContains(res, "Level 3 Management")
+
+
 
