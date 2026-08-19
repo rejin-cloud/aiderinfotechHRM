@@ -24,7 +24,7 @@
         <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
           <i class="bi bi-shield-check me-1"></i> Executive Approvals
         </a>
-      {% elif user.role == 'SERVER_ADMIN' or user.role == 'HR' or user.role == 'MANAGER' or user.role == 'DEPT_MANAGER' %}
+      {% elif user.role == 'SERVER_ADMIN' or user.role == 'HR' or user.role == 'MANAGER' %}
         <a href="{% url 'executive_leave_apply' %}" class="btn btn-primary px-3 py-2 rounded-pill shadow-sm" style="background: #312e81; border-color: #312e81;">
           <i class="bi bi-shield-plus me-1"></i> Executive Leave
         </a>

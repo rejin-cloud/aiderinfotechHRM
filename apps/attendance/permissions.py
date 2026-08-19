@@ -89,8 +89,9 @@ def can_approve_leave_final(user, leave_request):
 
 def is_executive_leave_applicant(user):
     """
-    Identifies if a user belongs to management / leadership (Server Admin, HR, Manager, Dept Manager)
-    who apply through the dedicated Executive Leave portal.
+    Identifies if a user belongs to leadership (Server Admin, HR, Manager)
+    whose leave applications are routed directly to the Super Admin.
+    Department Manager leave applications are reviewed and decided by the General Manager.
     """
     if not user or not user.is_authenticated:
         return False
@@ -98,14 +99,13 @@ def is_executive_leave_applicant(user):
         User.Role.SERVER_ADMIN,
         User.Role.HR,
         User.Role.MANAGER,
-        User.Role.DEPT_MANAGER,
     ]
 
 
 def can_approve_executive_leave(user):
     """
     Super Admin has sole authority to approve or reject executive leave requests from
-    Server Admin, HR, Manager, and Department Managers.
+    Server Admin, HR, and Manager.
     """
     if not user or not user.is_authenticated:
         return False

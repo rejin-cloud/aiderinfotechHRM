@@ -64,8 +64,11 @@
               {% if lv.dept_manager_notes %}
                 <div class="text-dark fw-semibold">{{ lv.dept_manager_notes }}</div>
                 <div class="text-muted" style="font-size: 0.75rem;">Recommended by {{ lv.reviewed_by_dept_manager.get_full_name|default:lv.reviewed_by_dept_manager.username }}</div>
+              {% elif lv.user.role == 'DEPT_MANAGER' %}
+                <span class="badge bg-success-subtle text-success border"><i class="bi bi-person-badge-fill me-1"></i> Dept Manager Application</span>
+                <div class="text-muted small mt-1 text-truncate" title="{{ lv.reason }}">{{ lv.reason }}</div>
               {% else %}
-                <span class="text-muted italic">Direct submission (Level 3+)</span>
+                <span class="text-muted italic">Direct submission</span>
               {% endif %}
             </td>
             <td>

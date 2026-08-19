@@ -359,9 +359,11 @@ def department_attendance_roster_view(request):
 @login_required
 def leave_apply_view(request):
     """
-    Standard Leave Application for employees below manager level (Staff, Intern, Executive).
-    If Super Admin visits: informed they do not require leave.
-    If Server Admin, HR, or Manager visits: redirected to their dedicated Executive Leave portal.
+    Standard Leave Application:
+    - If Super Admin visits: informed they do not require leave applications.
+    - If Server Admin, HR, or Manager visits: redirected to their dedicated Executive Leave portal (routes to Super Admin).
+    - If Department Manager visits: application is submitted directly to the General Manager for review & approval (PENDING_MANAGER_APPROVAL).
+    - If Level 4 Staff/Intern/Exec visits: application is submitted to their Department Manager for review (PENDING_DEPT_REVIEW).
     """
     if request.user.role == User.Role.SUPERADMIN:
         messages.info(request, "Super Admin accounts represent executive ownership and do not submit leave applications.")
@@ -375,14 +377,23 @@ def leave_apply_view(request):
         if form.is_valid():
             leave_req = form.save(commit=False)
             leave_req.user = request.user
-            leave_req.status = LeaveRequest.Status.PENDING_DEPT_REVIEW
-            leave_req.save()
 
-            messages.success(
-                request,
-                f"Leave application for {leave_req.get_leave_type_display()} ({leave_req.start_date} to {leave_req.end_date}) submitted successfully! "
-                f"Your request has been routed to your Department Manager for review."
-            )
+            if request.user.role == User.Role.DEPT_MANAGER:
+                leave_req.status = LeaveRequest.Status.PENDING_MANAGER_APPROVAL
+                messages.success(
+                    request,
+                    f"Leave application for {leave_req.get_leave_type_display()} ({leave_req.start_date} to {leave_req.end_date}) submitted successfully! "
+                    f"As Department Manager, your request has been routed directly to the General Manager for review & approval."
+                )
+            else:
+                leave_req.status = LeaveRequest.Status.PENDING_DEPT_REVIEW
+                messages.success(
+                    request,
+                    f"Leave application for {leave_req.get_leave_type_display()} ({leave_req.start_date} to {leave_req.end_date}) submitted successfully! "
+                    f"Your request has been routed to your Department Manager for review."
+                )
+
+            leave_req.save()
             return redirect('my_leaves')
     else:
         form = LeaveApplicationForm()

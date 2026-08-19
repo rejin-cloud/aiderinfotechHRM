@@ -264,6 +264,52 @@ class AttendanceAndLeaveWorkflowTest(TestCase):
         self.assertEqual(leave_req.status, LeaveRequest.Status.APPROVED)
         self.assertEqual(leave_req.approved_by_manager, self.manager)
 
+    def test_department_manager_leave_reviewed_and_approved_by_manager(self):
+        """Department Manager leave applications are submitted directly to and approved by the General Manager (not Super Admin)."""
+        self.client.force_login(self.dept_mgr_eng)
+        today = date.today()
+        start = today + timedelta(days=2)
+        end = today + timedelta(days=3)
+
+        post_data = {
+            'leave_type': LeaveRequest.LeaveType.CASUAL,
+            'start_date': start.strftime('%Y-%m-%d'),
+            'end_date': end.strftime('%Y-%m-%d'),
+            'reason': 'Attending engineering leadership symposium.',
+        }
+        res = self.client.post(reverse('leave_apply'), post_data)
+        self.assertRedirects(res, reverse('my_leaves'))
+
+        leave_req = LeaveRequest.objects.filter(user=self.dept_mgr_eng).first()
+        self.assertIsNotNone(leave_req)
+        # Directly goes to PENDING_MANAGER_APPROVAL
+        self.assertEqual(leave_req.status, LeaveRequest.Status.PENDING_MANAGER_APPROVAL)
+
+        # Manager reviews and approves
+        self.client.force_login(self.manager)
+        mgr_res = self.client.get(reverse('manager_leave_approvals'))
+        self.assertEqual(mgr_res.status_code, 200)
+        self.assertContains(mgr_res, "deptmgr_eng")
+
+        decision_post = {
+            'action': 'APPROVE',
+            'notes': 'Approved by General Manager. Have a productive symposium.',
+        }
+        decision_res = self.client.post(
+            reverse('manager_decision_action', kwargs={'leave_id': leave_req.id}),
+            decision_post
+        )
+        self.assertRedirects(decision_res, reverse('manager_leave_approvals'))
+
+        leave_req.refresh_from_db()
+        self.assertEqual(leave_req.status, LeaveRequest.Status.APPROVED)
+        self.assertEqual(leave_req.approved_by_manager, self.manager)
+
+        # Super Admin queue does NOT contain this Dept Manager leave
+        self.client.force_login(self.superadmin)
+        sa_res = self.client.get(reverse('superadmin_leave_approvals'))
+        self.assertNotContains(sa_res, "deptmgr_eng")
+
     def test_non_superadmin_cannot_access_superadmin_approval_queue(self):
         """Managers and HR cannot access Super Admin executive approval portal."""
         self.client.force_login(self.manager)
