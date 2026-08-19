@@ -51,8 +51,11 @@
 
         <!-- Right: Primary Quick Action CTAs -->
         <div class="col-12 col-xl-5 text-xl-end d-flex flex-wrap justify-content-xl-end gap-2">
+          <a href="{% url 'customer_management' %}" class="btn btn-info text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+            <i class="bi bi-people-fill me-1"></i> Customers ({{ total_customers_count }})
+          </a>
           <a href="{% url 'candidate_list' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm position-relative">
-            <i class="bi bi-people-fill me-1"></i> Candidates
+            <i class="bi bi-person-lines-fill me-1"></i> Candidates
             {% if candidates_to_be_called_count > 0 %}
             <span class="badge bg-danger text-white rounded-pill ms-1">{{ candidates_to_be_called_count }} to call</span>
             {% endif %}
@@ -172,14 +175,20 @@
       </div>
 
       <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'customer_management' %}" class="btn btn-sm btn-info text-dark fw-bold shadow-sm rounded-pill px-3">
+          <i class="bi bi-people-fill me-1"></i> Customer Management ({{ total_customers_count }})
+        </a>
         <a href="{% url 'candidate_list' %}" class="btn btn-sm btn-primary text-white fw-bold shadow-sm rounded-pill px-3">
-          <i class="bi bi-people-fill me-1"></i> Candidates ({{ total_candidates_count }})
+          <i class="bi bi-person-lines-fill me-1"></i> Candidates ({{ total_candidates_count }})
         </a>
         <a href="{% url 'candidate_approved_list' %}" class="btn btn-sm btn-success text-white fw-bold shadow-sm rounded-pill px-3">
           <i class="bi bi-check2-circle me-1"></i> Approved ({{ candidates_approved_count }})
         </a>
         <a href="{% url 'candidate_create' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm">
           <i class="bi bi-person-plus-fill me-1"></i> Add Candidate
+        </a>
+        <a href="{% url 'customer_create' %}" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-plus-lg me-1"></i> Add Customer
         </a>
         <a href="{% url 'executive_leave_apply' %}" class="btn btn-sm btn-dark text-white fw-bold shadow-sm rounded-pill px-3" style="background: #1e1b4b; border-color: #1e1b4b;">
           <i class="bi bi-shield-plus me-1"></i> Apply Exec Leave
@@ -360,6 +369,140 @@
                 <p class="small mb-2">No candidate applications registered yet.</p>
                 <a href="{% url 'candidate_create' %}" class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3">
                   <i class="bi bi-person-plus-fill me-1"></i> Register First Candidate
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dedicated External Customer & Client Management Hub -->
+  <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden" style="border-left: 5px solid #0284c7 !important;">
+    <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <div class="rounded-3 p-2 bg-info-subtle text-info" style="background-color: #e0f2fe; color: #0284c7;">
+          <i class="bi bi-people-fill fs-5"></i>
+        </div>
+        <div>
+          <h5 class="fw-bold text-dark mb-0">External Customer & Client Management Desk</h5>
+          <span class="text-muted small">Centralized directory of all external clients, customers, and outside partners across every department</span>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'customer_create' %}" class="btn btn-sm btn-primary fw-bold rounded-pill px-3 shadow-sm">
+          <i class="bi bi-plus-lg me-1"></i> Register Customer
+        </a>
+        <a href="{% url 'customer_management' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+          <i class="bi bi-person-lines-fill me-1"></i> View All Customers ({{ total_customers_count }})
+        </a>
+      </div>
+    </div>
+
+    <div class="card-body p-4">
+      <!-- Department Client Breakdown Pills -->
+      {% if department_customers_summary %}
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <span class="text-muted small fw-bold text-uppercase">Departments:</span>
+        <a href="{% url 'customer_management' %}" class="badge bg-dark text-white text-decoration-none px-3 py-1 rounded-pill">
+          All ({{ total_customers_count }})
+        </a>
+        {% for d in department_customers_summary %}
+        <a href="{% url 'customer_management' %}?department={{ d.id }}" class="badge bg-light text-dark border text-decoration-none px-3 py-1 rounded-pill">
+          {{ d.name }} ({{ d.client_count }})
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Recent Customers Table -->
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Customer & Code</th>
+              <th>Company / Brand</th>
+              <th>Place / City</th>
+              <th>Phone / Contact</th>
+              <th>Department</th>
+              <th>Scope & Needs</th>
+              <th class="text-end pe-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cust in recent_customers %}
+            <tr>
+              <td class="ps-3">
+                <a href="{% url 'customer_detail' cust.id %}" class="d-flex align-items-center gap-2 text-decoration-none text-dark">
+                  <div class="avatar-circle" style="background-color: #0284c7; width: 34px; height: 34px; font-size: 0.85rem; color: #ffffff;">
+                    {{ cust.name|first|upper }}
+                  </div>
+                  <div>
+                    <span class="fw-bold text-dark small d-block">{{ cust.name }}</span>
+                    <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.7rem;">{{ cust.client_number }}</span>
+                  </div>
+                </a>
+              </td>
+              <td>
+                <div class="fw-semibold small text-dark">{{ cust.company }}</div>
+                <span class="text-muted" style="font-size: 0.72rem;">Added {{ cust.created_at|date:"M d, Y" }}</span>
+              </td>
+              <td>
+                {% if cust.place %}
+                <div class="small text-dark fw-medium">
+                  <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ cust.place }}
+                </div>
+                {% else %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if cust.phone %}
+                <a href="tel:{{ cust.phone }}" class="text-dark text-decoration-none small fw-semibold font-monospace">
+                  <i class="bi bi-telephone-fill text-success me-1"></i> {{ cust.phone }}
+                </a>
+                {% endif %}
+                {% if cust.email %}
+                <div class="text-muted small" style="font-size: 0.72rem;">{{ cust.email }}</div>
+                {% endif %}
+                {% if not cust.phone and not cust.email %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary small">
+                  {{ cust.department.name }}
+                </span>
+              </td>
+              <td>
+                {% if cust.needs %}
+                <span class="text-secondary small d-inline-block text-truncate" style="max-width: 200px;" title="{{ cust.needs }}">
+                  {{ cust.needs }}
+                </span>
+                {% else %}
+                <span class="text-muted small">—</span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-3">
+                <div class="d-inline-flex gap-1">
+                  <a href="{% url 'customer_detail' cust.id %}" class="btn btn-sm btn-outline-primary" title="View Customer Dossier">
+                    <i class="bi bi-file-earmark-person"></i> Dossier
+                  </a>
+                  <a href="{% url 'customer_edit' cust.id %}" class="btn btn-sm btn-outline-secondary" title="Edit Customer Details">
+                    <i class="bi bi-pencil-square"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="7" class="text-center py-4 text-muted">
+                <i class="bi bi-people fs-3 d-block mb-1 text-secondary"></i>
+                <p class="small mb-2">No external customers registered yet.</p>
+                <a href="{% url 'customer_create' %}" class="btn btn-sm btn-primary fw-bold rounded-pill px-3">
+                  <i class="bi bi-plus-lg me-1"></i> Register First Customer
                 </a>
               </td>
             </tr>

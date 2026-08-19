@@ -125,6 +125,16 @@ class CreativeTasksTestCase(TestCase):
             department=self.dept_it
         )
 
+        # 9. HR User
+        self.hr_user = User.objects.create_user(
+            username="hr_claire",
+            first_name="Claire",
+            last_name="Dunphy",
+            email="claire@aider.internal",
+            password="password123",
+            role=User.Role.HR
+        )
+
     def test_creative_dept_manager_can_create_task_with_attachments(self):
         """Creative Department Manager can access creation page and create tasks with attachments."""
         self.client.login(username="deptmgr_rachel", password="password123")
@@ -1288,6 +1298,174 @@ class CreativeTasksTestCase(TestCase):
         self.client.login(username="deptmgr_it", password="password123")
         res = self.client.get(reverse('creative_calendar'), follow=True)
         self.assertContains(res, "Access restricted")
+
+    def test_customer_management_hr_access_and_stats(self):
+        """HR user can access Customer Management directory and see cross-department clients."""
+        # Create customers across departments
+        c1 = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-101',
+            name='Sarah Jenkins',
+            company='Apex Media',
+            address='Kochi, Kerala',
+            phone='+91 98765 43210',
+            needs='Rebranding and motion design'
+        )
+        c2 = ClientModel.objects.create(
+            department=self.dept_it,
+            created_by=self.it_mgr,
+            client_number='IT-CL-102',
+            name='Rajesh Kumar',
+            company='Infotech Labs',
+            address='Bangalore, Karnataka',
+            phone='+91 91234 56789',
+            needs='Cloud migration'
+        )
+
+        self.client.login(username="hr_claire", password="password123")
+        res = self.client.get(reverse('customer_management'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, "External Customer & Client Management")
+        self.assertContains(res, "Sarah Jenkins")
+        self.assertContains(res, "Apex Media")
+        self.assertContains(res, "Kochi, Kerala")
+        self.assertContains(res, "Rajesh Kumar")
+        self.assertContains(res, "Bangalore, Karnataka")
+        self.assertContains(res, "CR-CL-101")
+        self.assertContains(res, "IT-CL-102")
+
+        # HR dashboard also includes customer stats and desk
+        res_hr_dash = self.client.get(reverse('hr_dashboard'))
+        self.assertEqual(res_hr_dash.status_code, 200)
+        self.assertContains(res_hr_dash, "External Customer & Client Management Desk")
+        self.assertContains(res_hr_dash, "Sarah Jenkins")
+
+    def test_customer_management_filter_and_search(self):
+        """Customer directory supports filtering by department and keyword search."""
+        c1 = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-201',
+            name='Monica Geller',
+            company='Culinary Delights',
+            address='New York',
+            phone='+1 555 1234',
+            needs='Menu design'
+        )
+        c2 = ClientModel.objects.create(
+            department=self.dept_it,
+            created_by=self.it_mgr,
+            client_number='IT-CL-202',
+            name='Chandler Bing',
+            company='Data Corp',
+            address='Tulsa',
+            phone='+1 555 5678',
+            needs='Statistical data processing'
+        )
+
+        self.client.login(username="hr_claire", password="password123")
+
+        # Filter by Creative department
+        res_dept = self.client.get(reverse('customer_management'), {'department': self.dept_creative.id})
+        self.assertContains(res_dept, "Monica Geller")
+        self.assertNotContains(res_dept, "Chandler Bing")
+
+        # Search by Place
+        res_search = self.client.get(reverse('customer_management'), {'q': 'Tulsa'})
+        self.assertContains(res_search, "Chandler Bing")
+        self.assertNotContains(res_search, "Monica Geller")
+
+    def test_customer_create_flow(self):
+        """HR user can register a new external customer for any department."""
+        self.client.login(username="hr_claire", password="password123")
+
+        data = {
+            'department': self.dept_it.id,
+            'client_number': 'IT-CL-555',
+            'name': 'Phoebe Buffay',
+            'company': 'Smelly Cat Productions',
+            'address': 'Kochi, Kerala',
+            'phone': '+91 99887 76655',
+            'email': 'phoebe@smellycat.com',
+            'needs': 'Audio engineering and website hosting',
+            'notes': 'Preferred contact time: Morning'
+        }
+
+        res = self.client.post(reverse('customer_create'), data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        # Verify created in DB
+        cust = ClientModel.objects.get(client_number='IT-CL-555')
+        self.assertEqual(cust.name, 'Phoebe Buffay')
+        self.assertEqual(cust.company, 'Smelly Cat Productions')
+        self.assertEqual(cust.place, 'Kochi, Kerala')
+        self.assertEqual(cust.department, self.dept_it)
+
+    def test_customer_detail_and_edit_flow(self):
+        """HR user can view full customer dossier and update customer profile."""
+        cust = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-888',
+            name='Joey Tribbiani',
+            company='Days of Our Lives',
+            address='Mumbai, Maharashtra',
+            phone='+91 98989 89898',
+            needs='Acting portfolio & headshots'
+        )
+
+        self.client.login(username="hr_claire", password="password123")
+
+        # Detail dossier
+        res_det = self.client.get(reverse('customer_detail', args=[cust.id]))
+        self.assertEqual(res_det.status_code, 200)
+        self.assertContains(res_det, "Customer Dossier: Joey Tribbiani")
+        self.assertContains(res_det, "Days of Our Lives")
+        self.assertContains(res_det, "Mumbai, Maharashtra")
+
+        # Edit customer
+        edit_data = {
+            'department': self.dept_creative.id,
+            'client_number': 'CR-CL-888',
+            'name': 'Joseph Tribbiani',
+            'company': 'Days of Our Lives Inc.',
+            'address': 'Goa, India',
+            'phone': '+91 99999 00000',
+            'email': 'joey@tribbiani.com',
+            'needs': 'Updated showreel',
+            'notes': 'Agent: Estelle'
+        }
+        res_edit = self.client.post(reverse('customer_edit', args=[cust.id]), edit_data, follow=True)
+        self.assertEqual(res_edit.status_code, 200)
+
+        cust.refresh_from_db()
+        self.assertEqual(cust.name, 'Joseph Tribbiani')
+        self.assertEqual(cust.place, 'Goa, India')
+
+    def test_customer_delete_flow(self):
+        """HR user can delete a customer record with confirmation."""
+        cust = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-999',
+            name='Gunther Central',
+            company='Central Perk',
+            address='Kolkata',
+            phone='+91 91111 22222'
+        )
+
+        self.client.login(username="hr_claire", password="password123")
+
+        # GET confirm delete page
+        res_get = self.client.get(reverse('customer_delete', args=[cust.id]))
+        self.assertEqual(res_get.status_code, 200)
+        self.assertContains(res_get, "Delete Customer Record?")
+
+        # POST delete
+        res_post = self.client.post(reverse('customer_delete', args=[cust.id]), follow=True)
+        self.assertEqual(res_post.status_code, 200)
+        self.assertFalse(ClientModel.objects.filter(client_number='CR-CL-999').exists())
 
 
 

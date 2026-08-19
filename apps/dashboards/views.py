@@ -13,6 +13,7 @@ from apps.tasks.models import (
     TaskSubmission,
 )
 from apps.recruitment.models import Candidate
+from apps.tasks.models import Client
 from apps.users.models import User
 
 @login_required
@@ -178,6 +179,13 @@ def hr_dashboard_view(request):
     total_candidates_count = Candidate.objects.count()
     recent_candidates = Candidate.objects.select_related('department', 'branch').order_by('-created_at')[:6]
 
+    # External Customer Management metrics across departments
+    total_customers_count = Client.objects.count()
+    recent_customers = Client.objects.select_related('department', 'created_by').order_by('-created_at')[:6]
+    department_customers_summary = Department.objects.annotate(
+        client_count=Count('clients')
+    ).filter(client_count__gt=0).order_by('-client_count')
+
     return render(request, 'dashboards/hr.html', {
         'total_employees': total_employees,
         'departments': departments,
@@ -201,6 +209,9 @@ def hr_dashboard_view(request):
         'candidates_interview_count': candidates_interview_count,
         'total_candidates_count': total_candidates_count,
         'recent_candidates': recent_candidates,
+        'total_customers_count': total_customers_count,
+        'recent_customers': recent_customers,
+        'department_customers_summary': department_customers_summary,
         'page_title': 'Human Resources Governance Center',
     })
 

@@ -36,5 +36,12 @@ urlpatterns = [
     
     # Creative Operations Monthly Calendar
     path('calendar/', views.creative_calendar_view, name='creative_calendar'),
+
+    # HR Customer & External Client Management Across All Departments
+    path('customers/', views.customer_management_view, name='customer_management'),
+    path('customers/add/', views.customer_create_view, name='customer_create'),
+    path('customers/<int:customer_id>/', views.customer_detail_view, name='customer_detail'),
+    path('customers/<int:customer_id>/edit/', views.customer_edit_view, name='customer_edit'),
+    path('customers/<int:customer_id>/delete/', views.customer_delete_view, name='customer_delete'),
 ]
 

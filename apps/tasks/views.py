@@ -20,6 +20,8 @@ from apps.tasks.forms import (
     ClientAssignmentSubmissionForm,
     ClientFilterForm,
     ClientForm,
+    CustomerFilterForm,
+    CustomerForm,
     ExecutiveDelegationForm,
     ManagerExtensionReviewForm,
     ManagerSubmissionReviewForm,
@@ -1815,6 +1817,208 @@ def creative_calendar_view(request):
         'client_assigned_count': client_assigned_count,
         'is_creative_manager': is_creative_manager,
         'page_title': f'Creative Operations Calendar &bull; {month_name} {year}',
+    })
+
+
+# =====================================================================
+# HR Customer & External Client Management Across All Departments
+# =====================================================================
+
+def can_manage_customers(user):
+    """
+    Determines if user has authority to view and manage external customers across all departments:
+    HR, Manager, Dept Manager, Server Admin, Superadmin.
+    """
+    if not user.is_authenticated:
+        return False
+    return user.role in [
+        User.Role.HR,
+        User.Role.MANAGER,
+        User.Role.DEPT_MANAGER,
+        User.Role.SERVER_ADMIN,
+        User.Role.SUPERADMIN,
+    ] or user.is_superuser
+
+
+@login_required
+def customer_management_view(request):
+    """
+    Dedicated Customer Management page in HR Dashboard.
+    Populates external customers/clients across all departments with their basic details:
+    Name, Place / City, Phone, Email, Company, Department, and Active Engagements.
+    """
+    user = request.user
+    if not can_manage_customers(user):
+        messages.error(request, "Access restricted: You do not have permission to view Customer Management.")
+        return redirect('dashboard_router')
+
+    dept_filter = request.GET.get('department', '').strip()
+    search_q = request.GET.get('q', '').strip()
+
+    customers = Client.objects.select_related('department', 'created_by').prefetch_related('assignments', 'tasks').order_by('-created_at')
+
+    if dept_filter:
+        customers = customers.filter(department_id=dept_filter)
+
+    if search_q:
+        customers = customers.filter(
+            Q(name__icontains=search_q) |
+            Q(company__icontains=search_q) |
+            Q(phone__icontains=search_q) |
+            Q(address__icontains=search_q) |
+            Q(email__icontains=search_q) |
+            Q(client_number__icontains=search_q) |
+            Q(department__name__icontains=search_q)
+        )
+
+    total_customers = Client.objects.count()
+    filtered_count = customers.count()
+
+    # Department-wise customer breakdown
+    department_stats = Department.objects.annotate(
+        client_count=models.Count('clients')
+    ).filter(client_count__gt=0).order_by('-client_count')
+
+    all_departments = Department.objects.all()
+    active_assignments_count = ClientAssignment.objects.exclude(status=ClientAssignment.Status.COMPLETED).count()
+
+    context = {
+        'customers': customers,
+        'total_customers': total_customers,
+        'filtered_count': filtered_count,
+        'department_stats': department_stats,
+        'all_departments': all_departments,
+        'selected_dept': dept_filter,
+        'search_q': search_q,
+        'active_assignments_count': active_assignments_count,
+        'page_title': 'External Customer & Client Management | HR Portal',
+    }
+    return render(request, 'dashboards/customer_management.html', context)
+
+
+@login_required
+def customer_create_view(request):
+    """
+    Allows HR and Managers to register a new external customer / client for any department.
+    """
+    user = request.user
+    if not can_manage_customers(user):
+        messages.error(request, "Permission Denied: You do not have authority to add new customers.")
+        return redirect('customer_management')
+
+    if request.method == 'POST':
+        form = CustomerForm(request.POST)
+        if form.is_valid():
+            customer = form.save(commit=False)
+            customer.created_by = user
+            customer.save()
+            messages.success(
+                request,
+                f"Customer [{customer.client_number}] '{customer.name}' ({customer.company}) has been successfully added to the {customer.department.name} department!"
+            )
+            return redirect('customer_detail', customer_id=customer.id)
+    else:
+        dept_id = request.GET.get('department')
+        initial = {}
+        if dept_id:
+            try:
+                dept = Department.objects.get(id=dept_id)
+                initial['department'] = dept
+                initial['client_number'] = Client.generate_next_client_number(dept.name)
+            except Department.DoesNotExist:
+                pass
+        form = CustomerForm(initial=initial)
+
+    return render(request, 'dashboards/customer_create.html', {
+        'form': form,
+        'page_title': 'Register New Customer | HR Management',
+    })
+
+
+@login_required
+def customer_detail_view(request, customer_id):
+    """
+    Full Customer Profile Dossier:
+    Shows customer identification, contact info (phone, place, email), company, department,
+    requirements, branch engagements, tasks, and project history.
+    """
+    user = request.user
+    if not can_manage_customers(user):
+        messages.error(request, "Access restricted: You do not have permission to view customer details.")
+        return redirect('dashboard_router')
+
+    customer = get_object_or_404(
+        Client.objects.select_related('department', 'created_by').prefetch_related(
+            'assignments__branch',
+            'assignments__executive',
+            'assignments__delegated_member',
+            'tasks__assigned_to',
+            'tasks__branch'
+        ),
+        pk=customer_id
+    )
+
+    assignments = customer.assignments.select_related('branch', 'executive', 'delegated_member').order_by('-created_at')
+    tasks = customer.tasks.select_related('assigned_to', 'branch').order_by('-created_at')
+
+    return render(request, 'dashboards/customer_detail.html', {
+        'customer': customer,
+        'assignments': assignments,
+        'tasks': tasks,
+        'page_title': f"Customer Dossier: {customer.name} ({customer.company})",
+    })
+
+
+@login_required
+def customer_edit_view(request, customer_id):
+    """
+    Allows HR and Managers to edit an existing customer profile.
+    """
+    user = request.user
+    if not can_manage_customers(user):
+        messages.error(request, "Permission Denied: You do not have authority to edit customers.")
+        return redirect('customer_management')
+
+    customer = get_object_or_404(Client, pk=customer_id)
+
+    if request.method == 'POST':
+        form = CustomerForm(request.POST, instance=customer)
+        if form.is_valid():
+            customer = form.save()
+            messages.success(request, f"Customer [{customer.client_number}] details updated successfully.")
+            return redirect('customer_detail', customer_id=customer.id)
+    else:
+        form = CustomerForm(instance=customer)
+
+    return render(request, 'dashboards/customer_edit.html', {
+        'form': form,
+        'customer': customer,
+        'page_title': f"Edit Customer: {customer.name}",
+    })
+
+
+@login_required
+def customer_delete_view(request, customer_id):
+    """
+    Allows HR / Management to delete a customer record with confirmation.
+    """
+    user = request.user
+    if not can_manage_customers(user):
+        messages.error(request, "Permission Denied: You do not have authority to delete customers.")
+        return redirect('customer_management')
+
+    customer = get_object_or_404(Client, pk=customer_id)
+
+    if request.method == 'POST':
+        c_num = customer.client_number
+        c_name = customer.name
+        customer.delete()
+        messages.success(request, f"Customer [{c_num}] '{c_name}' was removed permanently.")
+        return redirect('customer_management')
+
+    return render(request, 'dashboards/customer_confirm_delete.html', {
+        'customer': customer,
+        'page_title': f"Delete Customer: {customer.name}",
     })
 
 

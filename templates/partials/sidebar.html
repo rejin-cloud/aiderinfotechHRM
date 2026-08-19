@@ -58,6 +58,16 @@
       <i class="bi bi-person-plus-fill"></i>
       <span>+ Add Candidate</span>
     </a>
+
+    <div class="sidebar-heading">Customers & Clients</div>
+    <a href="{% url 'customer_management' %}" class="sidebar-nav-link text-info {% if 'customer_' in request.resolver_match.url_name or request.resolver_match.url_name == 'customer_management' %}active{% endif %}">
+      <i class="bi bi-person-workspace"></i>
+      <span>Customer Management</span>
+    </a>
+    <a href="{% url 'customer_create' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'customer_create' %}active{% endif %}">
+      <i class="bi bi-person-plus-fill"></i>
+      <span>+ Add Customer</span>
+    </a>
     {% endif %}
 
     <div class="sidebar-heading">Creative Operations</div>

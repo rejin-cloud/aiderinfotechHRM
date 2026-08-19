@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Dossier: {{ customer.name }} ({{ customer.company }}) | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Customer Header Dossier Banner -->
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #090d16 0%, #0f172a 40%, #0369a1 100%);">
+  <div class="row align-items-center">
+    <div class="col-12 col-xl-7">
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="avatar-circle shadow-lg border border-2 border-white border-opacity-25" style="background-color: #0284c7; width: 64px; height: 64px; font-size: 1.6rem;">
+          {{ customer.name|make_list|first|upper }}
+        </div>
+        <div>
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+            <span class="badge px-3 py-1 fw-bold text-white border" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25) !important;">
+              {{ customer.client_number }}
+            </span>
+            <span class="badge bg-warning text-dark fw-bold px-3 py-1">
+              <i class="bi bi-building me-1"></i> {{ customer.department.name }}
+            </span>
+            {% if customer.place %}
+              <span class="badge bg-light text-dark fw-medium px-2 py-1">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ customer.place }}
+              </span>
+            {% endif %}
+          </div>
+          <h3 class="fw-extrabold mb-0 text-white">{{ customer.name }}</h3>
+          <span class="text-white-50 fs-6">
+            {{ customer.company }} &bull; External Customer Record
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-xl-5 text-xl-end mt-3 mt-xl-0 d-flex flex-wrap justify-content-xl-end gap-2">
+      {% if customer.phone %}
+        <a href="tel:{{ customer.phone }}" class="btn btn-success text-white fw-bold px-3 py-2 rounded-3 shadow-sm">
+          <i class="bi bi-telephone-fill me-1"></i> Call Customer
+        </a>
+      {% endif %}
+      <a href="{% url 'customer_edit' customer.id %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+        <i class="bi bi-pencil-square me-1"></i> Edit Profile
+      </a>
+      <a href="{% url 'customer_management' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
+        <i class="bi bi-arrow-left me-1"></i> Customer List
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: Customer Profile & Contact Dossier -->
+  <div class="col-12 col-lg-4">
+    <!-- Contact & Personal Details Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+      <h6 class="fw-bold text-uppercase text-primary small tracking-wider mb-3">
+        <i class="bi bi-person-lines-fill me-1"></i> Basic Customer Details
+      </h6>
+
+      <div class="mb-3">
+        <div class="text-muted small">Full Name / Contact Person</div>
+        <div class="fw-bold text-dark fs-6">{{ customer.name }}</div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-muted small">Company / Brand / Organization</div>
+        <div class="fw-bold text-dark fs-6">{{ customer.company }}</div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-muted small">Place / City / Address</div>
+        <div class="fw-semibold text-dark">
+          {% if customer.place %}
+            <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ customer.place }}
+          {% else %}
+            <span class="text-muted">Not specified</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-muted small">Phone / Mobile</div>
+        <div class="fw-bold text-dark">
+          {% if customer.phone %}
+            <a href="tel:{{ customer.phone }}" class="text-decoration-none text-dark">
+              <i class="bi bi-telephone-fill text-success me-1"></i> {{ customer.phone }}
+            </a>
+          {% else %}
+            <span class="text-muted">Not provided</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-muted small">Email Address</div>
+        <div class="fw-medium text-dark">
+          {% if customer.email %}
+            <a href="mailto:{{ customer.email }}" class="text-decoration-none text-primary">
+              <i class="bi bi-envelope-fill me-1"></i> {{ customer.email }}
+            </a>
+          {% else %}
+            <span class="text-muted">Not provided</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <div class="text-muted small">Department Associated</div>
+        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary px-3 py-1 rounded-pill mt-1">
+          <i class="bi bi-building me-1"></i> {{ customer.department.name }}
+        </span>
+      </div>
+
+      <hr class="text-muted opacity-25 my-3">
+
+      <div class="d-flex justify-content-between text-muted small">
+        <span>Registered By:</span>
+        <span class="fw-semibold text-dark">
+          {% if customer.created_by %}
+            {{ customer.created_by.get_full_name|default:customer.created_by.username }}
+          {% else %}
+            System
+          {% endif %}
+        </span>
+      </div>
+      <div class="d-flex justify-content-between text-muted small mt-1">
+        <span>Registered On:</span>
+        <span class="fw-semibold text-dark">{{ customer.created_at|date:"M d, Y h:i A" }}</span>
+      </div>
+    </div>
+
+    <!-- Needs & Requirements Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 mb-4">
+      <h6 class="fw-bold text-uppercase text-primary small tracking-wider mb-3">
+        <i class="bi bi-file-earmark-text-fill me-1"></i> Customer Needs & Scope
+      </h6>
+      {% if customer.needs %}
+        <p class="text-secondary small mb-0" style="white-space: pre-line; line-height: 1.6;">
+          {{ customer.needs }}
+        </p>
+      {% else %}
+        <p class="text-muted small mb-0">No specific requirements entered yet.</p>
+      {% endif %}
+    </div>
+
+    <!-- Internal Notes Card -->
+    {% if customer.notes %}
+      <div class="card border-0 shadow-sm rounded-4 bg-light p-4 mb-4">
+        <h6 class="fw-bold text-uppercase text-secondary small tracking-wider mb-2">
+          <i class="bi bi-sticky-fill me-1 text-warning"></i> Internal Notes
+        </h6>
+        <p class="text-dark small mb-0" style="white-space: pre-line;">
+          {{ customer.notes }}
+        </p>
+      </div>
+    {% endif %}
+
+    <!-- Danger Zone Delete -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-3 text-center">
+      <a href="{% url 'customer_delete' customer.id %}" class="btn btn-outline-danger btn-sm rounded-pill">
+        <i class="bi bi-trash-fill me-1"></i> Delete Customer Record
+      </a>
+    </div>
+  </div>
+
+  <!-- Right Column: Associated Branch Engagements & Tasks -->
+  <div class="col-12 col-lg-8">
+    <!-- Multi-Branch Client Assignments -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+      <div class="card-header bg-white border-0 py-3 px-4 d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="fw-extrabold mb-0 text-dark">
+            <i class="bi bi-diagram-3-fill text-primary me-2"></i>Branch Assignments & Projects
+          </h5>
+          <span class="text-muted small">Active delegations across company branches</span>
+        </div>
+        {% if 'creative' in customer.department.name.lower %}
+          <a href="{% url 'client_assign' customer.id %}" class="btn btn-sm btn-primary fw-bold rounded-pill px-3">
+            <i class="bi bi-plus-lg me-1"></i> Assign to Branch
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="p-4 pt-0">
+        {% if assignments %}
+          <div class="row g-3">
+            {% for asgn in assignments %}
+              <div class="col-12">
+                <div class="card border rounded-4 p-3 bg-light bg-opacity-50">
+                  <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-dark text-white font-monospace">{{ asgn.assignment_code }}</span>
+                        <h6 class="fw-bold text-dark mb-0">{{ asgn.task_title }}</h6>
+                      </div>
+                      <div class="text-muted small mt-1">
+                        <i class="bi bi-geo-alt-fill text-danger me-1"></i> Branch: <strong>{{ asgn.branch.name }}</strong>
+                        &bull; Executive: <strong>{{ asgn.executive.get_full_name|default:asgn.executive.username }}</strong>
+                      </div>
+                    </div>
+                    <div>
+                      {% if asgn.status == 'COMPLETED' %}
+                        <span class="badge bg-success text-white px-3 py-2 rounded-pill fw-bold">
+                          <i class="bi bi-check-circle-fill me-1"></i> Completed
+                        </span>
+                      {% elif asgn.status == 'DELEGATED' %}
+                        <span class="badge bg-info text-dark px-3 py-2 rounded-pill fw-bold">
+                          <i class="bi bi-person-check-fill me-1"></i> In Progress
+                        </span>
+                      {% elif asgn.status == 'SUBMITTED_TO_EXECUTIVE' %}
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                          <i class="bi bi-hourglass-split me-1"></i> Under Exec Review
+                        </span>
+                      {% elif asgn.status == 'FORWARDED_TO_MANAGER' %}
+                        <span class="badge bg-primary text-white px-3 py-2 rounded-pill fw-bold">
+                          <i class="bi bi-shield-check me-1"></i> Under Manager Review
+                        </span>
+                      {% else %}
+                        <span class="badge bg-secondary text-white px-3 py-2 rounded-pill fw-bold">
+                          {{ asgn.get_status_display }}
+                        </span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  {% if asgn.task_scope %}
+                    <p class="text-secondary small mb-2 text-truncate" style="max-width: 100%;">
+                      {{ asgn.task_scope }}
+                    </p>
+                  {% endif %}
+
+                  <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top text-muted small">
+                    <div>
+                      {% if asgn.delegated_member %}
+                        <span>Assigned Member: <strong class="text-dark">{{ asgn.delegated_member.get_full_name|default:asgn.delegated_member.username }}</strong> ({{ asgn.delegated_member.get_role_display }})</span>
+                      {% else %}
+                        <span class="text-warning"><i class="bi bi-exclamation-circle me-1"></i> Awaiting Executive Member Delegation</span>
+                      {% endif %}
+                    </div>
+                    <div>
+                      {% if asgn.deadline %}
+                        <span>Deadline: <strong class="text-dark">{{ asgn.deadline|date:"M d, Y" }}</strong></span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 bg-light rounded-4">
+            <i class="bi bi-diagram-3 text-muted fs-2 d-block mb-2"></i>
+            <h6 class="fw-bold text-dark mb-1">No Branch Assignments Created Yet</h6>
+            <p class="text-muted small mb-0">This customer has not been allocated to specific branch teams for deliverables.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Associated Department Tasks -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-0 py-3 px-4">
+        <h5 class="fw-extrabold mb-0 text-dark">
+          <i class="bi bi-list-task text-primary me-2"></i>Direct Tasks & Campaigns ({{ tasks.count }})
+        </h5>
+        <span class="text-muted small">Individual tasks linked to this customer</span>
+      </div>
+
+      <div class="p-4 pt-0">
+        {% if tasks %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="bg-light text-muted small">
+                <tr>
+                  <th>Task #</th>
+                  <th>Title</th>
+                  <th>Assigned Member</th>
+                  <th>Branch</th>
+                  <th>Deadline</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for t in tasks %}
+                  <tr>
+                    <td class="fw-bold font-monospace small">
+                      <a href="{% url 'task_detail' t.id %}" class="text-decoration-none text-primary">
+                        {{ t.task_number }}
+                      </a>
+                    </td>
+                    <td class="fw-semibold text-dark">{{ t.title }}</td>
+                    <td class="small">
+                      {% if t.assigned_to %}
+                        {{ t.assigned_to.get_full_name|default:t.assigned_to.username }}
+                      {% else %}
+                        <span class="text-muted">Unassigned</span>
+                      {% endif %}
+                    </td>
+                    <td class="small">{{ t.branch.name|default:"—" }}</td>
+                    <td class="small">{{ t.deadline|date:"M d, Y"|default:"—" }}</td>
+                    <td>
+                      <span class="badge {% if t.status == 'COMPLETED' %}bg-success{% elif t.status == 'IN_PROGRESS' %}bg-info text-dark{% elif t.status == 'PENDING' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                        {{ t.get_status_display }}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center py-4 bg-light rounded-4">
+            <i class="bi bi-clipboard-x text-muted fs-2 d-block mb-2"></i>
+            <h6 class="fw-bold text-dark mb-1">No Direct Tasks Linked</h6>
+            <p class="text-muted small mb-0">No individual workflow tasks have been mapped to this customer record.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

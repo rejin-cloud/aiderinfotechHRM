@@ -337,6 +337,112 @@ class ClientForm(forms.ModelForm):
         return cn
 
 
+class CustomerForm(forms.ModelForm):
+    """
+    Used in HR / Management Customer Management module to add or edit external customers/clients for any department.
+    """
+    class Meta:
+        model = Client
+        fields = [
+            'department',
+            'client_number',
+            'name',
+            'company',
+            'phone',
+            'address',
+            'email',
+            'needs',
+            'notes',
+        ]
+        widgets = {
+            'department': forms.Select(attrs={'class': 'form-select', 'id': 'id_customer_department'}),
+            'client_number': forms.TextInput(attrs={
+                'class': 'form-control font-monospace fw-bold',
+                'placeholder': 'e.g. CR-CL-001 / MK-CL-001 / CUST-001'
+            }),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Customer Name / Contact Person (e.g. Sarah Jenkins / Rajesh Kumar)'
+            }),
+            'company': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Company / Brand / Organization (e.g. Apex Media / Nexus Group)'
+            }),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control font-monospace',
+                'placeholder': 'e.g. +91 98765 43210'
+            }),
+            'address': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Place / City / Location / Office Address (e.g. Kochi, Kerala / Bangalore / Dubai)'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. contact@clientcompany.com'
+            }),
+            'needs': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Customer creative/service requirements, deliverables, campaign scope, technology stack, etc.'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Internal notes, communication preferences, referral details...'
+            }),
+        }
+        labels = {
+            'department': 'Department Associated With',
+            'client_number': 'Customer Code / ID',
+            'name': 'Customer / Client Name',
+            'company': 'Company / Brand Name',
+            'address': 'Place / City / Location',
+            'phone': 'Contact Phone / WhatsApp',
+            'email': 'Email Address',
+            'needs': 'Requirements / Scope of Work',
+            'notes': 'Internal Notes & Guidelines',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['department'].empty_label = "Select Department"
+        self.fields['department'].required = True
+        self.fields['name'].required = True
+        self.fields['company'].required = True
+        self.fields['phone'].required = True
+        if not self.instance.pk and not self.initial.get('client_number'):
+            first_dept = Department.objects.first()
+            dept_name = first_dept.name if first_dept else "Creative"
+            self.initial['client_number'] = Client.generate_next_client_number(dept_name)
+
+    def clean_client_number(self):
+        cn = self.cleaned_data.get('client_number', '').strip().upper()
+        if not cn:
+            raise forms.ValidationError("Customer code / Client number is required.")
+        qs = Client.objects.filter(client_number__iexact=cn)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(f"Customer code '{cn}' is already assigned to another customer.")
+        return cn
+
+
+class CustomerFilterForm(forms.Form):
+    q = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search by customer name, place, phone, company, or customer code...'
+        })
+    )
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.all(),
+        required=False,
+        empty_label="All Departments",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+
 class ClientFilterForm(forms.Form):
     q = forms.CharField(
         required=False,

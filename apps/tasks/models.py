@@ -42,11 +42,15 @@ class Client(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        verbose_name = 'Creative Client'
-        verbose_name_plural = 'Creative Clients'
+        verbose_name = 'Customer / Client'
+        verbose_name_plural = 'Customers / Clients'
 
     def __str__(self):
         return f"[{self.client_number}] {self.name} - {self.company}"
+
+    @property
+    def place(self):
+        return self.address or ''
 
     @classmethod
     def generate_next_client_number(cls, department_name="Creative"):

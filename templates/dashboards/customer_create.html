@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-8">
+    <!-- Header Banner -->
+    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #090d16 0%, #0f172a 40%, #0369a1 100%);">
+      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="avatar-circle shadow-lg border border-2 border-white border-opacity-25" style="background-color: #0284c7; width: 54px; height: 54px; font-size: 1.4rem;">
+            <i class="bi bi-person-plus-fill"></i>
+          </div>
+          <div>
+            <h4 class="fw-extrabold mb-0 text-white">Register New External Customer</h4>
+            <span class="text-white-50 small">Add client details, contact info, place, company, and department attribution.</span>
+          </div>
+        </div>
+        <div>
+          <a href="{% url 'customer_management' %}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Customers Directory
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 mb-4">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger rounded-3 mb-4">
+            {% for error in form.non_field_errors %}
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>{{ error }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <!-- Section 1: Department & Identification -->
+        <div class="mb-4">
+          <h6 class="fw-bold text-uppercase text-primary small tracking-wider mb-3">
+            <i class="bi bi-diagram-3-fill me-1"></i> 1. Department & Customer Identification
+          </h6>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label for="{{ form.department.id_for_label }}" class="form-label small fw-bold text-dark">
+                Department Associated With <span class="text-danger">*</span>
+              </label>
+              {{ form.department }}
+              {% if form.department.errors %}
+                <div class="text-danger small mt-1">{{ form.department.errors.0 }}</div>
+              {% endif %}
+              <span class="form-text small text-muted">Select which company department this outside customer is engaged with.</span>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="{{ form.client_number.id_for_label }}" class="form-label small fw-bold text-dark">
+                Customer Code / Client ID <span class="text-danger">*</span>
+              </label>
+              {{ form.client_number }}
+              {% if form.client_number.errors %}
+                <div class="text-danger small mt-1">{{ form.client_number.errors.0 }}</div>
+              {% endif %}
+              <span class="form-text small text-muted">Auto-generated or custom identifier (e.g. CR-CL-001, MK-CL-001).</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4 text-muted opacity-25">
+
+        <!-- Section 2: Contact Person, Company & Location -->
+        <div class="mb-4">
+          <h6 class="fw-bold text-uppercase text-primary small tracking-wider mb-3">
+            <i class="bi bi-person-lines-fill me-1"></i> 2. Customer Profile, Company & Place
+          </h6>
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label for="{{ form.name.id_for_label }}" class="form-label small fw-bold text-dark">
+                Customer Name / Contact Person <span class="text-danger">*</span>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label for="{{ form.company.id_for_label }}" class="form-label small fw-bold text-dark">
+                Company / Brand / Organization <span class="text-danger">*</span>
+              </label>
+              {{ form.company }}
+              {% if form.company.errors %}
+                <div class="text-danger small mt-1">{{ form.company.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label for="{{ form.address.id_for_label }}" class="form-label small fw-bold text-dark">
+                Place / City / Location <span class="text-danger">*</span>
+              </label>
+              {{ form.address }}
+              {% if form.address.errors %}
+                <div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>
+              {% endif %}
+              <span class="form-text small text-muted">e.g. Kochi, Kerala / Bangalore / Dubai</span>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label for="{{ form.phone.id_for_label }}" class="form-label small fw-bold text-dark">
+                Phone / WhatsApp Number <span class="text-danger">*</span>
+              </label>
+              {{ form.phone }}
+              {% if form.phone.errors %}
+                <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label for="{{ form.email.id_for_label }}" class="form-label small fw-bold text-dark">
+                Email Address
+              </label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4 text-muted opacity-25">
+
+        <!-- Section 3: Requirements & Internal Notes -->
+        <div class="mb-4">
+          <h6 class="fw-bold text-uppercase text-primary small tracking-wider mb-3">
+            <i class="bi bi-file-text-fill me-1"></i> 3. Needs, Project Scope & Notes
+          </h6>
+          <div class="row g-3">
+            <div class="col-12">
+              <label for="{{ form.needs.id_for_label }}" class="form-label small fw-bold text-dark">
+                Customer Requirements / Scope of Work
+              </label>
+              {{ form.needs }}
+              {% if form.needs.errors %}
+                <div class="text-danger small mt-1">{{ form.needs.errors.0 }}</div>
+              {% endif %}
+              <span class="form-text small text-muted">Describe creative needs, services requested, branding specifications, deliverables, etc.</span>
+            </div>
+
+            <div class="col-12">
+              <label for="{{ form.notes.id_for_label }}" class="form-label small fw-bold text-dark">
+                Internal Guidelines & Notes
+              </label>
+              {{ form.notes }}
+              {% if form.notes.errors %}
+                <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Buttons -->
+        <div class="d-flex align-items-center justify-content-end gap-2 pt-3">
+          <a href="{% url 'customer_management' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill">
+            Cancel
+          </a>
+          <button type="submit" class="btn btn-primary fw-bold px-4 py-2 rounded-pill shadow-sm">
+            <i class="bi bi-check2-circle me-1"></i> Save & Register Customer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

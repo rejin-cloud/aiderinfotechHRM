@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Delete Customer | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 p-md-5 text-center">
+      <div class="avatar-circle mx-auto mb-3 bg-danger bg-opacity-10 text-danger" style="width: 72px; height: 72px; font-size: 2rem;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+
+      <h4 class="fw-extrabold text-dark mb-2">Delete Customer Record?</h4>
+      <p class="text-muted small mb-4">
+        Are you sure you want to permanently delete customer <strong class="text-dark">[{{ customer.client_number }}] {{ customer.name }}</strong> ({{ customer.company }})? This action cannot be undone.
+      </p>
+
+      <div class="card bg-light border-0 rounded-3 p-3 mb-4 text-start">
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Customer Code:</span>
+          <span class="fw-bold text-dark">{{ customer.client_number }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Customer Name:</span>
+          <span class="fw-semibold text-dark">{{ customer.name }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Company / Brand:</span>
+          <span class="fw-semibold text-dark">{{ customer.company }}</span>
+        </div>
+        <div class="d-flex justify-content-between mb-1 small">
+          <span class="text-muted">Place / Location:</span>
+          <span class="fw-semibold text-dark">{{ customer.place|default:"—" }}</span>
+        </div>
+        <div class="d-flex justify-content-between small">
+          <span class="text-muted">Department:</span>
+          <span class="badge bg-primary bg-opacity-10 text-primary">{{ customer.department.name }}</span>
+        </div>
+      </div>
+
+      <form method="post" class="d-flex gap-2 justify-content-center">
+        {% csrf_token %}
+        <a href="{% url 'customer_detail' customer.id %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-danger fw-bold px-4 py-2 rounded-pill shadow-sm">
+          <i class="bi bi-trash-fill me-1"></i> Yes, Delete Permanently
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
