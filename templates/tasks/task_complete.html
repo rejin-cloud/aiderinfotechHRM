@@ -3,113 +3,115 @@
 {% block title %}Submit Deliverables | Aider Infotech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-lg-9 col-xl-8">
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-9 col-xl-8">
 
-    <!-- Header Banner -->
-    <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-3">
-          <div class="rounded-4 bg-white text-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 52px; height: 52px;">
-            <i class="bi bi-cloud-arrow-up-fill fs-2"></i>
-          </div>
-          <div>
-            <div class="badge bg-white text-primary fw-bold mb-1">
-              <i class="bi bi-person-check-fill me-1"></i> Assigned Member Submission Portal
+      <!-- Header Banner -->
+      <div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4338ca 100%);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow" style="width: 52px; height: 52px;">
+              <i class="bi bi-cloud-arrow-up-fill fs-2"></i>
             </div>
-            <h3 class="fw-bold mb-0">Submit Deliverables for Review</h3>
-            <p class="text-white-50 small mb-0 mt-1">
-              Task: <strong>[{{ task.task_number }}] {{ task.title }}</strong>
-            </p>
+            <div>
+              <div class="badge bg-white text-primary fw-bold mb-1">
+                <i class="bi bi-person-check-fill me-1"></i> Assigned Member Submission Portal
+              </div>
+              <h3 class="fw-bold mb-0">Submit Deliverables for Review</h3>
+              <p class="text-white-50 small mb-0 mt-1">
+                Task: <strong>[{{ task.task_number }}] {{ task.title }}</strong>
+              </p>
+            </div>
           </div>
+
+          <a href="{% url 'task_detail' task.id %}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> Back to Task
+          </a>
+        </div>
+      </div>
+
+      <!-- Task Brief Recap Card -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-dark font-monospace text-warning px-2 py-1">{{ task.task_number }}</span>
+          <span class="badge {{ task.priority_badge_class }}">{{ task.get_priority_display }} Priority</span>
+        </div>
+        <h5 class="fw-bold text-dark mb-2">{{ task.title }}</h5>
+        <p class="text-secondary small mb-2">{{ task.description }}</p>
+        {% if task.instructions %}
+        <div class="p-3 bg-light rounded-3 border small text-dark mb-0">
+          <strong><i class="bi bi-card-checklist me-1 text-primary"></i> Instructions:</strong> {{ task.instructions }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Submission Form Card -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        <div class="card-header bg-light p-3 border-bottom">
+          <h5 class="fw-bold text-dark mb-0">
+            <i class="bi bi-send-fill text-primary me-2"></i> Project Deliverables & Delivery Summary
+          </h5>
         </div>
 
-        <a href="{% url 'task_detail' task.id %}" class="btn btn-outline-light rounded-pill px-3">
-          <i class="bi bi-arrow-left me-1"></i> Back to Task
-        </a>
-      </div>
-    </div>
+        <div class="card-body p-4 p-md-5">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
 
-    <!-- Task Brief Recap Card -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="badge bg-dark font-monospace text-warning px-2 py-1">{{ task.task_number }}</span>
-        <span class="badge {{ task.priority_badge_class }}">{{ task.get_priority_display }} Priority</span>
-      </div>
-      <h5 class="fw-bold text-dark mb-2">{{ task.title }}</h5>
-      <p class="text-secondary small mb-2">{{ task.description }}</p>
-      {% if task.instructions %}
-      <div class="p-3 bg-light rounded-3 border small text-dark mb-0">
-        <strong><i class="bi bi-card-checklist me-1 text-primary"></i> Instructions:</strong> {{ task.instructions }}
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Submission Form Card -->
-    <div class="hrms-card shadow-sm border-0">
-      <div class="hrms-card-header bg-light p-3 border-bottom">
-        <h5 class="hrms-card-title mb-0">
-          <i class="bi bi-send-fill text-primary me-2"></i> Project Deliverables & Delivery Summary
-        </h5>
-      </div>
-
-      <div class="hrms-card-body p-4 p-md-5">
-        <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
-
-          {% if form.non_field_errors %}
-          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-          {% endif %}
-
-          <!-- Completion Remarks -->
-          <div class="mb-4">
-            <label for="{{ form.remarks.id_for_label }}" class="form-label fw-bold text-dark">
-              <i class="bi bi-chat-left-text-fill text-primary me-1"></i> Deliverables Summary & Remarks <span class="text-danger">*</span>
-            </label>
-            <div class="form-text small text-muted mb-2">
-              Explain what you have produced, output specs, resolution/dimensions, external links (Drive, Figma, GitHub, etc.), or handover notes.
-            </div>
-            {{ form.remarks }}
-            {% if form.remarks.errors %}
-            <div class="text-danger small mt-1">{{ form.remarks.errors }}</div>
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
             {% endif %}
-          </div>
 
-          <!-- Multi-File Supporting Media & Assets Uploader -->
-          <div class="mb-4">
-            <label class="form-label fw-bold text-dark">
-              <i class="bi bi-paperclip text-primary me-1"></i> Supporting Media, Assets & Output Files
-            </label>
-            <div class="form-text small text-muted mb-2">
-              Attach one or multiple deliverable files (accepts <strong>ANY</strong> file format: ZIP, PSD, AI, MP4, PDF, PNG, JPG, DOCX, SVG, etc.).
+            <!-- Completion Remarks -->
+            <div class="mb-4">
+              <label for="{{ form.remarks.id_for_label }}" class="form-label fw-bold text-dark">
+                <i class="bi bi-chat-left-text-fill text-primary me-1"></i> Deliverables Summary & Remarks <span class="text-danger">*</span>
+              </label>
+              <div class="form-text small text-muted mb-2">
+                Explain what you have produced, output specs, resolution/dimensions, external links (Drive, Figma, GitHub, etc.), or handover notes.
+              </div>
+              {{ form.remarks }}
+              {% if form.remarks.errors %}
+              <div class="text-danger small mt-1">{{ form.remarks.errors }}</div>
+              {% endif %}
             </div>
-            <div class="p-3 bg-light rounded-3 border border-dashed text-center">
-              <i class="bi bi-cloud-arrow-up fs-2 text-primary d-block mb-2"></i>
-              <input type="file" name="submission_files" multiple class="form-control mb-2" id="id_submission_files">
-              <span class="text-muted small">You can select multiple files simultaneously by holding Ctrl/Cmd.</span>
+
+            <!-- Multi-File Supporting Media & Assets Uploader -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                <i class="bi bi-paperclip text-primary me-1"></i> Supporting Media, Assets & Output Files
+              </label>
+              <div class="form-text small text-muted mb-2">
+                Attach one or multiple deliverable files (accepts <strong>ANY</strong> file format: ZIP, PSD, AI, MP4, PDF, PNG, JPG, DOCX, SVG, etc.).
+              </div>
+              <div class="p-4 bg-light rounded-3 border border-dashed text-center">
+                <i class="bi bi-cloud-arrow-up fs-2 text-primary d-block mb-2"></i>
+                <input type="file" name="submission_files" multiple class="form-control mb-2" id="id_submission_files">
+                <span class="text-muted small">You can select multiple files simultaneously by holding Ctrl/Cmd.</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Notice Banner -->
-          <div class="alert alert-info bg-info-subtle border-info-subtle rounded-3 p-3 mb-4 d-flex align-items-center gap-3">
-            <i class="bi bi-shield-check text-info fs-4"></i>
-            <div class="small text-dark">
-              <strong>Manager Review Workflow:</strong> Upon submission, this task will move to <strong>Under Review</strong>. The Creative Department Manager will evaluate your deliverables and can either mark the task as <strong>Completed</strong> or request revisions.
+            <!-- Notice Banner -->
+            <div class="alert alert-info bg-info-subtle border-info-subtle rounded-3 p-3 mb-4 d-flex align-items-center gap-3">
+              <i class="bi bi-shield-check text-info fs-4"></i>
+              <div class="small text-dark">
+                <strong>Manager Review Workflow:</strong> Upon submission, this task will move to <strong>Under Review</strong>. The Creative Department Manager will evaluate your deliverables and can either mark the task as <strong>Completed</strong> or request revisions.
+              </div>
             </div>
-          </div>
 
-          <!-- Action Buttons -->
-          <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-            <a href="{% url 'task_detail' task.id %}" class="btn btn-light border px-4">Cancel</a>
-            <button type="submit" class="btn btn-primary fw-bold px-5 py-2 shadow-sm">
-              <i class="bi bi-send-check me-1"></i> Submit Deliverables for Review
-            </button>
-          </div>
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <a href="{% url 'task_detail' task.id %}" class="btn btn-light border px-4 rounded-pill">Cancel</a>
+              <button type="submit" class="btn btn-primary fw-bold px-5 py-2 shadow-sm rounded-pill">
+                <i class="bi bi-send-check me-1"></i> Submit Deliverables for Review
+              </button>
+            </div>
 
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
 
+    </div>
   </div>
 </div>
 {% endblock %}

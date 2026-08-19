@@ -3,445 +3,451 @@
 {% block title %}Client Directive: {{ assignment.task_title }} | Aider Infotech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-xl-10">
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
 
-    <!-- Top Action & Navigation Bar -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-      <div class="d-flex align-items-center gap-2">
-        <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-          <i class="bi bi-arrow-left me-1"></i> Back to Allocations
-        </a>
-        <a href="{% url 'client_detail' assignment.client.id %}" class="btn btn-light btn-sm border rounded-pill px-3">
-          <i class="bi bi-building me-1 text-teal" style="color: #0d9488;"></i> {{ assignment.client.company }}
-        </a>
-      </div>
-
-      <!-- Quick Action CTAs based on Role & Status -->
-      <div class="d-flex flex-wrap gap-2">
-        {% if can_submit_work %}
-        <a href="{% url 'client_assignment_submit' assignment.id %}" class="btn btn-success fw-bold shadow-sm px-3 rounded-pill">
-          <i class="bi bi-upload me-1"></i> {% if assignment.status == 'EXECUTIVE_REVISION' or assignment.status == 'DEPT_MANAGER_REVISION' %}Resubmit Revisions{% else %}Submit Completed Deliverables{% endif %}
-        </a>
-        {% endif %}
-
-        {% if can_executive_review %}
-        <a href="{% url 'client_assignment_executive_review' assignment.id %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 rounded-pill">
-          <i class="bi bi-shield-check me-1"></i> Executive Review Desk
-        </a>
-        {% endif %}
-
-        {% if is_executive_lead or is_leadership %}
-        <a href="{% url 'executive_client_delegate' assignment.id %}" class="btn btn-outline-primary fw-semibold btn-sm rounded-pill px-3">
-          <i class="bi bi-person-gear me-1"></i> {% if assignment.delegated_member %}Reassign Delegate{% else %}Delegate to Member{% endif %}
-        </a>
-        {% endif %}
-
-        {% if can_manager_review %}
-        <a href="{% url 'client_assignment_manager_review' assignment.id %}" class="btn btn-primary fw-bold shadow-sm px-3 rounded-pill" style="background: #0d9488; border-color: #0d9488;">
-          <i class="bi bi-patch-check-fill me-1"></i> Final Approval & Evaluation
-        </a>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Header Hero Card -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #090d16 0%, #1e1b4b 100%);">
-      <div class="card-body p-4 p-md-5 text-white">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-          <div>
-            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-              <span class="badge bg-teal-subtle text-teal font-monospace px-3 py-1" style="background-color: #ccfbf1; color: #0f766e;">
-                {{ assignment.client.client_number }}
-              </span>
-              <span class="badge bg-secondary-subtle text-dark border px-3 py-1">
-                <i class="bi bi-diagram-3-fill me-1"></i> {{ assignment.branch.name }} Wing
-              </span>
-              <span class="badge {{ assignment.status_badge_class }} px-3 py-1 font-monospace">
-                {{ assignment.get_status_display }}
-              </span>
-              {% if assignment.is_overdue %}
-              <span class="badge bg-danger text-white px-2 py-1"><i class="bi bi-exclamation-octagon-fill me-1"></i> Overdue</span>
-              {% endif %}
-            </div>
-            <h2 class="fw-bold text-white mb-1">{{ assignment.task_title }}</h2>
-            <p class="text-white-50 mb-0">
-              Corporate Account: <strong class="text-white">{{ assignment.client.company }}</strong> &bull; Contact: {{ assignment.client.name }}
-            </p>
-          </div>
-          
-          <div class="text-md-end bg-white bg-opacity-10 border border-white border-opacity-10 rounded-4 p-3">
-            <div class="text-white-50 small mb-1">Target Completion Deadline</div>
-            <div class="fw-bold fs-5 {% if assignment.is_overdue %}text-danger{% else %}text-white{% endif %}">
-              <i class="bi bi-calendar-event me-1"></i>
-              {% if assignment.deadline %}{{ assignment.deadline|date:"M d, Y h:i A" }}{% else %}No target deadline{% endif %}
-            </div>
-          </div>
+      <!-- Top Action & Navigation Bar -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex align-items-center gap-2">
+          <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+            <i class="bi bi-arrow-left me-1"></i> Back to Allocations
+          </a>
+          <a href="{% url 'client_detail' assignment.client.id %}" class="btn btn-light btn-sm border rounded-pill px-3">
+            <i class="bi bi-building me-1 text-teal" style="color: #0d9488;"></i> {{ assignment.client.company }}
+          </a>
         </div>
 
-        <!-- 3-Tier Multi-Level Delegation Hierarchy Strip -->
-        <div class="row g-3 pt-3 border-top border-white border-opacity-10 mt-3">
-          
-          <!-- Manager Initiation -->
-          <div class="col-12 col-md-4">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-circle bg-white bg-opacity-10 text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-person-lines-fill"></i>
-              </div>
-              <div>
-                <div class="text-white-50" style="font-size: 0.72rem;">INITIATED BY (MANAGER)</div>
-                <strong class="text-white small">{{ assignment.assigned_by.get_full_name|default:assignment.assigned_by.username }}</strong>
-              </div>
-            </div>
-          </div>
+        <!-- Quick Action CTAs based on Role & Status -->
+        <div class="d-flex flex-wrap gap-2">
+          <a href="{% url 'creative_calendar' %}" class="btn btn-warning text-dark fw-bold btn-sm rounded-pill px-3 shadow-sm">
+            <i class="bi bi-calendar3 me-1"></i> Operations Calendar
+          </a>
 
-          <!-- Executive Supervisor -->
-          <div class="col-12 col-md-4">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-circle bg-warning bg-opacity-25 text-warning d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-person-badge-fill"></i>
-              </div>
-              <div>
-                <div class="text-white-50" style="font-size: 0.72rem;">BRANCH EXECUTIVE LEAD</div>
-                <strong class="text-white small">{{ assignment.executive.get_full_name|default:assignment.executive.username }}</strong>
-              </div>
-            </div>
-          </div>
+          {% if can_submit_work %}
+          <a href="{% url 'client_assignment_submit' assignment.id %}" class="btn btn-success fw-bold shadow-sm px-3 rounded-pill">
+            <i class="bi bi-upload me-1"></i> {% if assignment.status == 'EXECUTIVE_REVISION' or assignment.status == 'DEPT_MANAGER_REVISION' %}Resubmit Revisions{% else %}Submit Completed Deliverables{% endif %}
+          </a>
+          {% endif %}
 
-          <!-- Assigned Delegate -->
-          <div class="col-12 col-md-4">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-circle bg-info bg-opacity-25 text-info d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                <i class="bi bi-person-check-fill"></i>
-              </div>
-              <div>
-                <div class="text-white-50" style="font-size: 0.72rem;">ASSIGNED DELEGATE (MEMBER)</div>
-                {% if assignment.delegated_member %}
-                <strong class="text-white small">{{ assignment.delegated_member.get_full_name|default:assignment.delegated_member.username }}</strong>
-                {% else %}
-                <span class="badge bg-warning-subtle text-dark">Awaiting Delegation</span>
+          {% if can_executive_review %}
+          <a href="{% url 'client_assignment_executive_review' assignment.id %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 rounded-pill">
+            <i class="bi bi-shield-check me-1"></i> Executive Review Desk
+          </a>
+          {% endif %}
+
+          {% if is_executive_lead or is_leadership %}
+          <a href="{% url 'executive_client_delegate' assignment.id %}" class="btn btn-outline-primary fw-semibold btn-sm rounded-pill px-3">
+            <i class="bi bi-person-gear me-1"></i> {% if assignment.delegated_member %}Reassign Delegate{% else %}Delegate to Member{% endif %}
+          </a>
+          {% endif %}
+
+          {% if can_manager_review %}
+          <a href="{% url 'client_assignment_manager_review' assignment.id %}" class="btn btn-primary fw-bold shadow-sm px-3 rounded-pill" style="background: #0d9488; border-color: #0d9488;">
+            <i class="bi bi-patch-check-fill me-1"></i> Final Approval & Evaluation
+          </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Header Hero Card -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);">
+        <div class="card-body p-4 p-md-5 text-white">
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                <span class="badge bg-teal-subtle text-teal font-monospace px-3 py-1" style="background-color: #ccfbf1; color: #0f766e;">
+                  {{ assignment.client.client_number }}
+                </span>
+                <span class="badge bg-secondary-subtle text-dark border px-3 py-1">
+                  <i class="bi bi-diagram-3-fill me-1"></i> {{ assignment.branch.name }} Wing
+                </span>
+                <span class="badge {{ assignment.status_badge_class }} px-3 py-1 font-monospace">
+                  {{ assignment.get_status_display }}
+                </span>
+                {% if assignment.is_overdue %}
+                <span class="badge bg-danger text-white px-2 py-1"><i class="bi bi-exclamation-octagon-fill me-1"></i> Overdue</span>
                 {% endif %}
               </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="row g-4 mb-4">
-      
-      <!-- Left: Deliverables Scope & Executive Instructions -->
-      <div class="col-12 col-lg-7">
-        
-        <!-- Task Deliverables Scope -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
-          <div class="card-header bg-white p-4 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-3 p-2 bg-primary-subtle text-primary">
-                <i class="bi bi-card-text fs-5"></i>
-              </div>
-              <h5 class="fw-bold text-dark mb-0">Branch Deliverables Scope & Brief</h5>
-            </div>
-          </div>
-          <div class="card-body p-4">
-            <div class="bg-light p-3 rounded-3 text-dark mb-3" style="white-space: pre-line; line-height: 1.6;">
-              {{ assignment.task_scope }}
+              <h2 class="fw-extrabold text-white mb-1">{{ assignment.task_title }}</h2>
+              <p class="text-white-50 mb-0">
+                Corporate Account: <strong class="text-white">{{ assignment.client.company }}</strong> &bull; Contact: {{ assignment.client.name }}
+              </p>
             </div>
             
-            <div class="p-3 rounded-3 border bg-white">
-              <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Corporate Client Requirements (Overall)</span>
-              <p class="small text-dark mb-0">{{ assignment.client.needs }}</p>
+            <div class="text-md-end bg-white bg-opacity-10 border border-white border-opacity-10 rounded-4 p-3">
+              <div class="text-white-50 small mb-1">Target Completion Deadline</div>
+              <div class="fw-bold fs-5 font-monospace {% if assignment.is_overdue %}text-danger{% else %}text-white{% endif %}">
+                <i class="bi bi-calendar-event me-1"></i>
+                {% if assignment.deadline %}{{ assignment.deadline|date:"M d, Y h:i A" }}{% else %}No target deadline{% endif %}
+              </div>
             </div>
+          </div>
+
+          <!-- 3-Tier Multi-Level Delegation Hierarchy Strip -->
+          <div class="row g-3 pt-3 border-top border-white border-opacity-10 mt-3">
+            
+            <!-- Manager Initiation -->
+            <div class="col-12 col-md-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-white bg-opacity-10 text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                  <i class="bi bi-person-lines-fill"></i>
+                </div>
+                <div>
+                  <div class="text-white-50" style="font-size: 0.72rem;">INITIATED BY (MANAGER)</div>
+                  <strong class="text-white small">{{ assignment.assigned_by.get_full_name|default:assignment.assigned_by.username }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Executive Supervisor -->
+            <div class="col-12 col-md-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-warning bg-opacity-25 text-warning d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                  <i class="bi bi-person-badge-fill"></i>
+                </div>
+                <div>
+                  <div class="text-white-50" style="font-size: 0.72rem;">BRANCH EXECUTIVE LEAD</div>
+                  <strong class="text-white small">{{ assignment.executive.get_full_name|default:assignment.executive.username }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assigned Delegate -->
+            <div class="col-12 col-md-4">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-info bg-opacity-25 text-info d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                  <i class="bi bi-person-check-fill"></i>
+                </div>
+                <div>
+                  <div class="text-white-50" style="font-size: 0.72rem;">ASSIGNED DELEGATE (MEMBER)</div>
+                  {% if assignment.delegated_member %}
+                  <strong class="text-white small">{{ assignment.delegated_member.get_full_name|default:assignment.delegated_member.username }}</strong>
+                  {% else %}
+                  <span class="badge bg-warning-subtle text-dark">Awaiting Delegation</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
+      </div>
 
-        <!-- Executive Delegation Notes & Guidelines -->
-        {% if assignment.executive_notes %}
-        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4 border-start border-4 border-info">
-          <div class="card-header bg-white p-4 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-3 p-2 bg-info-subtle text-info">
-                <i class="bi bi-chat-quote-fill fs-5"></i>
+      <!-- Main Content Grid -->
+      <div class="row g-4 mb-4">
+        
+        <!-- Left: Deliverables Scope & Executive Instructions -->
+        <div class="col-12 col-lg-7">
+          
+          <!-- Task Deliverables Scope -->
+          <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+            <div class="card-header bg-white p-4 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-3 p-2 bg-primary-subtle text-primary">
+                  <i class="bi bi-card-text fs-5"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-0">Branch Deliverables Scope & Brief</h5>
               </div>
-              <div>
-                <h5 class="fw-bold text-dark mb-0">Executive Lead Guidance & Directives</h5>
-                <span class="text-muted small">Issued by {{ assignment.executive.get_full_name|default:assignment.executive.username }}</span>
+            </div>
+            <div class="card-body p-4">
+              <div class="bg-light p-3 rounded-3 text-dark mb-3" style="white-space: pre-line; line-height: 1.6;">
+                {{ assignment.task_scope }}
+              </div>
+              
+              <div class="p-3 rounded-3 border bg-white">
+                <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Corporate Client Requirements (Overall)</span>
+                <p class="small text-dark mb-0">{{ assignment.client.needs }}</p>
               </div>
             </div>
           </div>
-          <div class="card-body p-4">
-            <div class="text-dark" style="white-space: pre-line; line-height: 1.6;">
-              {{ assignment.executive_notes }}
+
+          <!-- Executive Delegation Notes & Guidelines -->
+          {% if assignment.executive_notes %}
+          <div class="card border-0 shadow-sm rounded-4 bg-white mb-4" style="border-left: 5px solid #0284c7 !important;">
+            <div class="card-header bg-white p-4 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-3 p-2 bg-info-subtle text-info">
+                  <i class="bi bi-chat-quote-fill fs-5"></i>
+                </div>
+                <div>
+                  <h5 class="fw-bold text-dark mb-0">Executive Lead Guidance & Directives</h5>
+                  <span class="text-muted small">Issued by {{ assignment.executive.get_full_name|default:assignment.executive.username }}</span>
+                </div>
+              </div>
             </div>
-            {% if assignment.delegated_at %}
-            <div class="text-muted small mt-3 pt-2 border-top">
-              <i class="bi bi-clock-history me-1"></i> Delegated on {{ assignment.delegated_at|date:"M d, Y h:i A" }}
+            <div class="card-body p-4">
+              <div class="text-dark" style="white-space: pre-line; line-height: 1.6;">
+                {{ assignment.executive_notes }}
+              </div>
+              {% if assignment.delegated_at %}
+              <div class="text-muted small mt-3 pt-2 border-top">
+                <i class="bi bi-clock-history me-1"></i> Delegated on {{ assignment.delegated_at|date:"M d, Y h:i A" }}
+              </div>
+              {% endif %}
             </div>
-            {% endif %}
           </div>
+          {% endif %}
+
+          <!-- Deliverables Submissions & Review History -->
+          <div class="card border-0 shadow-sm rounded-4 bg-white">
+            <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-3 p-2 bg-success-subtle text-success">
+                  <i class="bi bi-folder-check fs-5"></i>
+                </div>
+                <div>
+                  <h5 class="fw-bold text-dark mb-0">Deliverables Submissions History</h5>
+                  <span class="text-muted small">Audit trail of submitted files and reviews</span>
+                </div>
+              </div>
+              {% if can_submit_work %}
+              <a href="{% url 'client_assignment_submit' assignment.id %}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                <i class="bi bi-plus-circle me-1"></i> Submit Work
+              </a>
+              {% endif %}
+            </div>
+
+            <div class="card-body p-4">
+              {% for sub in assignment.submissions.all %}
+              <div class="p-4 rounded-4 border mb-3 {% if forloop.first %}bg-light border-primary-subtle{% else %}bg-white{% endif %}">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-circle shadow-sm" style="background-color: #4f46e5; width: 40px; height: 40px;">
+                      {{ sub.submitted_by.first_name|default:sub.submitted_by.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                      <strong class="text-dark d-block">{{ sub.submitted_by.get_full_name|default:sub.submitted_by.username }}</strong>
+                      <span class="text-muted small font-monospace"><i class="bi bi-clock me-1"></i> {{ sub.submitted_at|date:"M d, Y h:i A" }}</span>
+                    </div>
+                  </div>
+                  <span class="badge {% if sub.review_stage == 'MANAGER_APPROVED' %}bg-success{% elif 'REVISION' in sub.review_stage %}bg-warning text-dark{% elif sub.review_stage == 'FORWARDED_TO_MANAGER' %}bg-primary{% else %}bg-info text-dark{% endif %} px-3 py-1 font-monospace">
+                    {{ sub.get_review_stage_display }}
+                  </span>
+                </div>
+
+                <!-- Completion Remarks -->
+                <div class="p-3 rounded-3 bg-white border mb-3">
+                  <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Delegate Deliverable Remarks</span>
+                  <div class="text-dark small" style="white-space: pre-line; line-height: 1.5;">{{ sub.remarks }}</div>
+                </div>
+
+                <!-- Attached Deliverable Files -->
+                {% if sub.attachments.all %}
+                <div class="mb-3">
+                  <span class="text-muted small text-uppercase fw-semibold d-block mb-2">Attached Output Files & Media ({{ sub.attachments.count }})</span>
+                  <div class="row g-2">
+                    {% for att in sub.attachments.all %}
+                    <div class="col-12 col-sm-6">
+                      <a href="{{ att.file.url }}" target="_blank" class="p-2 rounded-3 border bg-white text-decoration-none d-flex align-items-center gap-2 hover-shadow transition">
+                        <i class="bi {{ att.icon_class }} fs-4 text-primary"></i>
+                        <div class="overflow-hidden flex-grow-1">
+                          <span class="text-dark small fw-semibold text-truncate d-block">{{ att.filename|default:"Deliverable File" }}</span>
+                          <span class="text-muted" style="font-size: 0.72rem;">{{ att.formatted_file_size }}</span>
+                        </div>
+                        <i class="bi bi-download text-muted ms-auto"></i>
+                      </a>
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+
+                <!-- Executive Feedback Section -->
+                {% if sub.executive_feedback %}
+                <div class="p-3 rounded-3 border bg-warning-subtle text-dark mb-2">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-shield-check text-warning"></i>
+                    <strong class="small">Executive Lead Feedback ({{ sub.executive_reviewed_by.get_full_name|default:sub.executive_reviewed_by.username }}):</strong>
+                  </div>
+                  <div class="small" style="white-space: pre-line;">{{ sub.executive_feedback }}</div>
+                  {% if sub.executive_reviewed_at %}
+                  <div class="text-muted font-monospace" style="font-size: 0.7rem; margin-top: 4px;">{{ sub.executive_reviewed_at|date:"M d, Y h:i A" }}</div>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Department Manager Feedback Section -->
+                {% if sub.manager_feedback %}
+                <div class="p-3 rounded-3 border bg-success-subtle text-dark">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <i class="bi bi-patch-check-fill text-success"></i>
+                    <strong class="small">Creative Department Manager Evaluation ({{ sub.manager_reviewed_by.get_full_name|default:sub.manager_reviewed_by.username }}):</strong>
+                  </div>
+                  <div class="small" style="white-space: pre-line;">{{ sub.manager_feedback }}</div>
+                  {% if sub.manager_reviewed_at %}
+                  <div class="text-muted font-monospace" style="font-size: 0.7rem; margin-top: 4px;">{{ sub.manager_reviewed_at|date:"M d, Y h:i A" }}</div>
+                  {% endif %}
+                </div>
+                {% endif %}
+
+              </div>
+              {% empty %}
+              <div class="text-center py-5 text-muted">
+                <i class="bi bi-cloud-arrow-up fs-1 d-block mb-2 opacity-50"></i>
+                <h6 class="fw-bold">No Deliverables Submitted Yet</h6>
+                <p class="small text-muted mb-3">The assigned delegate has not submitted work completion details for review yet.</p>
+                {% if can_submit_work %}
+                <a href="{% url 'client_assignment_submit' assignment.id %}" class="btn btn-sm btn-success px-3 fw-bold rounded-pill">
+                  <i class="bi bi-upload me-1"></i> Submit Deliverables Now
+                </a>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
         </div>
-        {% endif %}
 
-        <!-- Deliverables Submissions & Review History -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white">
-          <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-3 p-2 bg-success-subtle text-success">
-                <i class="bi bi-folder-check fs-5"></i>
-              </div>
-              <div>
-                <h5 class="fw-bold text-dark mb-0">Deliverables Submissions History</h5>
-                <span class="text-muted small">Audit trail of submitted files and reviews</span>
+        <!-- Right: Workflow Progress & Operational Intelligence -->
+        <div class="col-12 col-lg-5">
+          
+          <!-- Workflow Stage Tracker -->
+          <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
+            <div class="card-header bg-white p-4 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-3 p-2 bg-indigo-subtle text-primary">
+                  <i class="bi bi-bar-chart-steps fs-5"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-0">Workflow Governance Pipeline</h5>
               </div>
             </div>
-            {% if can_submit_work %}
-            <a href="{% url 'client_assignment_submit' assignment.id %}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
-              <i class="bi bi-plus-circle me-1"></i> Submit Work
-            </a>
-            {% endif %}
-          </div>
-
-          <div class="card-body p-4">
-            {% for sub in assignment.submissions.all %}
-            <div class="p-4 rounded-4 border mb-3 {% if forloop.first %}bg-light border-primary-subtle{% else %}bg-white{% endif %}">
-              <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="avatar-circle shadow-sm" style="background-color: #4f46e5; width: 40px; height: 40px;">
-                    {{ sub.submitted_by.first_name|default:sub.submitted_by.username|slice:":1"|upper }}
+            <div class="card-body p-4">
+              
+              <div class="d-flex flex-column gap-3">
+                
+                <!-- Step 1: Branch Assignment -->
+                <div class="d-flex gap-3 align-items-start">
+                  <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                    <i class="bi bi-check2"></i>
                   </div>
                   <div>
-                    <strong class="text-dark d-block">{{ sub.submitted_by.get_full_name|default:sub.submitted_by.username }}</strong>
-                    <span class="text-muted small"><i class="bi bi-clock me-1"></i> {{ sub.submitted_at|date:"M d, Y h:i A" }}</span>
+                    <h6 class="fw-bold text-dark mb-0">1. Manager Initiation</h6>
+                    <span class="text-muted small">Assigned by Dept Manager to {{ assignment.branch.name }} Executive</span>
                   </div>
                 </div>
-                <span class="badge {% if sub.review_stage == 'MANAGER_APPROVED' %}bg-success{% elif 'REVISION' in sub.review_stage %}bg-warning text-dark{% elif sub.review_stage == 'FORWARDED_TO_MANAGER' %}bg-primary{% else %}bg-info text-dark{% endif %} px-3 py-1 font-monospace">
-                  {{ sub.get_review_stage_display }}
-                </span>
-              </div>
 
-              <!-- Completion Remarks -->
-              <div class="p-3 rounded-3 bg-white border mb-3">
-                <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Delegate Deliverable Remarks</span>
-                <div class="text-dark small" style="white-space: pre-line; line-height: 1.5;">{{ sub.remarks }}</div>
-              </div>
-
-              <!-- Attached Deliverable Files -->
-              {% if sub.attachments.all %}
-              <div class="mb-3">
-                <span class="text-muted small text-uppercase fw-semibold d-block mb-2">Attached Output Files & Media ({{ sub.attachments.count }})</span>
-                <div class="row g-2">
-                  {% for att in sub.attachments.all %}
-                  <div class="col-12 col-sm-6">
-                    <a href="{{ att.file.url }}" target="_blank" class="p-2 rounded-3 border bg-white text-decoration-none d-flex align-items-center gap-2 hover-shadow">
-                      <i class="bi {{ att.icon_class }} fs-4"></i>
-                      <div class="overflow-hidden flex-grow-1">
-                        <span class="text-dark small fw-semibold text-truncate d-block">{{ att.filename|default:"Deliverable File" }}</span>
-                        <span class="text-muted" style="font-size: 0.72rem;">{{ att.formatted_file_size }}</span>
-                      </div>
-                      <i class="bi bi-download text-muted ms-auto"></i>
-                    </a>
+                <!-- Step 2: Executive Delegation -->
+                <div class="d-flex gap-3 align-items-start">
+                  <div class="rounded-circle {% if assignment.delegated_member %}bg-success text-white{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                    {% if assignment.delegated_member %}<i class="bi bi-check2"></i>{% else %}2{% endif %}
                   </div>
-                  {% endfor %}
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0">2. Executive Delegation</h6>
+                    <span class="text-muted small">
+                      {% if assignment.delegated_member %}
+                      Delegated to {{ assignment.delegated_member.get_full_name|default:assignment.delegated_member.username }}
+                      {% else %}
+                      Awaiting Executive assignment
+                      {% endif %}
+                    </span>
+                  </div>
                 </div>
-              </div>
-              {% endif %}
 
-              <!-- Executive Feedback Section -->
-              {% if sub.executive_feedback %}
-              <div class="p-3 rounded-3 border bg-warning-subtle text-dark mb-2">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                  <i class="bi bi-shield-check text-warning"></i>
-                  <strong class="small">Executive Lead Feedback ({{ sub.executive_reviewed_by.get_full_name|default:sub.executive_reviewed_by.username }}):</strong>
+                <!-- Step 3: Work Execution & Submission -->
+                <div class="d-flex gap-3 align-items-start">
+                  <div class="rounded-circle {% if assignment.submissions.exists %}bg-success text-white{% elif assignment.status == 'EXECUTIVE_REVISION' %}bg-warning text-dark{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                    {% if assignment.submissions.exists %}<i class="bi bi-check2"></i>{% else %}3{% endif %}
+                  </div>
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0">3. Delegate Work Submission</h6>
+                    <span class="text-muted small">
+                      {% if assignment.submissions.exists %}
+                      Deliverables submitted ({{ assignment.submissions.count }} revision{{ assignment.submissions.count|pluralize }})
+                      {% else %}
+                      Work in progress by delegate
+                      {% endif %}
+                    </span>
+                  </div>
                 </div>
-                <div class="small" style="white-space: pre-line;">{{ sub.executive_feedback }}</div>
-                {% if sub.executive_reviewed_at %}
-                <div class="text-muted" style="font-size: 0.7rem; margin-top: 4px;">{{ sub.executive_reviewed_at|date:"M d, Y h:i A" }}</div>
-                {% endif %}
-              </div>
-              {% endif %}
 
-              <!-- Department Manager Feedback Section -->
-              {% if sub.manager_feedback %}
-              <div class="p-3 rounded-3 border bg-success-subtle text-dark">
-                <div class="d-flex align-items-center gap-2 mb-1">
-                  <i class="bi bi-patch-check-fill text-success"></i>
-                  <strong class="small">Creative Department Manager Evaluation ({{ sub.manager_reviewed_by.get_full_name|default:sub.manager_reviewed_by.username }}):</strong>
+                <!-- Step 4: Executive Review -->
+                <div class="d-flex gap-3 align-items-start">
+                  <div class="rounded-circle {% if assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' or assignment.status == 'COMPLETED' %}bg-success text-white{% elif assignment.status == 'UNDER_EXECUTIVE_REVIEW' %}bg-warning text-dark{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                    {% if assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' or assignment.status == 'COMPLETED' %}<i class="bi bi-check2"></i>{% else %}4{% endif %}
+                  </div>
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0">4. Executive Review & Forwarding</h6>
+                    <span class="text-muted small">
+                      {% if assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' or assignment.status == 'COMPLETED' %}
+                      Approved by Executive &bull; Forwarded to Manager
+                      {% elif assignment.status == 'UNDER_EXECUTIVE_REVIEW' %}
+                      Pending Executive decision
+                      {% elif assignment.status == 'EXECUTIVE_REVISION' %}
+                      Executive requested revision
+                      {% else %}
+                      Pending submission
+                      {% endif %}
+                    </span>
+                  </div>
                 </div>
-                <div class="small" style="white-space: pre-line;">{{ sub.manager_feedback }}</div>
-                {% if sub.manager_reviewed_at %}
-                <div class="text-muted" style="font-size: 0.7rem; margin-top: 4px;">{{ sub.manager_reviewed_at|date:"M d, Y h:i A" }}</div>
-                {% endif %}
-              </div>
-              {% endif %}
 
-            </div>
-            {% empty %}
-            <div class="text-center py-5 text-muted">
-              <i class="bi bi-cloud-arrow-up fs-1 d-block mb-2 opacity-50"></i>
-              <h6 class="fw-bold">No Deliverables Submitted Yet</h6>
-              <p class="small text-muted mb-3">The assigned delegate has not submitted work completion details for review yet.</p>
-              {% if can_submit_work %}
-              <a href="{% url 'client_assignment_submit' assignment.id %}" class="btn btn-sm btn-success px-3 fw-bold">
-                <i class="bi bi-upload me-1"></i> Submit Deliverables Now
-              </a>
-              {% endif %}
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Right: Workflow Progress & Operational Intelligence -->
-      <div class="col-12 col-lg-5">
-        
-        <!-- Workflow Stage Tracker -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white mb-4">
-          <div class="card-header bg-white p-4 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-3 p-2 bg-indigo-subtle text-primary">
-                <i class="bi bi-bar-chart-steps fs-5"></i>
-              </div>
-              <h5 class="fw-bold text-dark mb-0">Workflow Governance Pipeline</h5>
-            </div>
-          </div>
-          <div class="card-body p-4">
-            
-            <div class="d-flex flex-column gap-3">
-              
-              <!-- Step 1: Branch Assignment -->
-              <div class="d-flex gap-3 align-items-start">
-                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
-                  <i class="bi bi-check2"></i>
+                <!-- Step 5: Department Manager Final Sign-Off -->
+                <div class="d-flex gap-3 align-items-start">
+                  <div class="rounded-circle {% if assignment.status == 'COMPLETED' %}bg-success text-white{% elif assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' %}bg-primary text-white{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
+                    {% if assignment.status == 'COMPLETED' %}<i class="bi bi-check2-all"></i>{% else %}5{% endif %}
+                  </div>
+                  <div>
+                    <h6 class="fw-bold text-dark mb-0">5. Dept Manager Final Approval</h6>
+                    <span class="text-muted small">
+                      {% if assignment.status == 'COMPLETED' %}
+                      Approved & marked Completed
+                      {% elif assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' %}
+                      Awaiting Manager final evaluation
+                      {% else %}
+                      Pending previous stages
+                      {% endif %}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h6 class="fw-bold text-dark mb-0">1. Manager Initiation</h6>
-                  <span class="text-muted small">Assigned by Dept Manager to {{ assignment.branch.name }} Executive</span>
-                </div>
+
               </div>
 
-              <!-- Step 2: Executive Delegation -->
-              <div class="d-flex gap-3 align-items-start">
-                <div class="rounded-circle {% if assignment.delegated_member %}bg-success text-white{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
-                  {% if assignment.delegated_member %}<i class="bi bi-check2"></i>{% else %}2{% endif %}
-                </div>
-                <div>
-                  <h6 class="fw-bold text-dark mb-0">2. Executive Delegation</h6>
-                  <span class="text-muted small">
-                    {% if assignment.delegated_member %}
-                    Delegated to {{ assignment.delegated_member.get_full_name|default:assignment.delegated_member.username }}
-                    {% else %}
-                    Awaiting Executive assignment
-                    {% endif %}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Step 3: Work Execution & Submission -->
-              <div class="d-flex gap-3 align-items-start">
-                <div class="rounded-circle {% if assignment.submissions.exists %}bg-success text-white{% elif assignment.status == 'EXECUTIVE_REVISION' %}bg-warning text-dark{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
-                  {% if assignment.submissions.exists %}<i class="bi bi-check2"></i>{% else %}3{% endif %}
-                </div>
-                <div>
-                  <h6 class="fw-bold text-dark mb-0">3. Delegate Work Submission</h6>
-                  <span class="text-muted small">
-                    {% if assignment.submissions.exists %}
-                    Deliverables submitted ({{ assignment.submissions.count }} revision{{ assignment.submissions.count|pluralize }})
-                    {% else %}
-                    Work in progress by delegate
-                    {% endif %}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Step 4: Executive Review -->
-              <div class="d-flex gap-3 align-items-start">
-                <div class="rounded-circle {% if assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' or assignment.status == 'COMPLETED' %}bg-success text-white{% elif assignment.status == 'UNDER_EXECUTIVE_REVIEW' %}bg-warning text-dark{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
-                  {% if assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' or assignment.status == 'COMPLETED' %}<i class="bi bi-check2"></i>{% else %}4{% endif %}
-                </div>
-                <div>
-                  <h6 class="fw-bold text-dark mb-0">4. Executive Review & Forwarding</h6>
-                  <span class="text-muted small">
-                    {% if assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' or assignment.status == 'COMPLETED' %}
-                    Approved by Executive &bull; Forwarded to Manager
-                    {% elif assignment.status == 'UNDER_EXECUTIVE_REVIEW' %}
-                    Pending Executive decision
-                    {% elif assignment.status == 'EXECUTIVE_REVISION' %}
-                    Executive requested revision
-                    {% else %}
-                    Pending submission
-                    {% endif %}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Step 5: Department Manager Final Sign-Off -->
-              <div class="d-flex gap-3 align-items-start">
-                <div class="rounded-circle {% if assignment.status == 'COMPLETED' %}bg-success text-white{% elif assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' %}bg-primary text-white{% else %}bg-secondary text-white-50{% endif %} d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;">
-                  {% if assignment.status == 'COMPLETED' %}<i class="bi bi-check2-all"></i>{% else %}5{% endif %}
-                </div>
-                <div>
-                  <h6 class="fw-bold text-dark mb-0">5. Dept Manager Final Approval</h6>
-                  <span class="text-muted small">
-                    {% if assignment.status == 'COMPLETED' %}
-                    Approved & marked Completed
-                    {% elif assignment.status == 'UNDER_DEPT_MANAGER_REVIEW' %}
-                    Awaiting Manager final evaluation
-                    {% else %}
-                    Pending previous stages
-                    {% endif %}
-                  </span>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Corporate Client Profile Card -->
-        <div class="card border-0 shadow-sm rounded-4 bg-white">
-          <div class="card-header bg-white p-4 border-bottom">
-            <div class="d-flex align-items-center gap-2">
-              <div class="rounded-3 p-2 bg-teal-subtle text-teal" style="background-color: #ccfbf1; color: #0f766e;">
-                <i class="bi bi-building fs-5"></i>
-              </div>
-              <h5 class="fw-bold text-dark mb-0">Client Overview</h5>
             </div>
           </div>
-          <div class="card-body p-4">
-            <h5 class="fw-bold text-dark mb-1">{{ assignment.client.company }}</h5>
-            <p class="text-muted small mb-3">Primary Contact: {{ assignment.client.name }}</p>
 
-            <div class="d-flex flex-column gap-2 small">
-              <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted">Client Code:</span>
-                <span class="font-monospace fw-bold">{{ assignment.client.client_number }}</span>
-              </div>
-              <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted">Registered On:</span>
-                <span>{{ assignment.client.created_at|date:"M d, Y" }}</span>
-              </div>
-              <div class="d-flex justify-content-between py-2 border-bottom">
-                <span class="text-muted">Total Branch Allocations:</span>
-                <span class="badge bg-secondary-subtle text-dark">{{ assignment.client.assignments.count }}</span>
+          <!-- Corporate Client Profile Card -->
+          <div class="card border-0 shadow-sm rounded-4 bg-white">
+            <div class="card-header bg-white p-4 border-bottom">
+              <div class="d-flex align-items-center gap-2">
+                <div class="rounded-3 p-2 bg-teal-subtle text-teal" style="background-color: #ccfbf1; color: #0f766e;">
+                  <i class="bi bi-building fs-5"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-0">Client Overview</h5>
               </div>
             </div>
+            <div class="card-body p-4">
+              <h5 class="fw-bold text-dark mb-1">{{ assignment.client.company }}</h5>
+              <p class="text-muted small mb-3">Primary Contact: {{ assignment.client.name }}</p>
 
-            <div class="mt-4 pt-2">
-              <a href="{% url 'client_detail' assignment.client.id %}" class="btn btn-outline-secondary w-100 rounded-pill btn-sm">
-                <i class="bi bi-folder-fill me-1"></i> View Full Client Dossier
-              </a>
+              <div class="d-flex flex-column gap-2 small">
+                <div class="d-flex justify-content-between py-2 border-bottom">
+                  <span class="text-muted">Client Code:</span>
+                  <span class="font-monospace fw-bold">{{ assignment.client.client_number }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 border-bottom">
+                  <span class="text-muted">Registered On:</span>
+                  <span class="font-monospace">{{ assignment.client.created_at|date:"M d, Y" }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 border-bottom">
+                  <span class="text-muted">Total Branch Allocations:</span>
+                  <span class="badge bg-secondary-subtle text-dark">{{ assignment.client.assignments.count }}</span>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-2">
+                <a href="{% url 'client_detail' assignment.client.id %}" class="btn btn-outline-secondary w-100 rounded-pill btn-sm">
+                  <i class="bi bi-folder-fill me-1"></i> View Full Client Dossier
+                </a>
+              </div>
             </div>
           </div>
+
         </div>
 
       </div>
 
     </div>
-
   </div>
 </div>
 {% endblock %}

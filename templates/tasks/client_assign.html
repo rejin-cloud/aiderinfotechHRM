@@ -3,199 +3,201 @@
 {% block title %}Assign Client to Branch | Creative Operations | Aider Infotech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-xl-10">
-    <div class="hrms-card shadow-sm border-0">
-      
-      <!-- Card Header -->
-      <div class="hrms-card-header text-white p-4" style="background: linear-gradient(135deg, #0d9488 0%, #1e1b4b 100%);">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
-              <i class="bi bi-diagram-3-fill fs-3"></i>
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        
+        <!-- Card Header -->
+        <div class="card-header text-white p-4" style="background: linear-gradient(135deg, #0f172a 0%, #0f766e 60%, #0d9488 100%);">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow" style="width: 48px; height: 48px;">
+                <i class="bi bi-diagram-3-fill fs-3"></i>
+              </div>
+              <div>
+                <h4 class="fw-bold mb-0 text-white">Assign Client to Branch Executive</h4>
+                <p class="text-white-50 small mb-0">Multi-Branch Task Delegation & Executive Dispatch Portal</p>
+              </div>
             </div>
-            <div>
-              <h4 class="fw-bold mb-0 text-white">Assign Client to Branch Executive</h4>
-              <p class="text-white-50 small mb-0">Multi-Branch Task Delegation & Executive Dispatch Portal</p>
+            <div class="d-flex gap-2">
+              {% if selected_client %}
+              <a href="{% url 'client_detail' selected_client.id %}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold">
+                <i class="bi bi-arrow-left me-1"></i> Back to Client Dossier
+              </a>
+              {% else %}
+              <a href="{% url 'client_list' %}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold">
+                <i class="bi bi-people-fill me-1"></i> Client Directory
+              </a>
+              {% endif %}
             </div>
-          </div>
-          <div class="d-flex gap-2">
-            {% if selected_client %}
-            <a href="{% url 'client_detail' selected_client.id %}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-              <i class="bi bi-arrow-left me-1"></i> Back to Client Dossier
-            </a>
-            {% else %}
-            <a href="{% url 'client_list' %}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-              <i class="bi bi-people-fill me-1"></i> Client Directory
-            </a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
-
-      <!-- Card Body -->
-      <div class="hrms-card-body p-4 p-md-5">
-
-        <!-- Authority & Workflow Explainer Banner -->
-        <div class="alert alert-info bg-info-subtle border-info-subtle rounded-3 p-3 mb-4">
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <i class="bi bi-diagram-2-fill fs-4 text-info"></i>
-            <strong class="text-dark">Multi-Branch Client Assignment Workflow (2-Tier Dispatch)</strong>
-          </div>
-          <div class="small text-muted">
-            <p class="mb-1"><strong>Step 1 (Manager Action):</strong> Assign this client to a specific branch (e.g. Marketing, Designing, Editing) and its <strong>Branch Executive</strong> for a specific deliverable.</p>
-            <p class="mb-0"><strong>Step 2 (Executive Action):</strong> The Branch Executive receives this client directive and delegates the task to staff members or interns within their branch.</p>
           </div>
         </div>
 
-        {% if selected_client %}
-        <!-- Selected Client Summary Card -->
-        <div class="card border-0 bg-light rounded-3 p-3 mb-4">
-          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <div>
-              <span class="badge bg-teal text-white font-monospace mb-1" style="background-color: #0d9488;">{{ selected_client.client_number }}</span>
-              <h5 class="fw-bold text-dark mb-0">{{ selected_client.company }}</h5>
-              <span class="text-muted small">Client Contact: <strong>{{ selected_client.name }}</strong></span>
+        <!-- Card Body -->
+        <div class="card-body p-4 p-md-5">
+
+          <!-- Authority & Workflow Explainer Banner -->
+          <div class="alert alert-info bg-info-subtle border-info-subtle rounded-3 p-3 mb-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="bi bi-diagram-2-fill fs-4 text-info"></i>
+              <strong class="text-dark">Multi-Branch Client Assignment Workflow (2-Tier Dispatch)</strong>
             </div>
-            <div class="text-md-end">
-              <span class="badge bg-primary-subtle text-primary border">
-                {{ existing_assignments.count }} Active Branch Assignment{{ existing_assignments.count|pluralize }}
-              </span>
+            <div class="small text-muted">
+              <p class="mb-1"><strong>Step 1 (Manager Action):</strong> Assign this client to a specific branch wing (e.g. Marketing, Designing, Editing) and its <strong>Branch Executive</strong> for a specific deliverable.</p>
+              <p class="mb-0"><strong>Step 2 (Executive Action):</strong> The Branch Executive receives this client directive and delegates the task to staff members or interns within their branch.</p>
             </div>
           </div>
-          <div class="mt-2 pt-2 border-top">
-            <span class="text-muted small d-block">Overall Client Needs / Requirements:</span>
-            <div class="small text-dark mt-1">{{ selected_client.needs }}</div>
+
+          {% if selected_client %}
+          <!-- Selected Client Summary Card -->
+          <div class="card border-0 bg-light rounded-3 p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <span class="badge bg-teal text-white font-monospace mb-1" style="background-color: #0d9488;">{{ selected_client.client_number }}</span>
+                <h5 class="fw-bold text-dark mb-0">{{ selected_client.company }}</h5>
+                <span class="text-muted small">Client Contact: <strong>{{ selected_client.name }}</strong></span>
+              </div>
+              <div class="text-md-end">
+                <span class="badge bg-primary-subtle text-primary border">
+                  {{ existing_assignments.count }} Active Branch Assignment{{ existing_assignments.count|pluralize }}
+                </span>
+              </div>
+            </div>
+            <div class="mt-2 pt-2 border-top">
+              <span class="text-muted small d-block">Overall Client Needs / Requirements:</span>
+              <div class="small text-dark mt-1">{{ selected_client.needs }}</div>
+            </div>
           </div>
+
+          <!-- Existing Branch Assignments Tracker -->
+          {% if existing_assignments %}
+          <div class="mb-4">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-check2-circle text-success me-1"></i> Current Branch Allocations for {{ selected_client.company }}
+            </h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Branch Wing</th>
+                    <th>Task Title</th>
+                    <th>Assigned Executive</th>
+                    <th>Branch Delegate (Staff/Intern)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for a in existing_assignments %}
+                  <tr>
+                    <td><span class="badge bg-secondary-subtle text-dark border">{{ a.branch.name }}</span></td>
+                    <td class="fw-semibold text-dark">{{ a.task_title }}</td>
+                    <td>
+                      <span class="small text-dark"><i class="bi bi-person-fill text-muted me-1"></i> {{ a.executive.get_full_name|default:a.executive.username }}</span>
+                    </td>
+                    <td>
+                      {% if a.delegated_member %}
+                        <span class="badge bg-info-subtle text-info border">
+                          <i class="bi bi-person-check-fill me-1"></i> {{ a.delegated_member.get_full_name|default:a.delegated_member.username }}
+                        </span>
+                      {% else %}
+                        <span class="badge bg-warning-subtle text-warning border">Awaiting Executive Delegation</span>
+                      {% endif %}
+                    </td>
+                    <td><span class="badge {{ a.status_badge_class }}">{{ a.get_status_display }}</span></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+          {% endif %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Assignment Form -->
+          <form method="post">
+            {% csrf_token %}
+
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-plus-circle-fill text-teal me-1" style="color: #0d9488;"></i> Create New Branch Assignment
+            </h6>
+
+            <div class="row g-3 mb-4">
+              {% if not selected_client %}
+              <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Select Client <span class="text-danger">*</span></label>
+                {{ form.client }}
+                {% if form.client.errors %}<div class="text-danger small mt-1">{{ form.client.errors }}</div>{% endif %}
+              </div>
+              {% else %}
+              <input type="hidden" name="client" value="{{ selected_client.id }}">
+              {% endif %}
+
+              <div class="col-12 {% if selected_client %}col-md-6{% else %}col-md-4{% endif %}">
+                <label class="form-label fw-semibold">Target Branch Wing <span class="text-danger">*</span></label>
+                {{ form.branch }}
+                <div class="form-text small text-muted">e.g. Designing, Marketing, Editing.</div>
+                {% if form.branch.errors %}<div class="text-danger small mt-1">{{ form.branch.errors }}</div>{% endif %}
+              </div>
+
+              <div class="col-12 {% if selected_client %}col-md-6{% else %}col-md-4{% endif %}">
+                <label class="form-label fw-semibold">Assign to Branch Executive <span class="text-danger">*</span></label>
+                {{ form.executive }}
+                <div class="form-text small text-muted">Select the Executive leading this branch wing.</div>
+                {% if form.executive.errors %}<div class="text-danger small mt-1">{{ form.executive.errors }}</div>{% endif %}
+              </div>
+            </div>
+
+            <!-- Section 2: Task Specifics for this branch -->
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-file-earmark-text-fill text-primary me-1"></i> Branch Deliverable & Instructions
+            </h6>
+
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-md-8">
+                <label class="form-label fw-semibold">Task / Deliverable Headline <span class="text-danger">*</span></label>
+                {{ form.task_title }}
+                <div class="form-text small text-muted">e.g. "Social Media Marketing Campaign & Reels Strategy" or "Brand Identity Designing & Collaterals"</div>
+                {% if form.task_title.errors %}<div class="text-danger small mt-1">{{ form.task_title.errors }}</div>{% endif %}
+              </div>
+
+              <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Target Completion Deadline</label>
+                {{ form.deadline }}
+                {% if form.deadline.errors %}<div class="text-danger small mt-1">{{ form.deadline.errors }}</div>{% endif %}
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Branch Scope, Specifications & Instructions <span class="text-danger">*</span></label>
+                {{ form.task_scope }}
+                <div class="form-text small text-muted">Detail exactly what this branch needs to produce for the client.</div>
+                {% if form.task_scope.errors %}<div class="text-danger small mt-1">{{ form.task_scope.errors }}</div>{% endif %}
+              </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+              {% if selected_client %}
+              <a href="{% url 'client_detail' selected_client.id %}" class="btn btn-outline-secondary px-4 rounded-pill">Cancel</a>
+              {% else %}
+              <a href="{% url 'client_list' %}" class="btn btn-outline-secondary px-4 rounded-pill">Cancel</a>
+              {% endif %}
+              <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm rounded-pill" style="background: #0d9488; border-color: #0d9488;">
+                <i class="bi bi-check-circle-fill me-1"></i> Assign to Branch Executive
+              </button>
+            </div>
+
+          </form>
+
         </div>
-
-        <!-- Existing Branch Assignments Tracker -->
-        {% if existing_assignments %}
-        <div class="mb-4">
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-check2-circle text-success me-1"></i> Current Branch Allocations for {{ selected_client.company }}
-          </h6>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover align-middle mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Branch</th>
-                  <th>Task Title</th>
-                  <th>Assigned Executive</th>
-                  <th>Branch Delegate (Staff/Intern)</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for a in existing_assignments %}
-                <tr>
-                  <td><span class="badge bg-secondary-subtle text-dark border">{{ a.branch.name }}</span></td>
-                  <td class="fw-semibold text-dark">{{ a.task_title }}</td>
-                  <td>
-                    <span class="small text-dark"><i class="bi bi-person-fill text-muted me-1"></i> {{ a.executive.get_full_name|default:a.executive.username }}</span>
-                  </td>
-                  <td>
-                    {% if a.delegated_member %}
-                      <span class="badge bg-info-subtle text-info border">
-                        <i class="bi bi-person-check-fill me-1"></i> {{ a.delegated_member.get_full_name|default:a.delegated_member.username }}
-                      </span>
-                    {% else %}
-                      <span class="badge bg-warning-subtle text-warning border">Awaiting Executive Delegation</span>
-                    {% endif %}
-                  </td>
-                  <td><span class="badge {{ a.status_badge_class }}">{{ a.get_status_display }}</span></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        {% endif %}
-        {% endif %}
-
-        {% if form.non_field_errors %}
-        <div class="alert alert-danger mb-4">
-          {% for error in form.non_field_errors %}
-            <div>{{ error }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Assignment Form -->
-        <form method="post">
-          {% csrf_token %}
-
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-plus-circle-fill text-teal me-1" style="color: #0d9488;"></i> Create New Branch Assignment
-          </h6>
-
-          <div class="row g-3 mb-4">
-            {% if not selected_client %}
-            <div class="col-12 col-md-4">
-              <label class="form-label fw-semibold">Select Client <span class="text-danger">*</span></label>
-              {{ form.client }}
-              {% if form.client.errors %}<div class="text-danger small mt-1">{{ form.client.errors }}</div>{% endif %}
-            </div>
-            {% else %}
-            <input type="hidden" name="client" value="{{ selected_client.id }}">
-            {% endif %}
-
-            <div class="col-12 {% if selected_client %}col-md-6{% else %}col-md-4{% endif %}">
-              <label class="form-label fw-semibold">Target Branch <span class="text-danger">*</span></label>
-              {{ form.branch }}
-              <div class="form-text small text-muted">e.g. Designing, Marketing, Editing.</div>
-              {% if form.branch.errors %}<div class="text-danger small mt-1">{{ form.branch.errors }}</div>{% endif %}
-            </div>
-
-            <div class="col-12 {% if selected_client %}col-md-6{% else %}col-md-4{% endif %}">
-              <label class="form-label fw-semibold">Assign to Branch Executive <span class="text-danger">*</span></label>
-              {{ form.executive }}
-              <div class="form-text small text-muted">Select the Executive leading this branch.</div>
-              {% if form.executive.errors %}<div class="text-danger small mt-1">{{ form.executive.errors }}</div>{% endif %}
-            </div>
-          </div>
-
-          <!-- Section 2: Task Specifics for this branch -->
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-file-earmark-text-fill text-primary me-1"></i> Branch Deliverable & Instructions
-          </h6>
-
-          <div class="row g-3 mb-4">
-            <div class="col-12 col-md-8">
-              <label class="form-label fw-semibold">Task / Deliverable Headline <span class="text-danger">*</span></label>
-              {{ form.task_title }}
-              <div class="form-text small text-muted">e.g. "Social Media Marketing Campaign & Reels Strategy" or "Brand Identity Designing & Collaterals"</div>
-              {% if form.task_title.errors %}<div class="text-danger small mt-1">{{ form.task_title.errors }}</div>{% endif %}
-            </div>
-
-            <div class="col-12 col-md-4">
-              <label class="form-label fw-semibold">Target Completion Deadline</label>
-              {{ form.deadline }}
-              {% if form.deadline.errors %}<div class="text-danger small mt-1">{{ form.deadline.errors }}</div>{% endif %}
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Branch Scope, Specifications & Instructions <span class="text-danger">*</span></label>
-              {{ form.task_scope }}
-              <div class="form-text small text-muted">Detail exactly what this branch needs to produce for the client.</div>
-              {% if form.task_scope.errors %}<div class="text-danger small mt-1">{{ form.task_scope.errors }}</div>{% endif %}
-            </div>
-          </div>
-
-          <!-- Submit Buttons -->
-          <div class="d-flex justify-content-end gap-3 pt-3 border-top">
-            {% if selected_client %}
-            <a href="{% url 'client_detail' selected_client.id %}" class="btn btn-outline-secondary px-4">Cancel</a>
-            {% else %}
-            <a href="{% url 'client_list' %}" class="btn btn-outline-secondary px-4">Cancel</a>
-            {% endif %}
-            <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm" style="background: #0d9488; border-color: #0d9488;">
-              <i class="bi bi-check-circle-fill me-1"></i> Assign to Branch Executive
-            </button>
-          </div>
-
-        </form>
-
       </div>
     </div>
   </div>

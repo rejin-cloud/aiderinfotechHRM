@@ -3,122 +3,127 @@
 {% block title %}Submit Deliverables: {{ assignment.task_title }} | Aider Infotech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-lg-8">
-    
-    <!-- Top Back Link -->
-    <div class="mb-3">
-      <a href="{% url 'client_assignment_detail' assignment.id %}" class="text-decoration-none text-muted small fw-semibold">
-        <i class="bi bi-arrow-left me-1"></i> Back to Task Dossier
-      </a>
-    </div>
-
-    <!-- Main Card -->
-    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
       
-      <!-- Card Header -->
-      <div class="card-header bg-white p-4 border-bottom">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-3 p-2 bg-success-subtle text-success">
-              <i class="bi bi-upload fs-4"></i>
-            </div>
-            <div>
-              <h4 class="fw-bold text-dark mb-0">Submit Completed Deliverables</h4>
-              <span class="text-muted small">Deliverable handover for {{ assignment.executive.get_full_name|default:assignment.executive.username }} (Branch Executive)</span>
-            </div>
-          </div>
-          <span class="badge bg-secondary-subtle text-dark border">{{ assignment.branch.name }} Wing</span>
-        </div>
+      <!-- Top Back Link -->
+      <div class="mb-3">
+        <a href="{% url 'client_assignment_detail' assignment.id %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+          <i class="bi bi-arrow-left me-1"></i> Back to Task Dossier
+        </a>
       </div>
 
-      <!-- Task Context Summary -->
-      <div class="p-4 bg-light border-bottom">
-        <div class="row g-3 align-items-center">
-          <div class="col-12 col-md-8">
-            <span class="badge bg-teal-subtle text-teal font-monospace mb-1" style="background-color: #ccfbf1; color: #0f766e;">
-              {{ assignment.client.client_number }} &bull; {{ assignment.client.company }}
-            </span>
-            <h5 class="fw-bold text-dark mb-1">{{ assignment.task_title }}</h5>
-            <div class="text-muted small">{{ assignment.task_scope|truncatechars:140 }}</div>
-          </div>
-          <div class="col-12 col-md-4 text-md-end">
-            <div class="text-muted small">Target Deadline</div>
-            <strong class="text-dark">
-              {% if assignment.deadline %}{{ assignment.deadline|date:"M d, Y h:i A" }}{% else %}No target deadline{% endif %}
-            </strong>
+      <!-- Main Card -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        
+        <!-- Card Header -->
+        <div class="card-header text-white p-4" style="background: linear-gradient(135deg, #0f172a 0%, #0f766e 60%, #0d9488 100%);">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 p-2 bg-white text-teal d-flex align-items-center justify-content-center shadow" style="width: 48px; height: 48px; color: #0d9488;">
+                <i class="bi bi-cloud-arrow-up-fill fs-3"></i>
+              </div>
+              <div>
+                <h4 class="fw-bold text-white mb-0">Submit Completed Deliverables</h4>
+                <span class="text-white-50 small">Deliverable handover for {{ assignment.executive.get_full_name|default:assignment.executive.username }} (Branch Executive)</span>
+              </div>
+            </div>
+            <span class="badge bg-white bg-opacity-20 text-white border border-light">{{ assignment.branch.name }} Wing</span>
           </div>
         </div>
 
-        {% if assignment.status == 'EXECUTIVE_REVISION' or assignment.status == 'DEPT_MANAGER_REVISION' %}
-        <div class="alert alert-warning border-warning rounded-3 mt-3 mb-0">
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-            <strong class="text-dark">Revision Notice:</strong>
-          </div>
-          <p class="small text-dark mb-0">
-            Please address all feedback notes received in your previous review cycle before resubmitting.
-          </p>
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Form Body -->
-      <div class="card-body p-4 p-md-5">
-        <form method="post" enctype="multipart/form-data" id="client-submission-form">
-          {% csrf_token %}
-
-          <!-- Remarks / Summary Field -->
-          <div class="mb-4">
-            <label class="form-label fw-bold text-dark">
-              Work Summary, Output Details & Remarks <span class="text-danger">*</span>
-            </label>
-            {{ form.remarks }}
-            {% if form.remarks.errors %}
-            <div class="text-danger small mt-1">{{ form.remarks.errors }}</div>
-            {% endif %}
-            <div class="form-text text-muted">
-              Summarize what has been accomplished, output file specifications, cloud/drive links, or design notes.
+        <!-- Task Context Summary -->
+        <div class="p-4 bg-light border-bottom">
+          <div class="row g-3 align-items-center">
+            <div class="col-12 col-md-8">
+              <span class="badge bg-teal-subtle text-teal font-monospace mb-1" style="background-color: #ccfbf1; color: #0f766e;">
+                {{ assignment.client.client_number }} &bull; {{ assignment.client.company }}
+              </span>
+              <h5 class="fw-bold text-dark mb-1">{{ assignment.task_title }}</h5>
+              <div class="text-muted small">{{ assignment.task_scope|truncatechars:140 }}</div>
+            </div>
+            <div class="col-12 col-md-4 text-md-end">
+              <div class="text-muted small">Target Deadline</div>
+              <strong class="text-dark font-monospace">
+                {% if assignment.deadline %}{{ assignment.deadline|date:"M d, Y h:i A" }}{% else %}No target deadline{% endif %}
+              </strong>
             </div>
           </div>
 
-          <!-- Deliverables & Supporting Media Files Upload (Any format) -->
-          <div class="mb-4">
-            <label class="form-label fw-bold text-dark">
-              Attach Supporting Media & Deliverable Files
-            </label>
-            <input type="file" name="submission_files" id="id_submission_files" class="form-control" multiple>
-            <div class="form-text text-muted">
-              You can upload multiple files of ANY format (e.g., PNG, JPG, MP4, PSD, AI, ZIP, PDF, DOCX, etc.). Hold <kbd>Ctrl</kbd> or <kbd>Shift</kbd> to select multiple files.
-            </div>
-          </div>
-
-          <!-- Workflow Notice -->
-          <div class="p-3 rounded-3 bg-light border mb-4">
+          {% if assignment.status == 'EXECUTIVE_REVISION' or assignment.status == 'DEPT_MANAGER_REVISION' %}
+          <div class="alert alert-warning border-warning rounded-3 mt-3 mb-0">
             <div class="d-flex align-items-center gap-2 mb-1">
-              <i class="bi bi-info-circle text-primary"></i>
-              <strong class="small text-dark">Review Process Notice</strong>
+              <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+              <strong class="text-dark">Revision Notice:</strong>
             </div>
-            <p class="small text-muted mb-0">
-              Upon submission, your work will be submitted to your direct Branch Executive (<strong>{{ assignment.executive.get_full_name|default:assignment.executive.username }}</strong>) for review. Once verified, the Executive will forward it to the Creative Department Manager for final approval.
+            <p class="small text-dark mb-0">
+              Please address all feedback notes received in your previous review cycle before resubmitting.
             </p>
           </div>
+          {% endif %}
+        </div>
 
-          <!-- Action Buttons -->
-          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-            <a href="{% url 'client_assignment_detail' assignment.id %}" class="btn btn-outline-secondary px-4 rounded-pill">
-              Cancel
-            </a>
-            <button type="submit" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm">
-              <i class="bi bi-cloud-arrow-up-fill me-1"></i> Submit Deliverables
-            </button>
-          </div>
+        <!-- Form Body -->
+        <div class="card-body p-4 p-md-5">
+          <form method="post" enctype="multipart/form-data" id="client-submission-form">
+            {% csrf_token %}
 
-        </form>
+            <!-- Remarks / Summary Field -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                Work Summary, Output Details & Remarks <span class="text-danger">*</span>
+              </label>
+              {{ form.remarks }}
+              {% if form.remarks.errors %}
+              <div class="text-danger small mt-1">{{ form.remarks.errors }}</div>
+              {% endif %}
+              <div class="form-text text-muted">
+                Summarize what has been accomplished, output file specifications, cloud/drive links, or design notes.
+              </div>
+            </div>
+
+            <!-- Deliverables & Supporting Media Files Upload (Any format) -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                Attach Supporting Media & Deliverable Files
+              </label>
+              <div class="p-4 bg-light rounded-3 border border-dashed text-center">
+                <i class="bi bi-cloud-arrow-up fs-2 text-teal d-block mb-2" style="color: #0d9488;"></i>
+                <input type="file" name="submission_files" id="id_submission_files" class="form-control mb-2" multiple>
+                <div class="form-text text-muted">
+                  You can upload multiple files of ANY format (e.g., PNG, JPG, MP4, PSD, AI, ZIP, PDF, DOCX, etc.). Hold <kbd>Ctrl</kbd> or <kbd>Shift</kbd> to select multiple files.
+                </div>
+              </div>
+            </div>
+
+            <!-- Workflow Notice -->
+            <div class="p-3 rounded-3 bg-light border mb-4">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-info-circle text-primary"></i>
+                <strong class="small text-dark">Review Process Notice</strong>
+              </div>
+              <p class="small text-muted mb-0">
+                Upon submission, your work will be submitted to your direct Branch Executive (<strong>{{ assignment.executive.get_full_name|default:assignment.executive.username }}</strong>) for review. Once verified, the Executive will forward it to the Creative Department Manager for final approval.
+              </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+              <a href="{% url 'client_assignment_detail' assignment.id %}" class="btn btn-outline-secondary px-4 rounded-pill">
+                Cancel
+              </a>
+              <button type="submit" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm">
+                <i class="bi bi-cloud-arrow-up-fill me-1"></i> Submit Deliverables
+              </button>
+            </div>
+
+          </form>
+        </div>
+
       </div>
 
     </div>
-
   </div>
 </div>
 {% endblock %}

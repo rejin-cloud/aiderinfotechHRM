@@ -3,166 +3,168 @@
 {% block title %}Executive Review: {{ assignment.task_title }} | Aider Infotech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-lg-9">
-    
-    <!-- Top Back Link -->
-    <div class="mb-3">
-      <a href="{% url 'client_assignment_detail' assignment.id %}" class="text-decoration-none text-muted small fw-semibold">
-        <i class="bi bi-arrow-left me-1"></i> Back to Task Dossier
-      </a>
-    </div>
-
-    <!-- Main Review Desk Card -->
-    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
       
-      <!-- Card Header -->
-      <div class="card-header bg-white p-4 border-bottom">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-3 p-2 bg-warning-subtle text-warning">
-              <i class="bi bi-shield-check fs-4"></i>
+      <!-- Top Back Link -->
+      <div class="mb-3">
+        <a href="{% url 'client_assignment_detail' assignment.id %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+          <i class="bi bi-arrow-left me-1"></i> Back to Task Dossier
+        </a>
+      </div>
+
+      <!-- Main Review Desk Card -->
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden mb-4">
+        
+        <!-- Card Header -->
+        <div class="card-header text-white p-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4338ca 100%);">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 p-2 bg-warning text-dark d-flex align-items-center justify-content-center shadow" style="width: 48px; height: 48px;">
+                <i class="bi bi-shield-check fs-3"></i>
+              </div>
+              <div>
+                <h4 class="fw-bold text-white mb-0">Executive Review & Quality Evaluation Desk</h4>
+                <span class="text-white-50 small">Supervisory review by {{ user.get_full_name|default:user.username }} &bull; {{ assignment.branch.name }} Wing</span>
+              </div>
             </div>
+            <span class="badge bg-white bg-opacity-20 text-white border border-light">{{ assignment.branch.name }} Wing</span>
+          </div>
+        </div>
+
+        <!-- Delegate Deliverables Review Panel -->
+        <div class="p-4 bg-light border-bottom">
+          <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
             <div>
-              <h4 class="fw-bold text-dark mb-0">Executive Review & Quality Evaluation Desk</h4>
-              <span class="text-muted small">Supervisory review by {{ user.get_full_name|default:user.username }} &bull; {{ assignment.branch.name }} Wing</span>
+              <span class="badge bg-teal-subtle text-teal font-monospace mb-1" style="background-color: #ccfbf1; color: #0f766e;">
+                {{ assignment.client.client_number }} &bull; {{ assignment.client.company }}
+              </span>
+              <h5 class="fw-bold text-dark mb-0">{{ assignment.task_title }}</h5>
+            </div>
+            <div class="text-end">
+              <div class="text-muted small">Submitted By</div>
+              <strong class="text-dark">{{ submission.submitted_by.get_full_name|default:submission.submitted_by.username }}</strong>
+              <div class="text-muted font-monospace" style="font-size: 0.72rem;">{{ submission.submitted_at|date:"M d, Y h:i A" }}</div>
             </div>
           </div>
-          <span class="badge bg-secondary-subtle text-dark border">{{ assignment.branch.name }} Branch</span>
-        </div>
-      </div>
 
-      <!-- Delegate Deliverables Review Panel -->
-      <div class="p-4 bg-light border-bottom">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <!-- Delegate Remarks -->
+          <div class="p-3 rounded-3 bg-white border mb-3">
+            <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Delegate Deliverable Remarks</span>
+            <div class="text-dark small" style="white-space: pre-line; line-height: 1.5;">
+              {{ submission.remarks }}
+            </div>
+          </div>
+
+          <!-- Deliverable Media & Attachments -->
+          {% if submission.attachments.all %}
           <div>
-            <span class="badge bg-teal-subtle text-teal font-monospace mb-1" style="background-color: #ccfbf1; color: #0f766e;">
-              {{ assignment.client.client_number }} &bull; {{ assignment.client.company }}
-            </span>
-            <h5 class="fw-bold text-dark mb-0">{{ assignment.task_title }}</h5>
-          </div>
-          <div class="text-end">
-            <div class="text-muted small">Submitted By</div>
-            <strong class="text-dark">{{ submission.submitted_by.get_full_name|default:submission.submitted_by.username }}</strong>
-            <div class="text-muted" style="font-size: 0.72rem;">{{ submission.submitted_at|date:"M d, Y h:i A" }}</div>
-          </div>
-        </div>
-
-        <!-- Delegate Remarks -->
-        <div class="p-3 rounded-3 bg-white border mb-3">
-          <span class="text-muted small text-uppercase fw-semibold d-block mb-1">Delegate Deliverable Remarks</span>
-          <div class="text-dark small" style="white-space: pre-line; line-height: 1.5;">
-            {{ submission.remarks }}
-          </div>
-        </div>
-
-        <!-- Deliverable Media & Attachments -->
-        {% if submission.attachments.all %}
-        <div>
-          <span class="text-muted small text-uppercase fw-semibold d-block mb-2">Attached Output Files & Media ({{ submission.attachments.count }})</span>
-          <div class="row g-2">
-            {% for att in submission.attachments.all %}
-            <div class="col-12 col-sm-6">
-              <a href="{{ att.file.url }}" target="_blank" class="p-2 rounded-3 border bg-white text-decoration-none d-flex align-items-center gap-2 hover-shadow">
-                <i class="bi {{ att.icon_class }} fs-4"></i>
-                <div class="overflow-hidden flex-grow-1">
-                  <span class="text-dark small fw-semibold text-truncate d-block">{{ att.filename|default:"Deliverable File" }}</span>
-                  <span class="text-muted" style="font-size: 0.72rem;">{{ att.formatted_file_size }}</span>
-                </div>
-                <i class="bi bi-download text-muted ms-auto"></i>
-              </a>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
-        {% else %}
-        <div class="text-muted small italic">No physical files attached to this submission.</div>
-        {% endif %}
-      </div>
-
-      <!-- Executive Decision Form -->
-      <div class="card-body p-4 p-md-5">
-        <form method="post" id="executive-review-form">
-          {% csrf_token %}
-
-          <h5 class="fw-bold text-dark mb-3">Executive Evaluation Decision</h5>
-
-          <!-- Decision Radio Options -->
-          <div class="mb-4">
-            <div class="d-flex flex-column gap-2">
-              {% for radio in form.decision %}
-              <div class="p-3 rounded-3 border bg-light d-flex align-items-center gap-3 form-check-card">
-                {{ radio.tag }}
-                <label class="form-check-label fw-bold text-dark mb-0 cursor-pointer" for="{{ radio.id_for_label }}">
-                  {{ radio.choice_label }}
-                </label>
+            <span class="text-muted small text-uppercase fw-semibold d-block mb-2">Attached Output Files & Media ({{ submission.attachments.count }})</span>
+            <div class="row g-2">
+              {% for att in submission.attachments.all %}
+              <div class="col-12 col-sm-6">
+                <a href="{{ att.file.url }}" target="_blank" class="p-3 rounded-3 border bg-white text-decoration-none d-flex align-items-center gap-2 hover-shadow transition">
+                  <i class="bi {{ att.icon_class }} fs-3 text-primary"></i>
+                  <div class="overflow-hidden flex-grow-1">
+                    <span class="text-dark small fw-semibold text-truncate d-block">{{ att.filename|default:"Deliverable File" }}</span>
+                    <span class="text-muted" style="font-size: 0.72rem;">{{ att.formatted_file_size }}</span>
+                  </div>
+                  <i class="bi bi-download text-muted ms-auto"></i>
+                </a>
               </div>
               {% endfor %}
             </div>
-            {% if form.decision.errors %}
-            <div class="text-danger small mt-1">{{ form.decision.errors }}</div>
-            {% endif %}
           </div>
+          {% else %}
+          <div class="text-muted small italic">No physical files attached to this submission.</div>
+          {% endif %}
+        </div>
 
-          <!-- Reassign Dropdown (shown when Reassign is selected) -->
-          <div class="mb-4 d-none" id="reassign-container">
-            <div class="p-3 rounded-3 bg-light border border-info">
-              <label class="form-label fw-bold text-dark">
-                Select New Branch Member / Intern to Reassign
-              </label>
-              {{ form.reassign_to }}
-              {% if form.reassign_to.errors %}
-              <div class="text-danger small mt-1">{{ form.reassign_to.errors }}</div>
+        <!-- Executive Decision Form -->
+        <div class="card-body p-4 p-md-5">
+          <form method="post" id="executive-review-form">
+            {% csrf_token %}
+
+            <h5 class="fw-bold text-dark mb-3">Executive Evaluation Decision</h5>
+
+            <!-- Decision Radio Options -->
+            <div class="mb-4">
+              <div class="d-flex flex-column gap-2">
+                {% for radio in form.decision %}
+                <div class="p-3 rounded-3 border bg-light d-flex align-items-center gap-3 form-check-card">
+                  {{ radio.tag }}
+                  <label class="form-check-label fw-bold text-dark mb-0 cursor-pointer" for="{{ radio.id_for_label }}">
+                    {{ radio.choice_label }}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+              {% if form.decision.errors %}
+              <div class="text-danger small mt-1">{{ form.decision.errors }}</div>
               {% endif %}
-              <div class="form-text text-muted">
-                Task will be transferred to this member with the updated instructions below.
+            </div>
+
+            <!-- Reassign Dropdown (shown when Reassign is selected) -->
+            <div class="mb-4 d-none" id="reassign-container">
+              <div class="p-3 rounded-3 bg-light border border-info">
+                <label class="form-label fw-bold text-dark">
+                  Select New Branch Member / Intern to Reassign
+                </label>
+                {{ form.reassign_to }}
+                {% if form.reassign_to.errors %}
+                <div class="text-danger small mt-1">{{ form.reassign_to.errors }}</div>
+                {% endif %}
+                <div class="form-text text-muted">
+                  Task will be transferred to this member with the updated instructions below.
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Feedback / Directives Textarea -->
-          <div class="mb-4">
-            <label class="form-label fw-bold text-dark">
-              Review Feedback & Guidelines
-            </label>
-            {{ form.feedback }}
-            {% if form.feedback.errors %}
-            <div class="text-danger small mt-1">{{ form.feedback.errors }}</div>
-            {% endif %}
-            <div class="form-text text-muted">
-              Add review notes for the delegate (if requesting revisions/reassigning) or notes for your Department Manager (if forwarding).
+            <!-- Feedback / Directives Textarea -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                Review Feedback & Guidelines
+              </label>
+              {{ form.feedback }}
+              {% if form.feedback.errors %}
+              <div class="text-danger small mt-1">{{ form.feedback.errors }}</div>
+              {% endif %}
+              <div class="form-text text-muted">
+                Add review notes for the delegate (if requesting revisions/reassigning) or notes for your Department Manager (if forwarding).
+              </div>
             </div>
-          </div>
 
-          <!-- Optional Deadline Adjustment -->
-          <div class="mb-4">
-            <label class="form-label fw-bold text-dark">
-              Adjust Target Deadline (Optional)
-            </label>
-            {{ form.new_deadline }}
-            {% if form.new_deadline.errors %}
-            <div class="text-danger small mt-1">{{ form.new_deadline.errors }}</div>
-            {% endif %}
-            <div class="form-text text-muted">
-              Leave blank to keep the current deadline ({{ assignment.deadline|date:"M d, Y h:i A"|default:"None" }}).
+            <!-- Optional Deadline Adjustment -->
+            <div class="mb-4">
+              <label class="form-label fw-bold text-dark">
+                Adjust Target Deadline (Optional)
+              </label>
+              {{ form.new_deadline }}
+              {% if form.new_deadline.errors %}
+              <div class="text-danger small mt-1">{{ form.new_deadline.errors }}</div>
+              {% endif %}
+              <div class="form-text text-muted">
+                Leave blank to keep the current deadline ({{ assignment.deadline|date:"M d, Y h:i A"|default:"None" }}).
+              </div>
             </div>
-          </div>
 
-          <!-- Action Buttons -->
-          <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-            <a href="{% url 'client_assignment_detail' assignment.id %}" class="btn btn-outline-secondary px-4 rounded-pill">
-              Cancel
-            </a>
-            <button type="submit" class="btn btn-warning text-dark fw-bold px-4 rounded-pill shadow-sm">
-              <i class="bi bi-check2-circle me-1"></i> Submit Executive Decision
-            </button>
-          </div>
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+              <a href="{% url 'client_assignment_detail' assignment.id %}" class="btn btn-outline-secondary px-4 rounded-pill">
+                Cancel
+              </a>
+              <button type="submit" class="btn btn-warning text-dark fw-bold px-4 rounded-pill shadow-sm">
+                <i class="bi bi-check2-circle me-1"></i> Submit Executive Decision
+              </button>
+            </div>
 
-        </form>
+          </form>
+        </div>
+
       </div>
 
     </div>
-
   </div>
 </div>
 

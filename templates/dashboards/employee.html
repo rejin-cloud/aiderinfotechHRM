@@ -4,62 +4,53 @@
 
 {% block content %}
 <!-- Employee Welcome Banner -->
-<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #312e81 100%);">
   <div class="row align-items-center">
-    <div class="col-12 col-md-8">
+    <div class="col-12 col-xl-7">
       <div class="d-flex align-items-center gap-3 mb-2">
-        <div class="avatar-circle avatar-lg shadow" style="background-color: {{ user.avatar_color|default:'#4f46e5' }}; width: 60px; height: 60px; font-size: 1.5rem;">
+        <div class="avatar-circle avatar-lg shadow-lg border border-2 border-white border-opacity-25" style="background-color: {{ user.avatar_color|default:'#4f46e5' }}; width: 64px; height: 64px; font-size: 1.6rem;">
           {{ user.first_name|default:user.username|slice:":1"|upper }}
         </div>
         <div>
-          <h3 class="fw-bold mb-1">Welcome, {{ user.get_full_name|default:user.username }}!</h3>
-          <div class="d-flex flex-wrap gap-2 align-items-center">
-            <span class="badge bg-light text-dark py-1 px-3 fw-semibold">
-              <i class="bi bi-person-badge text-primary me-1"></i> {{ user.designation|default:"Staff / Employee" }}
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-1">
+            <span class="badge bg-warning text-dark font-monospace fw-bold px-2 py-1">ID: {{ user.employee_id|default:"EMP-AUTO" }}</span>
+            <span class="badge bg-white bg-opacity-20 text-white fw-semibold">
+              <i class="bi bi-person-badge me-1"></i> {{ user.get_role_display }}
             </span>
-            <span class="badge bg-primary-subtle text-primary py-1 px-3 fw-semibold">
+            <span class="badge bg-teal text-white fw-semibold" style="background: #0d9488;">
               <i class="bi bi-building me-1"></i> {{ department.name|default:"Unassigned Department" }}
             </span>
-            <span class="badge bg-secondary py-1 px-2 small">
-              ID: {{ user.employee_id|default:"EMP-AUTO" }}
-            </span>
           </div>
+          <h3 class="fw-extrabold mb-0 text-white">Welcome back, {{ user.get_full_name|default:user.username }}!</h3>
+          <span class="text-white-50 small">
+            {{ user.designation|default:"Staff Member" }} &bull; Branch Wing: <strong>{{ branch.name|default:"Core Headquarters" }}</strong>
+          </span>
         </div>
       </div>
     </div>
-    <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+    
+    <div class="col-12 col-xl-5 text-xl-end mt-3 mt-xl-0 d-flex flex-wrap justify-content-xl-end gap-2">
       {% if department and 'creative' in department.name.lower %}
-      <a href="{% url 'client_list' %}" class="btn btn-info text-white fw-bold px-3 py-2 rounded-pill shadow-sm" style="background: #0d9488; border-color: #0d9488;">
-        <i class="bi bi-people-fill me-1"></i> Clients Directory
+      <a href="{% url 'creative_calendar' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+        <i class="bi bi-calendar3 me-1"></i> Operations Calendar
       </a>
-      <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+      <a href="{% url 'client_list' %}" class="btn btn-primary text-white fw-bold px-3 py-2 rounded-3 shadow-sm" style="background: #0d9488; border-color: #0d9488;">
+        <i class="bi bi-people-fill me-1"></i> Clients
+      </a>
+      <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
         <i class="bi bi-diagram-3-fill me-1"></i> Client Tasks
       </a>
-      <a href="{% url 'task_list' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+      <a href="{% url 'task_list' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
         <i class="bi bi-palette2 me-1"></i> Tasks
       </a>
       {% endif %}
-      <a href="{% url 'attendance_hub' %}" class="btn btn-success px-3 py-2 rounded-pill shadow-sm">
+      <a href="{% url 'attendance_hub' %}" class="btn btn-success px-3 py-2 rounded-3 shadow-sm">
         <i class="bi bi-clock-history me-1"></i> Attendance
       </a>
-      <a href="{% url 'leave_apply' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+      <a href="{% url 'leave_apply' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
         <i class="bi bi-calendar-plus me-1"></i> Apply Leave
       </a>
-      <a href="{% url 'profile' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
-        <i class="bi bi-pencil-square me-1"></i> Profile
-      </a>
     </div>
-  </div>
-</div>
-
-<!-- Onboarding Notice Banner -->
-<div class="alert alert-primary bg-primary-subtle border-primary-subtle rounded-3 shadow-sm d-flex align-items-start gap-3 p-3 mb-4">
-  <i class="bi bi-info-circle-fill fs-4 text-primary mt-1"></i>
-  <div>
-    <h6 class="fw-bold mb-1 text-primary">Aider Infotech Employee Workspace</h6>
-    <p class="mb-0 text-dark small">
-      You are registered as <strong>{{ user.designation|default:"Staff / Employee" }}</strong> in the <strong>{{ department.name|default:"General" }}</strong> department. This portal is your dedicated personal self-service dashboard where you can manage your personal profile, view official company structure, and review team contacts.
-    </p>
   </div>
 </div>
 
@@ -69,61 +60,61 @@
   <div class="col-12 col-lg-5">
     
     <!-- Profile & Contact Card -->
-    <div class="hrms-card mb-4">
-      <div class="hrms-card-header d-flex justify-content-between align-items-center">
-        <h5 class="hrms-card-title mb-0">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-dark mb-0">
           <i class="bi bi-person-lines-fill me-2 text-primary"></i> My Personal Profile
         </h5>
-        <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary rounded-pill">
-          <i class="bi bi-pencil me-1"></i> Edit
+        <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+          <i class="bi bi-pencil me-1"></i> Edit Profile
         </a>
       </div>
-      <div class="hrms-card-body">
+      <div class="card-body p-4">
         <ul class="list-group list-group-flush small">
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
             <span class="text-muted">Username:</span>
-            <span class="fw-bold">@{{ user.username }}</span>
+            <span class="fw-bold font-monospace text-primary">@{{ user.username }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
-            <span class="text-muted">Full Name:</span>
-            <span class="fw-bold">{{ user.get_full_name|default:"Not specified" }}</span>
+            <span class="text-muted">Full Legal Name:</span>
+            <span class="fw-bold text-dark">{{ user.get_full_name|default:"Not specified" }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
-            <span class="text-muted">Official Email:</span>
-            <span class="fw-bold text-truncate" style="max-width: 220px;">{{ user.email|default:"Not specified" }}</span>
+            <span class="text-muted">Corporate Email:</span>
+            <span class="fw-bold text-dark text-truncate" style="max-width: 220px;">{{ user.email|default:"Not specified" }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
-            <span class="text-muted">Phone Number:</span>
-            <span class="fw-bold">{{ user.phone|default:"Not provided" }}</span>
+            <span class="text-muted">Contact Phone:</span>
+            <span class="fw-bold text-dark">{{ user.phone|default:"Not provided" }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
-            <span class="text-muted">Designation:</span>
+            <span class="text-muted">Official Designation:</span>
             <span class="badge bg-light text-dark border">{{ user.designation|default:"Staff / Employee" }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
-            <span class="text-muted">Assigned Department:</span>
+            <span class="text-muted">Department:</span>
             <span class="fw-bold text-primary">{{ department.name|default:"Unassigned" }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
-            <span class="text-muted">Branch / Location:</span>
-            <span class="fw-bold">{{ branch.name|default:"Core Headquarters" }}</span>
+            <span class="text-muted">Branch Wing:</span>
+            <span class="fw-bold text-dark">{{ branch.name|default:"Core Headquarters" }}</span>
           </li>
           <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
             <span class="text-muted">Date of Joining:</span>
-            <span class="fw-bold">{{ user.joining_date|default:"Today" }}</span>
+            <span class="fw-bold text-dark">{{ user.joining_date|default:"Active Member" }}</span>
           </li>
         </ul>
 
         {% if user.bio %}
         <div class="mt-3 p-3 bg-light rounded-3 border">
-          <span class="fw-bold text-muted small d-block mb-1">About Me / Bio:</span>
+          <span class="fw-bold text-muted small d-block mb-1 text-uppercase" style="font-size: 0.7rem;">About Me / Bio:</span>
           <p class="small text-secondary mb-0">{{ user.bio }}</p>
         </div>
         {% else %}
         <div class="mt-3 text-center p-3 bg-light rounded-3 border border-dashed">
-          <p class="small text-muted mb-2">No bio added yet. Tell your team about yourself!</p>
+          <p class="small text-muted mb-2">No bio summary added yet.</p>
           <a href="{% url 'profile' %}" class="btn btn-sm btn-light border fw-semibold">
-            <i class="bi bi-plus-circle me-1"></i> Add Bio / Summary
+            <i class="bi bi-plus-circle me-1"></i> Add Professional Bio
           </a>
         </div>
         {% endif %}
@@ -131,17 +122,17 @@
     </div>
 
     <!-- Department Leadership & Support Point -->
-    <div class="hrms-card">
-      <div class="hrms-card-header">
-        <h5 class="hrms-card-title">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
           <i class="bi bi-headset me-2 text-primary"></i> Support & Department Contacts
         </h5>
       </div>
-      <div class="hrms-card-body">
+      <div class="card-body p-4">
         <div class="d-flex flex-column gap-3">
           {% if dept_manager %}
-          <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border">
-            <div class="avatar-circle" style="background-color: {{ dept_manager.avatar_color|default:'#059669' }}; width: 36px; height: 36px; font-size: 0.85rem;">
+          <div class="d-flex align-items-center gap-3 p-3 rounded-3 bg-light border">
+            <div class="avatar-circle shadow-sm" style="background-color: {{ dept_manager.avatar_color|default:'#059669' }}; width: 42px; height: 42px; font-size: 0.95rem;">
               {{ dept_manager.first_name|default:dept_manager.username|slice:":1"|upper }}
             </div>
             <div class="flex-grow-1 overflow-hidden">
@@ -152,8 +143,8 @@
           {% endif %}
 
           {% if hr_rep %}
-          <div class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border">
-            <div class="avatar-circle bg-primary text-white" style="width: 36px; height: 36px; font-size: 0.85rem;">
+          <div class="d-flex align-items-center gap-3 p-3 rounded-3 bg-light border">
+            <div class="avatar-circle bg-primary text-white shadow-sm" style="width: 42px; height: 42px; font-size: 0.95rem;">
               {{ hr_rep.first_name|default:hr_rep.username|slice:":1"|upper }}
             </div>
             <div class="flex-grow-1 overflow-hidden">
@@ -163,8 +154,8 @@
           </div>
           {% endif %}
 
-          <div class="text-muted small pt-1">
-            <i class="bi bi-shield-lock me-1"></i> For role transfers, official promotions, or branch changes, contact HR or your Department Manager.
+          <div class="text-muted small pt-2 border-top">
+            <i class="bi bi-shield-lock me-1"></i> For role transfers, promotions, or branch changes, contact HR or your Department Manager.
           </div>
         </div>
       </div>
@@ -172,20 +163,20 @@
 
   </div>
 
-  <!-- Right Column: Company Details & Department Structure -->
+  <!-- Right Column: Creative Tasks, Directives, Client Allocations & Company Directory -->
   <div class="col-12 col-lg-7">
     
     {% if department and 'creative' in department.name.lower %}
     <!-- Creative Tasks & Branch Directives -->
-    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white border-start border-primary border-4">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white" style="border-left: 5px solid #4f46e5 !important;">
       <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
         <div class="d-flex align-items-center gap-3">
-          <div class="rounded-3 bg-purple-subtle text-primary d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+          <div class="rounded-3 d-flex align-items-center justify-content-center text-primary" style="width: 48px; height: 48px; background: #e0e7ff;">
             <i class="bi bi-palette2 fs-3"></i>
           </div>
           <div>
             <h6 class="fw-bold text-dark mb-0">Creative Directives & Tasks</h6>
-            <span class="text-muted small">Tasks & directives for your branch: <strong>{{ branch.name|default:"General" }}</strong></span>
+            <span class="text-muted small">Tasks & directives for your branch wing: <strong>{{ branch.name|default:"General" }}</strong></span>
           </div>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -249,9 +240,9 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="p-3 text-center text-muted bg-light rounded-3 border">
+      <div class="p-4 text-center text-muted bg-light rounded-3 border">
         <i class="bi bi-clipboard2-check fs-3 d-block mb-1 text-secondary"></i>
-        No creative tasks currently assigned to your branch.
+        No creative studio tasks currently active for your branch.
       </div>
       {% endif %}
     </div>
@@ -259,21 +250,21 @@
 
     {% if user.role == 'EXECUTIVE' and executive_client_assignments %}
     <!-- Executive Client Task Directives -->
-    <div class="hrms-card mb-4 border-0 shadow-sm" style="border-left: 4px solid #4338ca !important;">
-      <div class="hrms-card-header bg-white d-flex justify-content-between align-items-center">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white" style="border-left: 5px solid #312e81 !important;">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h5 class="hrms-card-title mb-0 fw-bold">
+          <h6 class="fw-bold text-dark mb-0">
             <i class="bi bi-diagram-3-fill me-2 text-primary"></i> Client Branch Directives ({{ executive_client_assignments.count }})
-          </h5>
-          <span class="text-muted small">Assigned by Creative Department Manager for delegation</span>
+          </h6>
+          <span class="text-muted small">Assigned by Creative Department Manager for delegation & review</span>
         </div>
         <a href="{% url 'executive_client_assignments' %}" class="btn btn-sm btn-outline-primary rounded-pill">
           View All <i class="bi bi-arrow-right ms-1"></i>
         </a>
       </div>
-      <div class="hrms-card-body p-3">
+      <div class="d-flex flex-column gap-3">
         {% for a in executive_client_assignments|slice:":4" %}
-        <div class="p-3 mb-2 rounded-3 border bg-light">
+        <div class="p-3 rounded-3 border bg-light">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
             <div>
               <span class="badge bg-teal-subtle text-teal font-monospace" style="background-color: #ccfbf1; color: #0f766e;">{{ a.client.client_number }}</span>
@@ -314,21 +305,21 @@
 
     {% if user.role != 'EXECUTIVE' and member_client_assignments %}
     <!-- Member Delegated Client Tasks -->
-    <div class="hrms-card mb-4 border-0 shadow-sm" style="border-left: 4px solid #0d9488 !important;">
-      <div class="hrms-card-header bg-white d-flex justify-content-between align-items-center">
+    <div class="card border-0 shadow-sm rounded-4 mb-4 p-4 bg-white" style="border-left: 5px solid #0d9488 !important;">
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h5 class="hrms-card-title mb-0 fw-bold">
+          <h6 class="fw-bold text-dark mb-0">
             <i class="bi bi-briefcase-fill me-2 text-teal" style="color: #0d9488;"></i> My Client Tasks ({{ member_client_assignments.count }})
-          </h5>
+          </h6>
           <span class="text-muted small">Client deliverables delegated to you by your Branch Executive</span>
         </div>
         <a href="{% url 'executive_client_assignments' %}" class="btn btn-sm btn-outline-info rounded-pill text-dark">
           View All <i class="bi bi-arrow-right ms-1"></i>
         </a>
       </div>
-      <div class="hrms-card-body p-3">
+      <div class="d-flex flex-column gap-3">
         {% for a in member_client_assignments|slice:":4" %}
-        <div class="p-3 mb-2 rounded-3 border bg-light">
+        <div class="p-3 rounded-3 border bg-light">
           <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
             <div>
               <span class="badge bg-teal text-white font-monospace" style="background-color: #0d9488;">{{ a.client.client_number }}</span>
@@ -364,28 +355,14 @@
     </div>
     {% endif %}
 
-    <!-- Company Overview Card -->
-    <div class="hrms-card mb-4">
-      <div class="hrms-card-header">
-        <h5 class="hrms-card-title">
-          <i class="bi bi-buildings-fill me-2 text-primary"></i> Aider Infotech Overview
+    <!-- Corporate Departments Directory Card -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3">
+        <h5 class="fw-bold text-dark mb-0">
+          <i class="bi bi-buildings-fill me-2 text-primary"></i> Aider Infotech Organization Structure
         </h5>
       </div>
-      <div class="hrms-card-body">
-        <div class="p-3 bg-light rounded-3 border mb-3">
-          <div class="d-flex align-items-center justify-content-between mb-2">
-            <h6 class="fw-bold text-dark mb-0">Aider Infotech</h6>
-            <span class="badge bg-success-subtle text-success border border-success-subtle">Organization Active</span>
-          </div>
-          <p class="text-muted small mb-0">
-            Welcome to the Aider Infotech unified enterprise technology platform. Here you can explore our organizational divisions, departments, and active technology hubs.
-          </p>
-        </div>
-
-        <h6 class="fw-bold small text-uppercase text-secondary mb-3">
-          <i class="bi bi-diagram-3 me-1"></i> Corporate Departments Directory
-        </h6>
-
+      <div class="card-body p-4">
         <div class="row g-3">
           {% for dept in company_departments %}
           <div class="col-12 col-md-6">
@@ -420,43 +397,43 @@
       </div>
     </div>
 
-    <!-- Teammates / Department Members -->
-    <div class="hrms-card">
-      <div class="hrms-card-header d-flex justify-content-between align-items-center">
-        <h5 class="hrms-card-title mb-0">
+    <!-- Teammates / Department Members Table -->
+    <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+      <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold text-dark mb-0">
           <i class="bi bi-people-fill me-2 text-primary"></i> Team Directory ({{ department.name|default:"General" }})
         </h5>
         <span class="badge bg-secondary-subtle text-secondary small">{{ teammates|length }} Colleague{{ teammates|length|pluralize }}</span>
       </div>
-      <div class="hrms-card-body p-0">
+      <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-hrms align-middle mb-0">
-            <thead>
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
               <tr>
-                <th>Colleague</th>
+                <th class="ps-4">Colleague</th>
                 <th>Designation / Role</th>
-                <th>Branch</th>
-                <th>Email</th>
+                <th>Branch Wing</th>
+                <th>Official Email</th>
               </tr>
             </thead>
             <tbody>
               {% for team in teammates %}
               <tr>
-                <td>
+                <td class="ps-4">
                   <div class="d-flex align-items-center gap-2">
-                    <div class="avatar-circle" style="background-color: {{ team.avatar_color|default:'#4f46e5' }}; width: 30px; height: 30px; font-size: 0.75rem;">
+                    <div class="avatar-circle" style="background-color: {{ team.avatar_color|default:'#4f46e5' }}; width: 32px; height: 32px; font-size: 0.8rem;">
                       {{ team.first_name|default:team.username|slice:":1"|upper }}
                     </div>
                     <span class="fw-bold text-dark small">{{ team.get_full_name|default:team.username }}</span>
                   </div>
                 </td>
                 <td>
-                  <span class="small text-muted">{{ team.designation|default:team.get_role_display }}</span>
+                  <span class="small text-dark">{{ team.designation|default:team.get_role_display }}</span>
                 </td>
                 <td>
-                  <span class="small text-secondary">{{ team.branch.name|default:"Core" }}</span>
+                  <span class="badge bg-light text-secondary border small">{{ team.branch.name|default:"Core" }}</span>
                 </td>
-                <td class="small text-muted">
+                <td class="small text-muted font-monospace">
                   {{ team.email|default:"N/A" }}
                 </td>
               </tr>

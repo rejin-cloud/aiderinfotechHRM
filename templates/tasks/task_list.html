@@ -1,53 +1,57 @@
 {% extends 'base.html' %}
 
-{% block title %}Creative Tasks | Aider Infotech{% endblock %}
+{% block title %}Creative Tasks & Directives | Aider Infotech{% endblock %}
 
 {% block content %}
 <!-- Creative Tasks Header Banner -->
-<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);">
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4338ca 100%);">
   <div class="row align-items-center">
-    <div class="col-12 col-md-7">
+    <div class="col-12 col-xl-7">
       <div class="d-flex align-items-center gap-3">
-        <div class="rounded-4 bg-white text-primary d-flex align-items-center justify-content-center shadow" style="width: 56px; height: 56px;">
-          <i class="bi bi-palette2 fs-2"></i>
+        <div class="rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 58px; height: 58px; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px);">
+          <i class="bi bi-palette2 fs-3 text-warning"></i>
         </div>
         <div>
-          <div class="badge bg-warning text-dark fw-bold mb-1">
-            <i class="bi bi-stars me-1"></i> Creative Department Operations
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-warning text-dark font-monospace fw-bold px-2 py-1">CREATIVE STUDIO</span>
+            <span class="badge bg-white bg-opacity-20 text-white">{{ department.name|default:"Aider Creative" }}</span>
           </div>
-          <h3 class="fw-bold mb-0">{{ department.name|default:"Aider Creative" }} &bull; Project Tasks & Directives</h3>
+          <h3 class="fw-bold mb-0 text-white">Creative Project Tasks & Directives</h3>
           <p class="text-white-50 small mb-0 mt-1">
             {% if is_creative_manager %}
-              Managed by Creative Department Manager &bull; Task creation, assignment, delegation, and extension approvals.
+              Full managerial authority &bull; Task creation, multi-branch assignment, deliverable evaluation, and deadline approvals.
             {% else %}
-              Department directives & creative project briefs. Read-only member view.
+              Studio directives & design briefs assigned across branch wings. Read-only member view.
             {% endif %}
           </p>
         </div>
       </div>
     </div>
     
-    <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+    <div class="col-12 col-xl-5 text-xl-end mt-3 mt-xl-0 d-flex flex-wrap justify-content-xl-end gap-2">
+      <a href="{% url 'creative_calendar' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-3 shadow-sm">
+        <i class="bi bi-calendar3 me-1"></i> Operations Calendar
+      </a>
       {% if is_creative_manager %}
-      <a href="{% url 'manager_extension_requests' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm position-relative">
-        <i class="bi bi-hourglass-split me-1"></i> Review Requests
+      <a href="{% url 'manager_extension_requests' %}" class="btn btn-outline-warning text-warning fw-bold px-3 py-2 rounded-3 position-relative">
+        <i class="bi bi-hourglass-split me-1"></i> Extension Requests
         {% if pending_requests_count > 0 %}
         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">
           {{ pending_requests_count }}
         </span>
         {% endif %}
       </a>
-      <a href="{% url 'task_create' %}" class="btn btn-light text-primary fw-bold px-3 py-2 rounded-pill shadow-sm">
+      <a href="{% url 'task_create' %}" class="btn btn-light text-primary fw-bold px-3 py-2 rounded-3 shadow-sm">
         <i class="bi bi-plus-circle-fill me-1"></i> Create Task
       </a>
-      <a href="{% url 'task_assign' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+      <a href="{% url 'task_assign' %}" class="btn btn-primary text-white fw-bold px-3 py-2 rounded-3 shadow-sm" style="background: #0d9488; border-color: #0d9488;">
         <i class="bi bi-person-check-fill me-1"></i> Assign Tasks
       </a>
       {% endif %}
-      <a href="{% url 'client_list' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+      <a href="{% url 'client_list' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
         <i class="bi bi-people-fill me-1"></i> Clients
       </a>
-      <a href="{% url 'dashboard_router' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+      <a href="{% url 'dashboard_router' %}" class="btn btn-outline-light px-3 py-2 rounded-3">
         <i class="bi bi-arrow-left me-1"></i> Dashboard
       </a>
     </div>
@@ -57,42 +61,45 @@
 <!-- Task KPI Summary Counters -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md">
-    <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-list-task me-1"></i> Total</div>
-      <div class="stat-val fs-4">{{ total_tasks }}</div>
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+      <span class="text-muted small fw-bold text-uppercase d-block mb-1"><i class="bi bi-list-task me-1"></i> Total Tasks</span>
+      <h3 class="fw-bold text-dark mb-0">{{ total_tasks }}</h3>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-info fw-bold"><i class="bi bi-play-circle me-1"></i> Active</div>
-      <div class="stat-val fs-4">{{ active_tasks }}</div>
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #3b82f6 !important;">
+      <span class="text-primary small fw-bold text-uppercase d-block mb-1"><i class="bi bi-play-circle-fill me-1"></i> In Progress</span>
+      <h3 class="fw-bold text-primary mb-0">{{ active_tasks }}</h3>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-primary fw-bold"><i class="bi bi-hourglass-split me-1"></i> Under Review</div>
-      <div class="stat-val fs-4">{{ under_review_tasks }}</div>
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #f59e0b !important;">
+      <span class="text-warning small fw-bold text-uppercase d-block mb-1" style="color: #b45309 !important;"><i class="bi bi-hourglass-split me-1"></i> Under Review</span>
+      <h3 class="fw-bold text-warning mb-0" style="color: #b45309 !important;">{{ under_review_tasks }}</h3>
     </div>
   </div>
   <div class="col-6 col-md">
-    <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-warning fw-bold"><i class="bi bi-pause-circle me-1"></i> On Hold</div>
-      <div class="stat-val fs-4">{{ on_hold_tasks }}</div>
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #e11d48 !important;">
+      <span class="text-danger small fw-bold text-uppercase d-block mb-1"><i class="bi bi-pause-circle-fill me-1"></i> On Hold</span>
+      <h3 class="fw-bold text-danger mb-0">{{ on_hold_tasks }}</h3>
     </div>
   </div>
-  <div class="col-6 col-md">
-    <div class="stat-card p-3">
-      <div class="stat-lbl mb-1 text-success fw-bold"><i class="bi bi-check2-circle me-1"></i> Completed</div>
-      <div class="stat-val fs-4">{{ completed_tasks }}</div>
+  <div class="col-12 col-md">
+    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100" style="border-left: 4px solid #10b981 !important;">
+      <span class="text-success small fw-bold text-uppercase d-block mb-1"><i class="bi bi-check2-circle me-1"></i> Completed</span>
+      <h3 class="fw-bold text-success mb-0">{{ completed_tasks }}</h3>
     </div>
   </div>
 </div>
 
 <!-- Filter Bar -->
-<div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
+<div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-white">
   <form method="get" class="row g-2 align-items-center">
     <div class="col-12 col-md-5">
-      {{ filter_form.q }}
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        {{ filter_form.q }}
+      </div>
     </div>
     <div class="col-6 col-md-3">
       {{ filter_form.priority }}
@@ -101,11 +108,11 @@
       {{ filter_form.status }}
     </div>
     <div class="col-12 col-md-2 d-flex gap-2">
-      <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+      <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold rounded-3">
         <i class="bi bi-funnel-fill me-1"></i> Filter
       </button>
       {% if request.GET %}
-      <a href="{% url 'task_list' %}" class="btn btn-light btn-sm border" title="Reset Filters">
+      <a href="{% url 'task_list' %}" class="btn btn-light btn-sm border rounded-3" title="Reset Filters">
         <i class="bi bi-x-circle"></i>
       </a>
       {% endif %}
@@ -117,28 +124,28 @@
 <div class="row g-4">
   {% for t in tasks %}
   <div class="col-12 col-lg-6">
-    <div class="hrms-card h-100 shadow-sm border {% if t.priority == 'URGENT' %}border-danger-subtle{% endif %}">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white transition hover-shadow overflow-hidden {% if t.priority == 'URGENT' %}border-start border-danger border-4{% endif %}">
       
       <!-- Card Top Header -->
-      <div class="hrms-card-header d-flex justify-content-between align-items-center bg-light bg-opacity-50">
+      <div class="card-header bg-light bg-opacity-75 border-bottom p-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
           <span class="badge bg-dark font-monospace text-warning px-2 py-1 fs-7">{{ t.task_number }}</span>
           <span class="badge {{ t.priority_badge_class }}">{{ t.get_priority_display }}</span>
           <span class="badge {{ t.status_badge_class }}">{{ t.get_status_display }}</span>
         </div>
         
-        <span class="small text-muted">
+        <span class="small text-muted font-monospace" style="font-size: 0.75rem;">
           <i class="bi bi-calendar-event me-1"></i> {{ t.created_at|date:"M d, Y" }}
         </span>
       </div>
 
       <!-- Card Body -->
-      <div class="hrms-card-body p-4 d-flex flex-column">
+      <div class="card-body p-4 d-flex flex-column">
         <h5 class="fw-bold text-dark mb-2">
-          <a href="{% url 'task_detail' t.id %}" class="text-decoration-none text-dark">{{ t.title }}</a>
+          <a href="{% url 'task_detail' t.id %}" class="text-decoration-none text-dark hover-primary">{{ t.title }}</a>
         </h5>
 
-        <p class="text-secondary small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+        <p class="text-secondary small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5;">
           {{ t.description }}
         </p>
 
@@ -146,11 +153,11 @@
         <div class="d-flex flex-wrap gap-2 mb-3 small">
           {% if t.branch %}
           <span class="badge bg-light text-dark border">
-            <i class="bi bi-diagram-3 me-1 text-primary"></i> {{ t.branch.name }}
+            <i class="bi bi-diagram-3 me-1 text-primary"></i> Wing: {{ t.branch.name }}
           </span>
           {% else %}
           <span class="badge bg-light text-dark border">
-            <i class="bi bi-people-fill me-1 text-primary"></i> Creative Team
+            <i class="bi bi-people-fill me-1 text-primary"></i> Studio Wide Directive
           </span>
           {% endif %}
 
@@ -178,7 +185,7 @@
 
           {% if t.attachments.exists %}
           <span class="badge bg-purple-subtle text-primary border">
-            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Briefing Asset{{ t.attachments.count|pluralize }}
+            <i class="bi bi-paperclip me-1"></i> {{ t.attachments.count }} Brief Asset{{ t.attachments.count|pluralize }}
           </span>
           {% endif %}
         </div>
@@ -186,22 +193,22 @@
         <!-- Card Action Footer -->
         <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-auto">
           <div class="text-muted small" style="font-size: 0.75rem;">
-            By <strong>{{ t.created_by.get_full_name|default:t.created_by.username }}</strong> &bull; {{ t.created_at|date:"M d, Y" }}
+            By <strong>{{ t.created_by.get_full_name|default:t.created_by.username }}</strong>
           </div>
 
           <div class="d-flex align-items-center gap-1">
-            <a href="{% url 'task_detail' t.id %}" class="btn btn-sm btn-outline-primary px-3">
+            <a href="{% url 'task_detail' t.id %}" class="btn btn-sm btn-primary px-3 rounded-pill fw-bold">
               <i class="bi bi-eye-fill me-1"></i> View Brief
             </a>
 
             {% if is_creative_manager %}
-            <a href="{% url 'task_assign_specific' t.id %}" class="btn btn-sm btn-light border p-1 px-2 text-primary" title="Assign to Member">
+            <a href="{% url 'task_assign_specific' t.id %}" class="btn btn-sm btn-light border p-1 px-2 text-primary rounded-3" title="Assign / Reassign">
               <i class="bi bi-person-check-fill"></i>
             </a>
-            <a href="{% url 'task_edit' t.id %}" class="btn btn-sm btn-light border p-1 px-2" title="Edit Task">
+            <a href="{% url 'task_edit' t.id %}" class="btn btn-sm btn-light border p-1 px-2 rounded-3" title="Edit Task">
               <i class="bi bi-pencil-square text-dark"></i>
             </a>
-            <a href="{% url 'task_delete' t.id %}" class="btn btn-sm btn-light border p-1 px-2 text-danger" title="Delete Task">
+            <a href="{% url 'task_delete' t.id %}" class="btn btn-sm btn-light border p-1 px-2 text-danger rounded-3" title="Delete Task">
               <i class="bi bi-trash"></i>
             </a>
             {% endif %}
@@ -214,7 +221,7 @@
   </div>
   {% empty %}
   <div class="col-12">
-    <div class="hrms-card p-5 text-center shadow-sm border-0">
+    <div class="card border-0 shadow-sm rounded-4 p-5 text-center bg-white">
       <div class="rounded-circle bg-light text-muted d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px;">
         <i class="bi bi-palette2 fs-1"></i>
       </div>
@@ -223,11 +230,11 @@
         {% if is_creative_manager %}
           Create project tasks and design directives to delegate across your branches.
         {% else %}
-          There are no tasks assigned to your branch at this time.
+          There are no tasks assigned to your branch wing at this time.
         {% endif %}
       </p>
       {% if is_creative_manager %}
-      <a href="{% url 'task_create' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-bold">
+      <a href="{% url 'task_create' %}" class="btn btn-primary px-4 py-2 rounded-pill fw-bold shadow-sm">
         <i class="bi bi-plus-circle-fill me-1"></i> Create First Creative Task
       </a>
       {% endif %}

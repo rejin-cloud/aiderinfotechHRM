@@ -3,113 +3,115 @@
 {% block title %}Edit Task [{{ task.task_number }}] | Aider Infotech{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-xl-10">
-    <div class="hrms-card shadow-sm border-0">
-      
-      <!-- Header -->
-      <div class="hrms-card-header text-white p-4" style="background: linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%);">
-        <div class="d-flex justify-content-between align-items-center">
-          <div class="d-flex align-items-center gap-3">
-            <div class="rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm" style="width: 46px; height: 46px;">
-              <i class="bi bi-pencil-square fs-3"></i>
+<div class="container-fluid py-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+        
+        <!-- Header -->
+        <div class="card-header text-white p-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #4338ca 100%);">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow" style="width: 48px; height: 48px;">
+                <i class="bi bi-pencil-square fs-3"></i>
+              </div>
+              <div>
+                <h4 class="fw-bold mb-0 text-white">Edit Task: {{ task.task_number }}</h4>
+                <p class="text-white-50 small mb-0">Modify specifications, status, instructions, or attach new documents</p>
+              </div>
             </div>
-            <div>
-              <h4 class="fw-bold mb-0 text-white">Edit Task: {{ task.task_number }}</h4>
-              <p class="text-white-50 small mb-0">Modify specifications, status, instructions, or attach new documents</p>
-            </div>
+            <a href="{% url 'task_detail' task.id %}" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold">
+              <i class="bi bi-arrow-left me-1"></i> Back to Task
+            </a>
           </div>
-          <a href="{% url 'task_detail' task.id %}" class="btn btn-outline-light btn-sm rounded-pill px-3">
-            <i class="bi bi-arrow-left me-1"></i> Back to Task
-          </a>
         </div>
-      </div>
 
-      <!-- Body -->
-      <div class="hrms-card-body p-4 p-md-5">
+        <!-- Body -->
+        <div class="card-body p-4 p-md-5">
 
-        <form method="post" enctype="multipart/form-data">
-          {% csrf_token %}
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
 
-          <!-- Section 1 -->
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-tag-fill text-primary me-1"></i> 1. Task Identification & Scope
-          </h6>
+            <!-- Section 1 -->
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-tag-fill text-primary me-1"></i> 1. Task Identification & Scope
+            </h6>
 
-          <div class="row g-3 mb-4">
-            <div class="col-12 col-md-4">
-              <label class="form-label fw-semibold">Task Number <span class="text-danger">*</span></label>
-              {{ form.task_number }}
-              {% if form.task_number.errors %}<div class="text-danger small mt-1">{{ form.task_number.errors }}</div>{% endif %}
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Task Number <span class="text-danger">*</span></label>
+                {{ form.task_number }}
+                {% if form.task_number.errors %}<div class="text-danger small mt-1">{{ form.task_number.errors }}</div>{% endif %}
+              </div>
+
+              <div class="col-12 col-md-8">
+                <label class="form-label fw-semibold">Task Title / Name <span class="text-danger">*</span></label>
+                {{ form.title }}
+                {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors }}</div>{% endif %}
+              </div>
             </div>
 
-            <div class="col-12 col-md-8">
-              <label class="form-label fw-semibold">Task Title / Name <span class="text-danger">*</span></label>
-              {{ form.title }}
-              {% if form.title.errors %}<div class="text-danger small mt-1">{{ form.title.errors }}</div>{% endif %}
-            </div>
-          </div>
+            <!-- Section 2 -->
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-file-earmark-text-fill text-primary me-1"></i> 2. Task Description & Creative Brief
+            </h6>
 
-          <!-- Section 2 -->
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-file-earmark-text-fill text-primary me-1"></i> 2. Task Description & Creative Brief
-          </h6>
-
-          <div class="mb-4">
-            <label class="form-label fw-semibold">Task Description & Deliverables <span class="text-danger">*</span></label>
-            {{ form.description }}
-            {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors }}</div>{% endif %}
-          </div>
-
-          <div class="mb-4">
-            <label class="form-label fw-semibold">Step-by-Step Instructions & Guidelines</label>
-            {{ form.instructions }}
-            {% if form.instructions.errors %}<div class="text-danger small mt-1">{{ form.instructions.errors }}</div>{% endif %}
-          </div>
-
-          <!-- Section 3: Attach Additional Documents -->
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-paperclip text-primary me-1"></i> 3. Attach Additional Documents / Assets
-          </h6>
-
-          <div class="p-3 bg-light rounded-3 border mb-4">
-            <label class="form-label fw-semibold text-dark">Upload Additional Files (Any format accepted):</label>
-            {{ form.documents }}
-            <div class="form-text small text-muted mt-2">
-              Attach more files (PSD, AI, PDF, DOCX, ZIP, MP4, images, etc.). Existing attachments are preserved.
-            </div>
-            {% if form.documents.errors %}<div class="text-danger small mt-1">{{ form.documents.errors }}</div>{% endif %}
-          </div>
-
-          <!-- Section 4 -->
-          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
-            <i class="bi bi-flag-fill text-primary me-1"></i> 4. Priority Level & Status
-          </h6>
-
-          <div class="row g-3 mb-4">
-            <div class="col-12 col-md-6">
-              <label class="form-label fw-semibold">Priority Level <span class="text-danger">*</span></label>
-              {{ form.priority }}
-              {% if form.priority.errors %}<div class="text-danger small mt-1">{{ form.priority.errors }}</div>{% endif %}
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Task Description & Deliverables <span class="text-danger">*</span></label>
+              {{ form.description }}
+              {% if form.description.errors %}<div class="text-danger small mt-1">{{ form.description.errors }}</div>{% endif %}
             </div>
 
-            <div class="col-12 col-md-6">
-              <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-              {{ form.status }}
-              {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors }}</div>{% endif %}
+            <div class="mb-4">
+              <label class="form-label fw-semibold">Step-by-Step Instructions & Guidelines</label>
+              {{ form.instructions }}
+              {% if form.instructions.errors %}<div class="text-danger small mt-1">{{ form.instructions.errors }}</div>{% endif %}
             </div>
-          </div>
 
-          <!-- Actions -->
-          <div class="d-flex align-items-center justify-content-between pt-4 border-top">
-            <a href="{% url 'task_detail' task.id %}" class="btn btn-light border px-4">Cancel</a>
-            <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm">
-              <i class="bi bi-check2-circle me-2"></i> Save Changes
-            </button>
-          </div>
+            <!-- Section 3: Attach Additional Documents -->
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-paperclip text-primary me-1"></i> 3. Attach Additional Documents / Assets
+            </h6>
 
-        </form>
+            <div class="p-3 bg-light rounded-3 border mb-4">
+              <label class="form-label fw-semibold text-dark">Upload Additional Files (Any format accepted):</label>
+              {{ form.documents }}
+              <div class="form-text small text-muted mt-2">
+                Attach more files (PSD, AI, PDF, DOCX, ZIP, MP4, images, etc.). Existing attachments are preserved.
+              </div>
+              {% if form.documents.errors %}<div class="text-danger small mt-1">{{ form.documents.errors }}</div>{% endif %}
+            </div>
 
+            <!-- Section 4 -->
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+              <i class="bi bi-flag-fill text-primary me-1"></i> 4. Priority Level & Status
+            </h6>
+
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Priority Level <span class="text-danger">*</span></label>
+                {{ form.priority }}
+                {% if form.priority.errors %}<div class="text-danger small mt-1">{{ form.priority.errors }}</div>{% endif %}
+              </div>
+
+              <div class="col-12 col-md-6">
+                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
+                {{ form.status }}
+                {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors }}</div>{% endif %}
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="d-flex align-items-center justify-content-between pt-4 border-top">
+              <a href="{% url 'task_detail' task.id %}" class="btn btn-light border px-4 rounded-pill">Cancel</a>
+              <button type="submit" class="btn btn-primary btn-lg px-5 fw-bold shadow-sm rounded-pill">
+                <i class="bi bi-check2-circle me-2"></i> Save Changes
+              </button>
+            </div>
+
+          </form>
+
+        </div>
       </div>
     </div>
   </div>
