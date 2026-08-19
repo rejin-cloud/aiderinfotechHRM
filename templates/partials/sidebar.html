@@ -70,6 +70,7 @@
     </a>
     {% endif %}
 
+    {% if user.department and 'creative' in user.department.name.lower or user.role == 'SUPERADMIN' or user.role == 'SERVER_ADMIN' %}
     <div class="sidebar-heading">Creative Operations</div>
     <a href="{% url 'creative_calendar' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'creative_calendar' %}active{% endif %}">
       <i class="bi bi-calendar3"></i>
@@ -87,7 +88,7 @@
       <i class="bi bi-palette2 text-warning"></i>
       <span>Creative Tasks</span>
     </a>
-    {% if user.role == 'DEPT_MANAGER' and 'creative' in user.department.name.lower or user.role == 'SUPERADMIN' or user.role == 'SERVER_ADMIN' %}
+    {% if user.role == 'DEPT_MANAGER' or user.role == 'SUPERADMIN' or user.role == 'SERVER_ADMIN' %}
     <a href="{% url 'client_create' %}" class="sidebar-nav-link text-teal {% if request.resolver_match.url_name == 'client_create' %}active{% endif %}" style="color: #0d9488;">
       <i class="bi bi-person-plus-fill"></i>
       <span>Add Client</span>
@@ -104,6 +105,7 @@
       <i class="bi bi-person-check-fill"></i>
       <span>Assign Tasks</span>
     </a>
+    {% endif %}
     {% endif %}
 
     <div class="sidebar-heading">Attendance & Workforce</div>

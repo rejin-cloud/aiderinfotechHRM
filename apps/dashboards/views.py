@@ -220,6 +220,10 @@ def dept_manager_dashboard_view(request):
     user = request.user
     dept = user.department
     branch = user.branch
+    today = timezone.localdate()
+
+    is_creative = bool(dept and 'creative' in dept.name.lower())
+    is_it_club = bool(dept and 'it club' in dept.name.lower())
 
     # Dept Manager oversees Executives, Interns, and Staff
     subordinates = User.objects.filter(
@@ -230,12 +234,29 @@ def dept_manager_dashboard_view(request):
     if branch:
         subordinates = subordinates.filter(branch=branch)
     
-    subordinates = subordinates.select_related('department', 'branch')
+    subordinates = subordinates.select_related('department', 'branch').order_by('role', 'first_name')
+
+    # Attach today's attendance status to each subordinate
+    today_attendances = Attendance.objects.filter(date=today)
+    if dept:
+        today_attendances = today_attendances.filter(user__department=dept)
+    if branch:
+        today_attendances = today_attendances.filter(user__branch=branch)
+
+    attendance_map = {att.user_id: att for att in today_attendances}
+    for sub in subordinates:
+        sub.today_attendance = attendance_map.get(sub.id)
 
     total_subordinates = subordinates.count()
     executives_count = subordinates.filter(role=User.Role.EXECUTIVE).count()
     interns_count = subordinates.filter(role=User.Role.INTERN).count()
     staff_count = subordinates.filter(role=User.Role.STAFF).count()
+
+    present_today_count = today_attendances.filter(
+        status__in=[Attendance.Status.PRESENT, Attendance.Status.LATE, Attendance.Status.HALF_DAY]
+    ).count()
+    late_today_count = today_attendances.filter(is_late=True).count()
+    on_leave_today_count = today_attendances.filter(status=Attendance.Status.ON_LEAVE).count()
 
     clients_count = 0
     recent_clients = []
@@ -248,14 +269,17 @@ def dept_manager_dashboard_view(request):
     pending_extensions_count = 0
     pending_leaves_count = 0
     pending_mgr_client_reviews = 0
+    pending_leaves = []
 
     if dept:
-        pending_leaves_count = LeaveRequest.objects.filter(
+        pending_leaves_qs = LeaveRequest.objects.filter(
             user__department=dept,
             status=LeaveRequest.Status.PENDING_DEPT_REVIEW
-        ).count()
+        ).select_related('user', 'user__branch').order_by('-created_at')
+        pending_leaves_count = pending_leaves_qs.count()
+        pending_leaves = pending_leaves_qs[:5]
 
-        if 'creative' in dept.name.lower():
+        if is_creative:
             clients_count = Client.objects.filter(department=dept).count()
             recent_clients = Client.objects.filter(department=dept).order_by('-created_at')[:6]
             client_assignments_count = ClientAssignment.objects.filter(client__department=dept).count()
@@ -286,9 +310,26 @@ def dept_manager_dashboard_view(request):
 
     department_branches = []
     if dept:
-        department_branches = Branch.objects.filter(department=dept).annotate(
+        department_branches = list(Branch.objects.filter(department=dept).annotate(
             users_count=Count('users', distinct=True)
-        )
+        ).order_by('name'))
+        for br in department_branches:
+            br.executives_cnt = br.users.filter(role=User.Role.EXECUTIVE).count()
+            br.staff_cnt = br.users.filter(role=User.Role.STAFF).count()
+            br.interns_cnt = br.users.filter(role=User.Role.INTERN).count()
+
+    dept_customers = Client.objects.filter(department=dept).order_by('-created_at') if dept else Client.objects.none()
+    dept_customers_count = dept_customers.count()
+    recent_dept_customers = dept_customers[:6]
+
+    if is_it_club:
+        page_title = "IT Club Operations & Engineering Command Center"
+    elif is_creative:
+        page_title = "Creative Operations Control Center"
+    else:
+        page_title = f"{dept.name if dept else 'Department'} Management Hub"
+
+    total_action_required = pending_submissions_count + pending_extensions_count + pending_leaves_count + pending_mgr_client_reviews
 
     return render(request, 'dashboards/dept_manager.html', {
         'subordinates': subordinates,
@@ -298,6 +339,12 @@ def dept_manager_dashboard_view(request):
         'staff_count': staff_count,
         'current_dept': dept,
         'current_branch': branch,
+        'is_creative': is_creative,
+        'is_it_club': is_it_club,
+        'today': today,
+        'present_today_count': present_today_count,
+        'late_today_count': late_today_count,
+        'on_leave_today_count': on_leave_today_count,
         'department_branches': department_branches,
         'clients_count': clients_count,
         'recent_clients': recent_clients,
@@ -309,9 +356,12 @@ def dept_manager_dashboard_view(request):
         'pending_submissions_count': pending_submissions_count,
         'pending_extensions_count': pending_extensions_count,
         'pending_leaves_count': pending_leaves_count,
+        'pending_leaves': pending_leaves,
         'pending_mgr_client_reviews': pending_mgr_client_reviews,
-        'total_action_required': pending_submissions_count + pending_extensions_count + pending_leaves_count + pending_mgr_client_reviews,
-        'page_title': f'Creative Operations Control Center &bull; {dept.name if dept else "General"}',
+        'total_action_required': total_action_required,
+        'dept_customers_count': dept_customers_count,
+        'recent_dept_customers': recent_dept_customers,
+        'page_title': page_title,
     })
 
 @login_required

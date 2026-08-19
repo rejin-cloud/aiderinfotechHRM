@@ -1,8 +1,489 @@
 {% extends 'base.html' %}
 
-{% block title %}Creative Operations & Management Command Center | Aider Infotech{% endblock %}
+{% block title %}{{ page_title }} | Aider Infotech{% endblock %}
 
 {% block content %}
+{% if is_it_club %}
+<!-- =====================================================================
+     IT CLUB DEPARTMENT MANAGER COMMAND CENTER
+     ===================================================================== -->
+
+<!-- IT Club Executive Hero Command Banner -->
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #090d16 0%, #0f172a 45%, #0284c7 100%);">
+  <!-- Subtle decorative ambient circle -->
+  <div class="position-absolute rounded-circle opacity-10" style="width: 320px; height: 320px; background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%); top: -80px; right: -40px; pointer-events: none;"></div>
+
+  <div class="card-body p-4 p-md-5 position-relative">
+    <div class="row align-items-center g-4">
+      
+      <!-- Left: IT Club Manager Profile & Department Authority -->
+      <div class="col-12 col-xl-7">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="avatar-circle shadow-lg d-flex align-items-center justify-content-center fw-bold text-white fs-3" 
+               style="width: 68px; height: 68px; background: linear-gradient(135deg, #0284c7 0%, #0f766e 100%); border: 3px solid rgba(255,255,255,0.25);">
+            <i class="bi bi-cpu-fill"></i>
+          </div>
+          <div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <h3 class="fw-bold mb-0 text-white">{{ user.get_full_name|default:user.username }}</h3>
+              <span class="badge bg-warning text-dark fw-bold rounded-pill px-3 py-1 font-monospace" style="font-size: 0.72rem;">
+                <i class="bi bi-shield-lock-fill me-1"></i> Level 3 IT Leadership
+              </span>
+              <span class="badge text-white fw-semibold px-3 py-1 border" style="background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.25) !important;">
+                <i class="bi bi-code-slash me-1"></i> {{ current_dept.name|default:"IT Club" }}
+              </span>
+            </div>
+            <p class="text-white-50 small mb-0">
+              Engineering Workflows, Cloud Infrastructure, Tech Branch Centers & Workforce Governance &bull; <strong>{{ today|date:"l, F d, Y" }}</strong>
+            </p>
+          </div>
+        </div>
+
+        {% if pending_leaves_count > 0 %}
+        <!-- Real-time Action Alert Banner -->
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-danger bg-opacity-25 border border-danger border-opacity-50 text-white small mt-1 shadow-sm">
+          <span class="spinner-grow spinner-grow-sm text-warning" role="status"></span>
+          <span><strong>{{ pending_leaves_count }} Leave Application{{ pending_leaves_count|pluralize }}</strong> awaiting your departmental review</span>
+        </div>
+        {% else %}
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-10 border border-white border-opacity-10 text-white-50 small mt-1">
+          <i class="bi bi-check2-circle text-success"></i>
+          <span>All IT Club engineering branches & leave queues are synchronized</span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right: IT Club Command Actions -->
+      <div class="col-12 col-xl-5 text-xl-end">
+        <div class="d-flex flex-wrap justify-content-xl-end gap-2">
+          <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2 rounded-3 position-relative">
+            <i class="bi bi-card-checklist me-1"></i> Leave Queue
+            {% if pending_leaves_count > 0 %}
+            <span class="badge bg-danger text-white rounded-pill ms-1">{{ pending_leaves_count }}</span>
+            {% endif %}
+          </a>
+          <a href="{% url 'department_attendance_roster' %}" class="btn btn-light text-dark fw-bold shadow-sm px-3 py-2 rounded-3">
+            <i class="bi bi-clock-history me-1 text-primary"></i> Attendance Roster
+          </a>
+          <a href="{% url 'user_create' %}" class="btn btn-outline-light shadow-sm px-3 py-2 rounded-3">
+            <i class="bi bi-person-plus-fill me-1"></i> Onboard Member
+          </a>
+          <a href="{% url 'attendance_monthly_reports' %}" class="btn btn-outline-light shadow-sm px-3 py-2 rounded-3">
+            <i class="bi bi-calendar-range me-1"></i> Monthly Summary
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- IT Club KPI Stats Row -->
+<div class="row g-3 mb-4">
+  <!-- Metric 1: Total IT Club Workforce -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4" style="border-left-color: #0284c7 !important;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <span class="text-muted small text-uppercase fw-semibold tracking-wider d-block">IT Club Team</span>
+          <h2 class="fw-extrabold text-dark mb-0 mt-1 font-monospace">{{ total_subordinates }}</h2>
+          <span class="text-muted small">{{ executives_count }} Execs &bull; {{ staff_count }} Staff &bull; {{ interns_count }} Interns</span>
+        </div>
+        <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; background-color: #e0f2fe; color: #0284c7;">
+          <i class="bi bi-people-fill fs-4"></i>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+        <a href="#it-team-table" class="text-decoration-none small fw-semibold" style="color: #0284c7;">
+          View Team <i class="bi bi-arrow-down ms-1"></i>
+        </a>
+        <a href="{% url 'user_create' %}" class="badge bg-info-subtle text-dark text-decoration-none">
+          + Add Member
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric 2: Today's Tech Attendance -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4" style="border-left-color: #10b981 !important;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <span class="text-muted small text-uppercase fw-semibold tracking-wider d-block">Checked-In Today</span>
+          <h2 class="fw-extrabold text-dark mb-0 mt-1 font-monospace">{{ present_today_count }}</h2>
+          <span class="text-muted small">
+            <span class="text-warning fw-bold">{{ late_today_count }} Late</span> &bull; 
+            <span class="text-primary fw-bold">{{ on_leave_today_count }} On Leave</span>
+          </span>
+        </div>
+        <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm bg-success-subtle text-success" style="width: 48px; height: 48px;">
+          <i class="bi bi-check2-circle fs-4"></i>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+        <a href="{% url 'department_attendance_roster' %}" class="text-decoration-none small fw-semibold text-success">
+          Daily Roster <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        <span class="badge bg-success-subtle text-success">Today</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric 3: Active Tech Innovation Branches -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4" style="border-left-color: #6366f1 !important;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <span class="text-muted small text-uppercase fw-semibold tracking-wider d-block">Innovation Centers</span>
+          <h2 class="fw-extrabold text-dark mb-0 mt-1 font-monospace">{{ department_branches|length }}</h2>
+          <span class="text-muted small">Active IT Club branch hubs</span>
+        </div>
+        <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm bg-indigo-subtle text-primary" style="width: 48px; height: 48px; background-color: #e0e7ff; color: #4338ca;">
+          <i class="bi bi-diagram-3-fill fs-4"></i>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+        <a href="#it-branches-section" class="text-decoration-none small fw-semibold text-primary">
+          Explore Hubs <i class="bi bi-arrow-down ms-1"></i>
+        </a>
+        <span class="badge bg-primary-subtle text-primary">Balussery & Calicut</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metric 4: Leave Review Queue -->
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4" style="border-left-color: #f59e0b !important;">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <span class="text-muted small text-uppercase fw-semibold tracking-wider d-block">Leave Action Items</span>
+          <h2 class="fw-extrabold text-dark mb-0 mt-1 font-monospace">{{ pending_leaves_count }}</h2>
+          <span class="text-muted small">
+            {% if pending_leaves_count > 0 %}
+              <span class="text-danger fw-bold">Review Required</span>
+            {% else %}
+              <span class="text-success"><i class="bi bi-check-all"></i> Queue Cleared</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm bg-warning-subtle text-warning" style="width: 48px; height: 48px;">
+          <i class="bi bi-envelope-paper-heart-fill fs-4"></i>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+        <a href="{% url 'dept_manager_leave_reviews' %}" class="text-decoration-none small fw-semibold text-dark">
+          Process Requests <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+        {% if pending_leaves_count > 0 %}
+          <span class="badge bg-danger text-white">{{ pending_leaves_count }} Pending</span>
+        {% else %}
+          <span class="badge bg-success-subtle text-success">Up to Date</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Review Alert Bar (if leaves need action) -->
+{% if pending_leaves_count > 0 %}
+<div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-white" style="border-left: 5px solid #ef4444 !important;">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3">
+      <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+        <i class="bi bi-bell-fill fs-5"></i>
+      </div>
+      <div>
+        <h6 class="fw-bold text-dark mb-0">Department Manager Action Required</h6>
+        <span class="text-muted small">You have {{ pending_leaves_count }} leave application{{ pending_leaves_count|pluralize }} from IT Club members awaiting recommendation & review.</span>
+      </div>
+    </div>
+
+    <div>
+      <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-sm btn-danger text-white fw-bold px-3 py-2 rounded-pill shadow-sm">
+        <i class="bi bi-check2-circle me-1"></i> Review Leave Queue ({{ pending_leaves_count }})
+      </a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- IT Club Branch Innovation Centers & Facilities Grid -->
+<div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden" id="it-branches-section">
+  <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="rounded-3 p-2 bg-info-subtle text-info" style="background-color: #e0f2fe; color: #0284c7;">
+        <i class="bi bi-diagram-3-fill fs-5"></i>
+      </div>
+      <div>
+        <h5 class="fw-bold text-dark mb-0">IT Club Innovation Centers & Branch Hubs</h5>
+        <span class="text-muted small">Technology facilities, branch hubs, and developer pods in IT Club</span>
+      </div>
+    </div>
+    <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+      {{ department_branches|length }} Active Branches
+    </span>
+  </div>
+
+  <div class="card-body p-4">
+    <div class="row g-3">
+      {% for br in department_branches %}
+      <div class="col-12 col-md-6 col-xl-6">
+        <div class="card border rounded-4 p-4 h-100 bg-light bg-opacity-50">
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle shadow-sm d-flex align-items-center justify-content-center text-white" 
+                   style="width: 48px; height: 48px; background: linear-gradient(135deg, #0284c7 0%, #0f766e 100%); font-size: 1.2rem;">
+                <i class="bi bi-building"></i>
+              </div>
+              <div>
+                <h5 class="fw-bold text-dark mb-0">{{ br.name }}</h5>
+                <span class="text-muted small d-block">
+                  <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ br.location|default:"Technical Innovation Facility" }}
+                </span>
+              </div>
+            </div>
+            <span class="badge bg-primary px-3 py-2 rounded-pill font-monospace fw-bold">
+              {{ br.users_count }} Member{{ br.users_count|pluralize }}
+            </span>
+          </div>
+
+          <hr class="text-muted opacity-25 my-2">
+
+          <!-- Branch Role Breakdown -->
+          <div class="row g-2 text-center pt-2">
+            <div class="col-4">
+              <div class="p-2 rounded-3 bg-white border">
+                <div class="fw-bold text-dark fs-6">{{ br.executives_cnt }}</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">Tech Leads / Execs</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 rounded-3 bg-white border">
+                <div class="fw-bold text-dark fs-6">{{ br.staff_cnt }}</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">Staff Engineers</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="p-2 rounded-3 bg-white border">
+                <div class="fw-bold text-dark fs-6">{{ br.interns_cnt }}</div>
+                <div class="text-muted small" style="font-size: 0.7rem;">Tech Interns</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-4 text-muted">
+        <p class="mb-0">No branches defined under IT Club yet.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- IT Club External Corporate Tech Accounts (if any) -->
+{% if dept_customers_count > 0 %}
+<div class="card border-0 shadow-sm rounded-4 bg-white mb-4 overflow-hidden">
+  <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <div class="rounded-3 p-2 bg-info-subtle text-info" style="background-color: #e0f2fe; color: #0284c7;">
+        <i class="bi bi-briefcase-fill fs-5"></i>
+      </div>
+      <div>
+        <h5 class="fw-bold text-dark mb-0">IT Club External Clients & Tech Partners</h5>
+        <span class="text-muted small">Corporate accounts and software projects under IT Club</span>
+      </div>
+    </div>
+    <a href="{% url 'customer_management' %}?department={{ current_dept.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+      View All ({{ dept_customers_count }}) <i class="bi bi-arrow-right ms-1"></i>
+    </a>
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Customer & Code</th>
+            <th>Company / Brand</th>
+            <th>Place / Location</th>
+            <th>Phone / Contact</th>
+            <th>Technical Scope / Needs</th>
+            <th class="text-end pe-4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cust in recent_dept_customers %}
+          <tr>
+            <td class="ps-4">
+              <a href="{% url 'customer_detail' cust.id %}" class="fw-bold text-dark text-decoration-none">
+                {{ cust.name }}
+              </a>
+              <div>
+                <span class="badge bg-light text-secondary border font-monospace" style="font-size: 0.7rem;">{{ cust.client_number }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="fw-semibold text-dark small">{{ cust.company }}</div>
+            </td>
+            <td>
+              {% if cust.place %}
+                <span class="small text-dark"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ cust.place }}</span>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if cust.phone %}
+                <a href="tel:{{ cust.phone }}" class="small text-dark text-decoration-none fw-semibold">
+                  <i class="bi bi-telephone-fill text-success me-1"></i>{{ cust.phone }}
+                </a>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if cust.needs %}
+                <span class="small text-secondary text-truncate d-inline-block" style="max-width: 240px;" title="{{ cust.needs }}">
+                  {{ cust.needs }}
+                </span>
+              {% else %}
+                <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <a href="{% url 'customer_detail' cust.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-file-earmark-person"></i> Dossier
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- IT Club Supervised Team Workforce Directory -->
+<div class="card border-0 shadow-sm rounded-4 bg-white" id="it-team-table">
+  <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="rounded-3 p-2 bg-success-subtle text-success">
+        <i class="bi bi-people-fill fs-5"></i>
+      </div>
+      <div>
+        <h5 class="fw-bold text-dark mb-0">IT Club Team Workforce & Engineering Directory</h5>
+        <span class="text-muted small">Direct managerial authority over Technical Leads, Staff Developers, and Engineering Interns</span>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{% url 'department_attendance_roster' %}" class="btn btn-sm btn-outline-success rounded-pill px-3">
+        <i class="bi bi-clock-history me-1"></i> Live Attendance Roster
+      </a>
+      <a href="{% url 'user_create' %}" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+        <i class="bi bi-person-plus me-1"></i> + Add Member
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Team Member</th>
+            <th>Role & Tier</th>
+            <th>Technical Designation</th>
+            <th>Branch Hub</th>
+            <th>Today's Attendance</th>
+            <th>Official Contact</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sub in subordinates %}
+          <tr>
+            <td class="ps-4">
+              <div class="d-flex align-items-center gap-3">
+                <div class="avatar-circle shadow-sm" style="background-color: {{ sub.avatar_color|default:'#0284c7' }}; width: 38px; height: 38px; color: #ffffff;">
+                  {{ sub.first_name|default:sub.username|slice:":1"|upper }}
+                </div>
+                <div>
+                  <a href="{% url 'user_detail' sub.id %}" class="fw-bold text-dark text-decoration-none d-block">
+                    {{ sub.get_full_name|default:sub.username }}
+                  </a>
+                  <span class="text-muted font-monospace" style="font-size: 0.75rem;">{{ sub.employee_id|default:sub.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="badge {{ sub.role_badge_class }}">
+                {{ sub.get_role_display }}
+              </span>
+            </td>
+            <td class="small fw-semibold text-dark">{{ sub.designation|default:"Engineering Staff" }}</td>
+            <td class="small text-muted">
+              <span class="badge bg-light text-dark border">{{ sub.branch.name|default:"IT Club Core" }}</span>
+            </td>
+            <td>
+              {% if sub.today_attendance %}
+                {% if sub.today_attendance.status == 'PRESENT' %}
+                  <span class="badge bg-success text-white"><i class="bi bi-check-circle me-1"></i> Present</span>
+                {% elif sub.today_attendance.status == 'LATE' %}
+                  <span class="badge bg-warning text-dark"><i class="bi bi-clock-history me-1"></i> Late (Clocked)</span>
+                {% elif sub.today_attendance.status == 'HALF_DAY' %}
+                  <span class="badge bg-info text-dark"><i class="bi bi-circle-half me-1"></i> Half Day</span>
+                {% elif sub.today_attendance.status == 'ON_LEAVE' %}
+                  <span class="badge bg-primary text-white"><i class="bi bi-calendar-check me-1"></i> On Leave</span>
+                {% else %}
+                  <span class="badge bg-danger text-white">{{ sub.today_attendance.get_status_display }}</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-muted border">Not Clocked In</span>
+              {% endif %}
+            </td>
+            <td class="small">
+              <div><i class="bi bi-envelope me-1 text-muted"></i> {{ sub.email|default:"N/A" }}</div>
+              {% if sub.phone %}<div><i class="bi bi-telephone me-1 text-muted"></i> {{ sub.phone }}</div>{% endif %}
+            </td>
+            <td class="text-end pe-4">
+              <div class="d-flex justify-content-end gap-1">
+                <a href="{% url 'user_detail' sub.id %}" class="btn btn-sm btn-light border py-1 px-2" title="View Profile">
+                  <i class="bi bi-eye text-muted"></i>
+                </a>
+                <a href="{% url 'user_update' sub.id %}" class="btn btn-sm btn-light border py-1 px-2" title="Edit Profile">
+                  <i class="bi bi-pencil text-muted"></i>
+                </a>
+                <a href="{% url 'export_dossier_user' sub.id %}" class="btn btn-sm btn-light border py-1 px-2 text-danger" title="Download PDF Dossier">
+                  <i class="bi bi-file-earmark-pdf"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-people fs-1 d-block mb-2 opacity-50"></i>
+              <h6 class="fw-bold text-dark">No Subordinates Found Under IT Club</h6>
+              <p class="small text-muted mb-3">Use "+ Add Member" to register engineers, staff, and interns under IT Club supervision.</p>
+              <a href="{% url 'user_create' %}" class="btn btn-sm btn-success fw-bold px-3 py-2 rounded-pill">
+                <i class="bi bi-person-plus me-1"></i> Add Tech Member
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% else %}
+<!-- =====================================================================
+     CREATIVE & GENERAL DEPARTMENT MANAGER DASHBOARD
+     ===================================================================== -->
+
 <!-- Executive Hero Command Banner -->
 <div class="card border-0 text-white shadow-sm rounded-4 mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1b4b 100%);">
   <!-- Subtle decorative ambient circle -->
@@ -26,7 +507,7 @@
               </span>
             </div>
             <p class="text-white-50 small mb-0">
-              Department Manager &bull; <strong class="text-white">{{ current_dept.name|default:"Creative Department" }}</strong> &bull; {{ current_branch.name|default:"HQ Core Wing" }}
+              Department Manager &bull; <strong class="text-white">{{ current_dept.name|default:"Department Operations" }}</strong> &bull; {{ current_branch.name|default:"HQ Core Wing" }}
             </p>
           </div>
         </div>
@@ -48,7 +529,7 @@
       <!-- Right: Quick Command Hub -->
       <div class="col-12 col-xl-6 text-xl-end">
         <div class="d-flex flex-wrap justify-content-xl-end gap-2">
-          {% if 'creative' in current_dept.name.lower %}
+          {% if is_creative %}
           <a href="{% url 'creative_calendar' %}" class="btn btn-outline-warning text-warning fw-bold shadow-sm px-3 py-2 rounded-3">
             <i class="bi bi-calendar3 me-1"></i> Operations Calendar
           </a>
@@ -85,6 +566,7 @@
 
 <!-- Key Performance & Operations Metrics Grid -->
 <div class="row g-3 mb-4">
+  {% if is_creative %}
   <!-- Metric 1: Creative Clients Registry -->
   <div class="col-12 col-sm-6 col-xl-3">
     <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4" style="border-left-color: #0d9488 !important;">
@@ -156,9 +638,51 @@
       </div>
     </div>
   </div>
+  {% else %}
+  <!-- General Department Metrics -->
+  <div class="col-12 col-sm-6 col-xl-4">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4 border-primary">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <span class="text-muted small text-uppercase fw-semibold tracking-wider d-block">Checked-In Today</span>
+          <h2 class="fw-extrabold text-dark mb-0 mt-1">{{ present_today_count }}</h2>
+          <span class="text-muted small">{{ late_today_count }} Late &bull; {{ on_leave_today_count }} On Leave</span>
+        </div>
+        <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm bg-primary-subtle text-primary" style="width: 48px; height: 48px;">
+          <i class="bi bi-clock-history fs-4"></i>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+        <a href="{% url 'department_attendance_roster' %}" class="text-decoration-none small fw-semibold text-primary">
+          Daily Roster <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
 
-  <!-- Metric 4: Workforce Subordinates -->
-  <div class="col-12 col-sm-6 col-xl-3">
+  <div class="col-12 col-sm-6 col-xl-4">
+    <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4 border-warning">
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <span class="text-muted small text-uppercase fw-semibold tracking-wider d-block">Leave Requests</span>
+          <h2 class="fw-extrabold text-dark mb-0 mt-1">{{ pending_leaves_count }}</h2>
+          <span class="text-muted small">Pending review</span>
+        </div>
+        <div class="rounded-3 d-flex align-items-center justify-content-center shadow-sm bg-warning-subtle text-warning" style="width: 48px; height: 48px;">
+          <i class="bi bi-envelope-paper-heart-fill fs-4"></i>
+        </div>
+      </div>
+      <div class="mt-3 pt-2 border-top d-flex justify-content-between align-items-center">
+        <a href="{% url 'dept_manager_leave_reviews' %}" class="text-decoration-none small fw-semibold text-dark">
+          Review Queue <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Metric: Workforce Subordinates -->
+  <div class="col-12 col-sm-6 {% if is_creative %}col-xl-3{% else %}col-xl-4{% endif %}">
     <div class="card border-0 shadow-sm rounded-4 h-100 bg-white p-3 border-start border-4 border-success">
       <div class="d-flex align-items-center justify-content-between">
         <div>
@@ -182,47 +706,8 @@
   </div>
 </div>
 
-<!-- Pending Review Alert Bar (Visible when actions are required) -->
-{% if total_action_required > 0 %}
-<div class="card border-0 shadow-sm rounded-4 mb-4 p-3 bg-white" style="border-left: 5px solid #ef4444 !important;">
-  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-    <div class="d-flex align-items-center gap-3">
-      <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
-        <i class="bi bi-bell-fill fs-5"></i>
-      </div>
-      <div>
-        <h6 class="fw-bold text-dark mb-0">Managerial Action Required: Reviews & Approvals Queue</h6>
-        <span class="text-muted small">Items requiring your direct review, feedback, or approval decision.</span>
-      </div>
-    </div>
-
-    <div class="d-flex flex-wrap gap-2">
-      {% if pending_mgr_client_reviews > 0 %}
-      <a href="{% url 'executive_client_assignments' %}" class="btn btn-sm btn-primary text-white px-3 py-1 fw-bold" style="background: #0d9488; border-color: #0d9488;">
-        <i class="bi bi-patch-check-fill me-1"></i> {{ pending_mgr_client_reviews }} Client Deliverable Sign-Off{{ pending_mgr_client_reviews|pluralize }}
-      </a>
-      {% endif %}
-      {% if pending_submissions_count > 0 %}
-      <a href="{% url 'task_list' %}" class="btn btn-sm btn-outline-danger px-3 py-1 fw-bold">
-        <i class="bi bi-check2-circle me-1"></i> {{ pending_submissions_count }} Task Submission{{ pending_submissions_count|pluralize }}
-      </a>
-      {% endif %}
-      {% if pending_extensions_count > 0 %}
-      <a href="{% url 'manager_extension_requests' %}" class="btn btn-sm btn-warning text-dark px-3 py-1 fw-bold">
-        <i class="bi bi-hourglass-split me-1"></i> {{ pending_extensions_count }} Extension / Reassign Request{{ pending_extensions_count|pluralize }}
-      </a>
-      {% endif %}
-      {% if pending_leaves_count > 0 %}
-      <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-sm btn-outline-primary px-3 py-1 fw-bold">
-        <i class="bi bi-calendar-check me-1"></i> {{ pending_leaves_count }} Leave Review{{ pending_leaves_count|pluralize }}
-      </a>
-      {% endif %}
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<!-- Main Section: Client Registry & Cross-Branch Directives -->
+{% if is_creative %}
+<!-- Creative Main Section: Client Registry & Cross-Branch Directives -->
 <div class="row g-4 mb-4">
   
   <!-- Left: Registered Corporate Clients -->
@@ -378,9 +863,8 @@
 
 </div>
 
-<!-- Main Section 2: Creative Tasks Pipeline & Department Branches -->
+<!-- Creative Tasks Pipeline & Department Wings -->
 <div class="row g-4 mb-4">
-  
   <!-- Creative Tasks Pipeline -->
   <div class="col-12 col-xl-8">
     <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
@@ -514,23 +998,13 @@
           </div>
           {% endfor %}
         </div>
-
-        <div class="p-3 rounded-3 bg-light border mt-4">
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <i class="bi bi-info-circle text-primary"></i>
-            <strong class="small text-dark">Supervisory Note</strong>
-          </div>
-          <p class="small text-muted mb-0">
-            As Department Manager, you have managerial authority over all team members across all wings in {{ current_dept.name }}.
-          </p>
-        </div>
       </div>
     </div>
   </div>
-
 </div>
+{% endif %}
 
-<!-- Section 3: Subordinates & Team Workforce -->
+<!-- Subordinates & Team Workforce (General) -->
 <div class="card border-0 shadow-sm rounded-4 bg-white" id="subordinates-table">
   <div class="card-header bg-white p-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2">
@@ -622,4 +1096,5 @@
     </div>
   </div>
 </div>
+{% endif %}
 {% endblock %}
