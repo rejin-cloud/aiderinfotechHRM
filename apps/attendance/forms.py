@@ -27,6 +27,7 @@ class CheckOutForm(forms.Form):
 
 
 class LeaveApplicationForm(forms.ModelForm):
+    """Standard Leave Application Form for employees below manager level (Executive, Staff, Intern)."""
     class Meta:
         model = LeaveRequest
         fields = ['leave_type', 'start_date', 'end_date', 'is_half_day', 'half_day_period', 'reason']
@@ -40,6 +41,44 @@ class LeaveApplicationForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 4,
                 'placeholder': 'Please state the detailed reason for your leave application...'
+            }),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        is_half_day = cleaned_data.get('is_half_day')
+        half_day_period = cleaned_data.get('half_day_period')
+
+        if start_date and end_date:
+            if end_date < start_date:
+                raise forms.ValidationError("End date cannot be earlier than start date.")
+
+        if is_half_day:
+            if not half_day_period:
+                raise forms.ValidationError("Please select whether the half-day leave is for the First Half or Second Half.")
+            if start_date and end_date and start_date != end_date:
+                cleaned_data['end_date'] = start_date
+
+        return cleaned_data
+
+
+class ExecutiveLeaveApplicationForm(forms.ModelForm):
+    """Separate Dedicated Leave Application Form for Server Admin, HR, and Manager level personals."""
+    class Meta:
+        model = LeaveRequest
+        fields = ['leave_type', 'start_date', 'end_date', 'is_half_day', 'half_day_period', 'reason']
+        widgets = {
+            'leave_type': forms.Select(attrs={'class': 'form-select font-monospace'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'is_half_day': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'id_exec_is_half_day'}),
+            'half_day_period': forms.Select(attrs={'class': 'form-select', 'id': 'id_exec_half_day_period'}),
+            'reason': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Detail your executive leave request, coverage plan, operational delegation, or emergency notes for Super Admin review...'
             }),
         }
 
@@ -97,6 +136,26 @@ class ManagerFinalDecisionForm(forms.Form):
             'class': 'form-control',
             'rows': 3,
             'placeholder': 'Add official manager remarks or instructions...'
+        })
+    )
+
+
+class SuperadminLeaveDecisionForm(forms.Form):
+    """Evaluation form used by Super Admin to approve or reject executive leave requests."""
+    ACTION_CHOICES = [
+        ('APPROVE', 'Grant Official Super Admin Approval (Mark Leave Approved)'),
+        ('REJECT', 'Decline / Reject Executive Leave Request'),
+    ]
+    action = forms.ChoiceField(
+        choices=ACTION_CHOICES,
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input', 'required': True})
+    )
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Add Super Admin decision notes, delegation instructions, or remarks...'
         })
     )
 

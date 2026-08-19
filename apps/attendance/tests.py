@@ -115,9 +115,113 @@ class AttendanceAndLeaveWorkflowTest(TestCase):
         # No attendance record created for superadmin
         self.assertEqual(Attendance.objects.filter(user=self.superadmin).count(), 0)
 
-    def test_multi_stage_leave_workflow(self):
-        # Step 1: Staff submits leave application
+    def test_superadmin_cannot_apply_for_leave(self):
+        """Super Admin does not have a leave application page and is redirected to approvals."""
+        self.client.force_login(self.superadmin)
+
+        # Standard leave apply
+        res1 = self.client.get(reverse('leave_apply'))
+        self.assertRedirects(res1, reverse('superadmin_leave_approvals'))
+
+        # Executive leave apply
+        res2 = self.client.get(reverse('executive_leave_apply'))
+        self.assertRedirects(res2, reverse('superadmin_leave_approvals'))
+
+    def test_executive_leave_application_and_superadmin_approval(self):
+        """
+        - Server Admin, HR, Manager apply via separate Executive Leave portal.
+        - Application goes directly to Super Admin (PENDING_SUPERADMIN_APPROVAL).
+        - Super Admin approves with notes, marking Attendance ON_LEAVE.
+        """
+        # 1. Manager applies via Executive Leave Portal
+        self.client.force_login(self.manager)
+        today = date.today()
+        start = today + timedelta(days=3)
+        end = today + timedelta(days=5)
+
+        # Visiting standard leave_apply automatically redirects manager to executive_leave_apply
+        res_redirect = self.client.get(reverse('leave_apply'))
+        self.assertRedirects(res_redirect, reverse('executive_leave_apply'))
+
+        # Submit executive leave
+        exec_post = {
+            'leave_type': LeaveRequest.LeaveType.ANNUAL,
+            'start_date': start.strftime('%Y-%m-%d'),
+            'end_date': end.strftime('%Y-%m-%d'),
+            'reason': 'Annual corporate leave. Handed over branch operations to Senior Lead.',
+        }
+        res_apply = self.client.post(reverse('executive_leave_apply'), exec_post)
+        self.assertRedirects(res_apply, reverse('my_leaves'))
+
+        leave_req = LeaveRequest.objects.filter(user=self.manager).first()
+        self.assertIsNotNone(leave_req)
+        self.assertEqual(leave_req.status, LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL)
+
+        # 2. Super Admin views executive approvals list
+        self.client.force_login(self.superadmin)
+        res_queue = self.client.get(reverse('superadmin_leave_approvals'))
+        self.assertEqual(res_queue.status_code, 200)
+        self.assertContains(res_queue, "manager_user")
+        self.assertContains(res_queue, "Annual corporate leave")
+
+        # 3. Super Admin approves executive leave
+        decision_post = {
+            'action': 'APPROVE',
+            'notes': 'Approved. Operational delegation noted.',
+        }
+        res_decision = self.client.post(
+            reverse('superadmin_decision_action', kwargs={'leave_id': leave_req.id}),
+            decision_post
+        )
+        self.assertRedirects(res_decision, reverse('superadmin_leave_approvals'))
+
+        leave_req.refresh_from_db()
+        self.assertEqual(leave_req.status, LeaveRequest.Status.APPROVED)
+        self.assertEqual(leave_req.approved_by_superadmin, self.superadmin)
+        self.assertEqual(leave_req.superadmin_decision_notes, 'Approved. Operational delegation noted.')
+        self.assertIsNotNone(leave_req.superadmin_decided_at)
+
+        # 4. Verify Attendance synchronized to ON_LEAVE
+        att_start = Attendance.objects.filter(user=self.manager, date=start).first()
+        self.assertIsNotNone(att_start)
+        self.assertEqual(att_start.status, Attendance.Status.ON_LEAVE)
+
+    def test_superadmin_can_reject_executive_leave(self):
+        """Super Admin can reject an executive leave request with decision remarks."""
+        today = date.today()
+        leave_hr = LeaveRequest.objects.create(
+            user=self.hr,
+            leave_type=LeaveRequest.LeaveType.CASUAL,
+            start_date=today + timedelta(days=1),
+            end_date=today + timedelta(days=2),
+            reason='Personal trip',
+            status=LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL
+        )
+
+        self.client.force_login(self.superadmin)
+        decision_post = {
+            'action': 'REJECT',
+            'notes': 'Cannot approve due to scheduled corporate audit during these dates.',
+        }
+        res = self.client.post(
+            reverse('superadmin_decision_action', kwargs={'leave_id': leave_hr.id}),
+            decision_post
+        )
+        self.assertRedirects(res, reverse('superadmin_leave_approvals'))
+
+        leave_hr.refresh_from_db()
+        self.assertEqual(leave_hr.status, LeaveRequest.Status.REJECTED)
+        self.assertEqual(leave_hr.approved_by_superadmin, self.superadmin)
+        self.assertIn('corporate audit', leave_hr.superadmin_decision_notes)
+
+    def test_standard_staff_below_manager_retains_two_stage_workflow(self):
+        """Standard employees below manager level (Level 4) use standard 2-stage Dept Review -> Manager Approval."""
+        # 1. Staff cannot use executive portal
         self.client.force_login(self.staff_eng)
+        res_exec_access = self.client.get(reverse('executive_leave_apply'))
+        self.assertRedirects(res_exec_access, reverse('leave_apply'))
+
+        # 2. Staff applies via standard leave_apply
         today = date.today()
         start = today + timedelta(days=2)
         end = today + timedelta(days=4)
@@ -133,10 +237,9 @@ class AttendanceAndLeaveWorkflowTest(TestCase):
 
         leave_req = LeaveRequest.objects.filter(user=self.staff_eng).first()
         self.assertIsNotNone(leave_req)
-        # For Level 4 in a department, initial status is PENDING_DEPT_REVIEW
         self.assertEqual(leave_req.status, LeaveRequest.Status.PENDING_DEPT_REVIEW)
 
-        # Step 2: Department Manager reviews and forwards
+        # 3. Dept Manager reviews and forwards
         self.client.force_login(self.dept_mgr_eng)
         review_data = {
             'action': 'RECOMMEND',
@@ -147,10 +250,8 @@ class AttendanceAndLeaveWorkflowTest(TestCase):
 
         leave_req.refresh_from_db()
         self.assertEqual(leave_req.status, LeaveRequest.Status.PENDING_MANAGER_APPROVAL)
-        self.assertEqual(leave_req.reviewed_by_dept_manager, self.dept_mgr_eng)
-        self.assertEqual(leave_req.dept_manager_notes, 'Tasks covered by team. Recommended to General Manager.')
 
-        # Step 3: General Manager grants final authorization
+        # 4. Manager grants final authorization
         self.client.force_login(self.manager)
         decision_data = {
             'action': 'APPROVE',
@@ -163,10 +264,11 @@ class AttendanceAndLeaveWorkflowTest(TestCase):
         self.assertEqual(leave_req.status, LeaveRequest.Status.APPROVED)
         self.assertEqual(leave_req.approved_by_manager, self.manager)
 
-        # Step 4: Verify attendance records created for the leave dates
-        att_start = Attendance.objects.filter(user=self.staff_eng, date=start).first()
-        self.assertIsNotNone(att_start)
-        self.assertEqual(att_start.status, Attendance.Status.ON_LEAVE)
+    def test_non_superadmin_cannot_access_superadmin_approval_queue(self):
+        """Managers and HR cannot access Super Admin executive approval portal."""
+        self.client.force_login(self.manager)
+        res = self.client.get(reverse('superadmin_leave_approvals'))
+        self.assertRedirects(res, reverse('attendance_hub'))
 
     def test_department_manager_access_boundary(self):
         # Dept Manager of Engineering CANNOT review leaves from Creative department

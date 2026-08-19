@@ -13,17 +13,21 @@ from apps.attendance.forms import (
     CheckInForm,
     CheckOutForm,
     DeptManagerReviewForm,
+    ExecutiveLeaveApplicationForm,
     LeaveApplicationForm,
     ManagerFinalDecisionForm,
     MonthlyReportFilterForm,
+    SuperadminLeaveDecisionForm,
 )
 from apps.attendance.models import Attendance, LeaveRequest
 from apps.attendance.permissions import (
+    can_approve_executive_leave,
     can_approve_leave_final,
     can_log_attendance,
     can_review_leave_dept_level,
     can_view_monthly_reports,
     can_view_user_attendance,
+    is_executive_leave_applicant,
 )
 from apps.departments.models import Department
 from apps.hierarchy.permissions import get_user_level
@@ -76,6 +80,12 @@ def attendance_hub_view(request):
     # Management queue counts
     pending_dept_reviews_count = 0
     pending_manager_approvals_count = 0
+    pending_superadmin_approvals_count = 0
+
+    if is_superadmin:
+        pending_superadmin_approvals_count = LeaveRequest.objects.filter(
+            status=LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL
+        ).count()
 
     if user.role == User.Role.DEPT_MANAGER and user.department:
         pending_dept_reviews_count = LeaveRequest.objects.filter(
@@ -103,6 +113,7 @@ def attendance_hub_view(request):
         'my_recent_leaves': my_recent_leaves,
         'pending_dept_reviews_count': pending_dept_reviews_count,
         'pending_manager_approvals_count': pending_manager_approvals_count,
+        'pending_superadmin_approvals_count': pending_superadmin_approvals_count,
         'can_view_reports': can_view_monthly_reports(user),
         'checkin_form': checkin_form,
         'checkout_form': checkout_form,
@@ -347,37 +358,70 @@ def department_attendance_roster_view(request):
 
 @login_required
 def leave_apply_view(request):
-    """Allows any employee (except superadmin) to apply for leave."""
-    if not can_log_attendance(request.user):
-        messages.info(request, "Superadmin accounts do not require leave applications.")
-        return redirect('attendance_hub')
+    """
+    Standard Leave Application for employees below manager level (Staff, Intern, Executive).
+    If Super Admin visits: informed they do not require leave.
+    If Server Admin, HR, or Manager visits: redirected to their dedicated Executive Leave portal.
+    """
+    if request.user.role == User.Role.SUPERADMIN:
+        messages.info(request, "Super Admin accounts represent executive ownership and do not submit leave applications.")
+        return redirect('superadmin_leave_approvals')
+
+    if is_executive_leave_applicant(request.user):
+        return redirect('executive_leave_apply')
 
     if request.method == 'POST':
         form = LeaveApplicationForm(request.POST)
         if form.is_valid():
             leave_req = form.save(commit=False)
             leave_req.user = request.user
-
-            # Determine initial stage:
-            # - Level 4 (Staff / Intern / Executive) goes to Department Manager review (Stage 1)
-            # - Level 3 (Dept Manager) goes directly to General Manager approval (Stage 2)
-            # - Level 2 / Level 1 goes directly to Manager approval or auto-approved
-            if request.user.level == 4 and request.user.department:
-                leave_req.status = LeaveRequest.Status.PENDING_DEPT_REVIEW
-            else:
-                leave_req.status = LeaveRequest.Status.PENDING_MANAGER_APPROVAL
-
+            leave_req.status = LeaveRequest.Status.PENDING_DEPT_REVIEW
             leave_req.save()
+
             messages.success(
                 request,
                 f"Leave application for {leave_req.get_leave_type_display()} ({leave_req.start_date} to {leave_req.end_date}) submitted successfully! "
-                f"Status: {leave_req.get_status_display()}."
+                f"Your request has been routed to your Department Manager for review."
             )
             return redirect('my_leaves')
     else:
         form = LeaveApplicationForm()
 
     return render(request, 'attendance/leave_apply.html', {'form': form})
+
+
+@login_required
+def executive_leave_apply_view(request):
+    """
+    Separate Dedicated Leave Application Portal for Server Admin, HR, Manager, and Department Managers.
+    All applications submitted here are routed directly to the Super Admin for review and approval.
+    """
+    if request.user.role == User.Role.SUPERADMIN:
+        messages.info(request, "Super Admin accounts represent executive ownership and do not submit leave applications.")
+        return redirect('superadmin_leave_approvals')
+
+    if not is_executive_leave_applicant(request.user):
+        messages.info(request, "Please use the standard departmental leave application form.")
+        return redirect('leave_apply')
+
+    if request.method == 'POST':
+        form = ExecutiveLeaveApplicationForm(request.POST)
+        if form.is_valid():
+            leave_req = form.save(commit=False)
+            leave_req.user = request.user
+            leave_req.status = LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL
+            leave_req.save()
+
+            messages.success(
+                request,
+                f"Executive leave application for {leave_req.get_leave_type_display()} ({leave_req.start_date} to {leave_req.end_date}) submitted successfully! "
+                f"Your request has been routed directly to the Super Admin for review & approval."
+            )
+            return redirect('my_leaves')
+    else:
+        form = ExecutiveLeaveApplicationForm()
+
+    return render(request, 'attendance/executive_leave_apply.html', {'form': form})
 
 
 @login_required
@@ -391,7 +435,11 @@ def my_leaves_view(request):
 def cancel_leave_view(request, leave_id):
     """Allows applicant to cancel a pending leave request."""
     leave_req = get_object_or_404(LeaveRequest, id=leave_id, user=request.user)
-    if leave_req.status in [LeaveRequest.Status.PENDING_DEPT_REVIEW, LeaveRequest.Status.PENDING_MANAGER_APPROVAL]:
+    if leave_req.status in [
+        LeaveRequest.Status.PENDING_DEPT_REVIEW,
+        LeaveRequest.Status.PENDING_MANAGER_APPROVAL,
+        LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL,
+    ]:
         leave_req.status = LeaveRequest.Status.CANCELLED
         leave_req.save()
         messages.success(request, "Leave request has been cancelled.")
@@ -554,6 +602,106 @@ def manager_decision_action_view(request, leave_id):
         form = ManagerFinalDecisionForm()
 
     return render(request, 'attendance/manager_decision_modal.html', {
+        'leave_req': leave_req,
+        'form': form
+    })
+
+
+# =====================================================================
+# 4B. Super Admin Executive Leave Approvals (Server Admin, HR, Manager)
+# =====================================================================
+
+@login_required
+def superadmin_leave_approvals_view(request):
+    """
+    Super Admin Executive Review Portal:
+    Super Admin has exclusive authority to review, approve, or reject leave applications
+    submitted by Server Admin, HR, Manager, and Department Manager personnel.
+    """
+    if not can_approve_executive_leave(request.user):
+        messages.error(request, "Access Denied: Executive Leave Approvals is strictly restricted to the Super Admin.")
+        return redirect('attendance_hub')
+
+    pending_leaves = LeaveRequest.objects.filter(
+        status=LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL
+    ).select_related('user', 'user__department').order_by('-created_at')
+
+    approved_leaves = LeaveRequest.objects.filter(
+        approved_by_superadmin__isnull=False,
+        status=LeaveRequest.Status.APPROVED
+    ).select_related('user', 'user__department', 'approved_by_superadmin').order_by('-superadmin_decided_at')[:30]
+
+    rejected_leaves = LeaveRequest.objects.filter(
+        approved_by_superadmin__isnull=False,
+        status=LeaveRequest.Status.REJECTED
+    ).select_related('user', 'user__department', 'approved_by_superadmin').order_by('-superadmin_decided_at')[:30]
+
+    context = {
+        'pending_leaves': pending_leaves,
+        'approved_leaves': approved_leaves,
+        'rejected_leaves': rejected_leaves,
+        'pending_count': pending_leaves.count(),
+        'approved_count': approved_leaves.count(),
+        'rejected_count': rejected_leaves.count(),
+    }
+    return render(request, 'attendance/superadmin_approval_list.html', context)
+
+
+@login_required
+def superadmin_decision_action_view(request, leave_id):
+    """
+    Super Admin executes final APPROVAL or REJECTION on an Executive Leave Application.
+    When APPROVED, automatically creates/updates daily Attendance records as ON_LEAVE.
+    """
+    if not can_approve_executive_leave(request.user):
+        raise PermissionDenied("Only the Super Admin is authorized to decide on executive leave applications.")
+
+    leave_req = get_object_or_404(LeaveRequest, id=leave_id)
+
+    if request.method == 'POST':
+        form = SuperadminLeaveDecisionForm(request.POST)
+        if form.is_valid():
+            action = form.cleaned_data['action']
+            notes = form.cleaned_data['notes']
+
+            leave_req.approved_by_superadmin = request.user
+            leave_req.superadmin_decision_notes = notes
+            leave_req.superadmin_decided_at = timezone.now()
+
+            if action == 'APPROVE':
+                leave_req.status = LeaveRequest.Status.APPROVED
+                leave_req.save()
+
+                # Automatically update Attendance records to ON_LEAVE for the approved date range
+                curr = leave_req.start_date
+                while curr <= leave_req.end_date:
+                    att, _ = Attendance.objects.get_or_create(
+                        user=leave_req.user,
+                        date=curr
+                    )
+                    att.status = Attendance.Status.ON_LEAVE
+                    att.check_in_notes = f"Approved Executive Leave ({leave_req.get_leave_type_display()}) by Super Admin"
+                    att.save()
+                    curr += timedelta(days=1)
+
+                messages.success(
+                    request,
+                    f"Executive leave application for {leave_req.user.get_full_name() or leave_req.user.username} "
+                    f"({leave_req.user.get_role_display()}) is officially APPROVED! Attendance roster updated."
+                )
+            else:
+                leave_req.status = LeaveRequest.Status.REJECTED
+                leave_req.save()
+                messages.warning(
+                    request,
+                    f"Executive leave application for {leave_req.user.get_full_name() or leave_req.user.username} has been REJECTED."
+                )
+
+            return redirect('superadmin_leave_approvals')
+    else:
+        form = SuperadminLeaveDecisionForm()
+
+    return render(request, 'attendance/superadmin_decision_modal.html', {
         'leave_req': leave_req,
         'form': form
     })

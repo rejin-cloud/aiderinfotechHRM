@@ -5,13 +5,19 @@
 {% block content %}
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
   <div>
-    <h3 class="fw-bold mb-1">My Leave Applications & Timeline</h3>
+    <h3 class="fw-bold mb-1">My Leave Applications &amp; Timeline</h3>
     <p class="text-muted mb-0">Track multi-stage approval progress, review notes, and final decisions.</p>
   </div>
   <div class="d-flex gap-2">
+    {% if request.user.role == 'SERVER_ADMIN' or request.user.role == 'HR' or request.user.role == 'MANAGER' or request.user.role == 'DEPT_MANAGER' %}
+    <a href="{% url 'executive_leave_apply' %}" class="btn btn-primary shadow-sm" style="background: #312e81; border-color: #312e81;">
+      <i class="bi bi-shield-plus me-1"></i> New Executive Leave Request
+    </a>
+    {% else %}
     <a href="{% url 'leave_apply' %}" class="btn btn-primary shadow-sm">
       <i class="bi bi-calendar-plus me-1"></i> New Leave Request
     </a>
+    {% endif %}
     <a href="{% url 'attendance_hub' %}" class="btn btn-outline-secondary">
       <i class="bi bi-arrow-left me-1"></i> Attendance Hub
     </a>
@@ -33,9 +39,8 @@
             <th>Type</th>
             <th>Duration</th>
             <th>Total Days</th>
-            <th>Current Stage & Status</th>
-            <th>Department Review Notes</th>
-            <th>Manager Approval Notes</th>
+            <th>Current Stage &amp; Status</th>
+            <th>Review &amp; Decision Audit Trail</th>
             <th>Action</th>
           </tr>
         </thead>
@@ -61,33 +66,47 @@
             <td>
               <span class="badge {{ lv.status_badge_class }} mb-1">{{ lv.get_status_display }}</span>
               {% if lv.status == 'PENDING_DEPT_REVIEW' %}
-                <span class="text-muted small d-block" style="font-size: 0.75rem;">Awaiting Dept Manager</span>
+                <span class="text-muted small d-block" style="font-size: 0.75rem;"><i class="bi bi-hourglass-split"></i> Awaiting Dept Manager</span>
               {% elif lv.status == 'PENDING_MANAGER_APPROVAL' %}
-                <span class="text-primary small d-block" style="font-size: 0.75rem;">Forwarded to General Manager</span>
+                <span class="text-primary small d-block" style="font-size: 0.75rem;"><i class="bi bi-forward"></i> Forwarded to General Manager</span>
+              {% elif lv.status == 'PENDING_SUPERADMIN_APPROVAL' %}
+                <span class="text-primary small d-block fw-bold" style="font-size: 0.75rem;"><i class="bi bi-shield-lock-fill"></i> Awaiting Super Admin</span>
               {% elif lv.status == 'APPROVED' %}
-                <span class="text-success small d-block" style="font-size: 0.75rem;"><i class="bi bi-check-circle"></i> Official Approved</span>
+                <span class="text-success small d-block" style="font-size: 0.75rem;"><i class="bi bi-check-circle-fill"></i> Officially Approved</span>
               {% elif lv.status == 'REJECTED' %}
-                <span class="text-danger small d-block" style="font-size: 0.75rem;"><i class="bi bi-x-circle"></i> Declined</span>
+                <span class="text-danger small d-block" style="font-size: 0.75rem;"><i class="bi bi-x-circle-fill"></i> Declined</span>
+              {% elif lv.status == 'CANCELLED' %}
+                <span class="text-muted small d-block" style="font-size: 0.75rem;"><i class="bi bi-slash-circle"></i> Cancelled by Applicant</span>
               {% endif %}
             </td>
-            <td class="small" style="max-width: 220px;">
-              {% if lv.dept_manager_notes %}
-                <div class="text-dark">{{ lv.dept_manager_notes }}</div>
-                <div class="text-muted" style="font-size: 0.75rem;">By {{ lv.reviewed_by_dept_manager.get_full_name|default:lv.reviewed_by_dept_manager.username }} on {{ lv.dept_manager_reviewed_at|date:"M d" }}</div>
+            <td class="small" style="max-width: 320px;">
+              {% if lv.approved_by_superadmin %}
+                <!-- Super Admin Audit Trail -->
+                <div class="p-2 rounded bg-light border">
+                  <span class="badge bg-dark text-white mb-1"><i class="bi bi-shield-shaded me-1"></i> Super Admin Review:</span>
+                  <div class="text-dark">{{ lv.superadmin_decision_notes|default:"Decided by Super Admin." }}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">By {{ lv.approved_by_superadmin.get_full_name|default:lv.approved_by_superadmin.username }} on {{ lv.superadmin_decided_at|date:"M d, Y h:i A" }}</div>
+                </div>
+              {% elif lv.approved_by_manager or lv.reviewed_by_dept_manager %}
+                <!-- Standard 2-Stage Audit Trail -->
+                {% if lv.dept_manager_notes %}
+                  <div class="mb-1">
+                    <span class="fw-bold text-secondary">Dept Review:</span> {{ lv.dept_manager_notes }}
+                    <span class="text-muted" style="font-size: 0.7rem;">({{ lv.reviewed_by_dept_manager.get_full_name|default:lv.reviewed_by_dept_manager.username }})</span>
+                  </div>
+                {% endif %}
+                {% if lv.manager_decision_notes %}
+                  <div>
+                    <span class="fw-bold text-primary">Manager Decision:</span> {{ lv.manager_decision_notes }}
+                    <span class="text-muted" style="font-size: 0.7rem;">({{ lv.approved_by_manager.get_full_name|default:lv.approved_by_manager.username }})</span>
+                  </div>
+                {% endif %}
               {% else %}
-                <span class="text-muted">—</span>
-              {% endif %}
-            </td>
-            <td class="small" style="max-width: 220px;">
-              {% if lv.manager_decision_notes %}
-                <div class="text-dark">{{ lv.manager_decision_notes }}</div>
-                <div class="text-muted" style="font-size: 0.75rem;">By {{ lv.approved_by_manager.get_full_name|default:lv.approved_by_manager.username }} on {{ lv.manager_decided_at|date:"M d" }}</div>
-              {% else %}
-                <span class="text-muted">—</span>
+                <span class="text-muted italic">Awaiting initial evaluation</span>
               {% endif %}
             </td>
             <td>
-              {% if lv.status == 'PENDING_DEPT_REVIEW' or lv.status == 'PENDING_MANAGER_APPROVAL' %}
+              {% if lv.status == 'PENDING_DEPT_REVIEW' or lv.status == 'PENDING_MANAGER_APPROVAL' or lv.status == 'PENDING_SUPERADMIN_APPROVAL' %}
                 <a href="{% url 'cancel_leave' lv.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to cancel this leave application?');">
                   Cancel
                 </a>
@@ -98,9 +117,9 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="7" class="text-center py-5 text-muted small">
-              <i class="bi bi-calendar2-x fs-2 d-block mb-2 text-secondary"></i>
-              No leave applications submitted yet.
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-calendar-x fs-2 d-block mb-2"></i>
+              No leave applications recorded yet.
             </td>
           </tr>
           {% endfor %}

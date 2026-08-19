@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+
+{% block title %}Executive Leave Approvals | Super Admin Portal{% endblock %}
+
+{% block content %}
+<!-- Executive Portal Header -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 text-white overflow-hidden" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+  <div class="p-4 p-md-5">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-warning text-dark fw-bold px-3 py-1"><i class="bi bi-shield-fill-check me-1"></i> Level 1 Executive Authority</span>
+          <span class="badge bg-danger text-white fw-bold">Super Admin Exclusive</span>
+        </div>
+        <h2 class="fw-bold mb-1 text-white"><i class="bi bi-briefcase-fill me-2 text-warning"></i> Executive Leave Approvals Portal</h2>
+        <p class="text-white-50 mb-0">Review, approve, or decline leave applications submitted by Server Admin, HR, Manager, and Department Heads.</p>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'superadmin_dashboard' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
+          <i class="bi bi-speedometer2 me-1"></i> Dashboard
+        </a>
+        <a href="{% url 'attendance_hub' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill">
+          <i class="bi bi-calendar-check me-1"></i> Attendance Hub
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="stat-card p-3 d-flex align-items-center gap-3 border-start border-warning border-4">
+      <div class="stat-icon-wrapper bg-warning-subtle text-warning fs-4">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
+      <div>
+        <div class="stat-val fs-3">{{ pending_count }}</div>
+        <div class="stat-lbl fw-bold text-dark">Pending Super Admin Review</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-card p-3 d-flex align-items-center gap-3 border-start border-success border-4">
+      <div class="stat-icon-wrapper bg-success-subtle text-success fs-4">
+        <i class="bi bi-check-circle-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val fs-3">{{ approved_count }}</div>
+        <div class="stat-lbl fw-bold text-dark">Approved Executive Leaves</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="stat-card p-3 d-flex align-items-center gap-3 border-start border-danger border-4">
+      <div class="stat-icon-wrapper bg-danger-subtle text-danger fs-4">
+        <i class="bi bi-x-circle-fill"></i>
+      </div>
+      <div>
+        <div class="stat-val fs-3">{{ rejected_count }}</div>
+        <div class="stat-lbl fw-bold text-dark">Rejected Requests</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Approvals Dossier -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+  <div class="card-header bg-white border-bottom p-3">
+    <ul class="nav nav-pills card-header-pills" id="execLeavesTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold px-4 py-2" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-content" type="button" role="tab">
+          <i class="bi bi-exclamation-circle-fill text-warning me-1"></i> Awaiting Decision ({{ pending_count }})
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold px-4 py-2" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved-content" type="button" role="tab">
+          <i class="bi bi-check2-all text-success me-1"></i> Approved History ({{ approved_count }})
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-bold px-4 py-2" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected-content" type="button" role="tab">
+          <i class="bi bi-x-octagon-fill text-danger me-1"></i> Rejected History ({{ rejected_count }})
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card-body p-0">
+    <div class="tab-content" id="execLeavesTabContent">
+
+      <!-- TAB 1: PENDING EXECUTIVE LEAVES -->
+      <div class="tab-pane fade show active" id="pending-content" role="tabpanel">
+        {% if pending_leaves %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="ps-4">Executive / Officer</th>
+                <th>Role &amp; Department</th>
+                <th>Leave Type</th>
+                <th>Dates &amp; Duration</th>
+                <th>Reason &amp; Briefing</th>
+                <th class="text-end pe-4">Super Admin Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lv in pending_leaves %}
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="avatar-circle shadow-sm" style="background-color: {{ lv.user.avatar_color|default:'#4338ca' }}; width: 40px; height: 40px; font-size: 1rem; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%;">
+                      {{ lv.user.first_name|default:lv.user.username|slice:":1"|upper }}
+                    </div>
+                    <div>
+                      <div class="fw-bold text-dark">{{ lv.user.get_full_name|default:lv.user.username }}</div>
+                      <div class="text-muted small font-monospace">@{{ lv.user.username }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-bold mb-1 d-inline-block">
+                    {{ lv.user.get_role_display }}
+                  </span>
+                  <div class="small text-muted">{{ lv.user.department.name|default:"Corporate Management" }}</div>
+                </td>
+                <td>
+                  <span class="fw-bold text-dark small d-block">{{ lv.get_leave_type_display }}</span>
+                  {% if lv.is_half_day %}
+                    <span class="badge bg-info text-dark" style="font-size: 0.7rem;">Half Day: {{ lv.get_half_day_period_display }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <div class="small fw-semibold text-dark">{{ lv.start_date|date:"M d, Y" }} &rarr; {{ lv.end_date|date:"M d, Y" }}</div>
+                  <span class="badge bg-secondary-subtle text-secondary border mt-1">{{ lv.total_days }} day{{ lv.total_days|pluralize }}</span>
+                </td>
+                <td style="max-width: 320px;">
+                  <div class="small text-dark text-truncate-2" title="{{ lv.reason }}">{{ lv.reason }}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Submitted: {{ lv.created_at|date:"M d, Y &bull; h:i A" }}</div>
+                </td>
+                <td class="text-end pe-4">
+                  <a href="{% url 'superadmin_decision_action' lv.id %}" class="btn btn-sm btn-primary fw-bold px-3 py-2 shadow-sm rounded-pill" style="background: #1e1b4b; border-color: #1e1b4b;">
+                    <i class="bi bi-shield-check me-1"></i> Review &amp; Decide
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-patch-check-fill fs-1 text-success d-block mb-3"></i>
+          <h5 class="fw-bold text-dark">All Clear! No Pending Executive Applications</h5>
+          <p class="small text-muted mb-0">All leave applications from Server Admin, HR, and Manager level personnel have been processed.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- TAB 2: APPROVED HISTORY -->
+      <div class="tab-pane fade" id="approved-content" role="tabpanel">
+        {% if approved_leaves %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="ps-4">Executive</th>
+                <th>Role</th>
+                <th>Leave Type</th>
+                <th>Period</th>
+                <th>Super Admin Remarks</th>
+                <th class="text-end pe-4">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lv in approved_leaves %}
+              <tr>
+                <td class="ps-4">
+                  <div class="fw-bold text-dark small">{{ lv.user.get_full_name|default:lv.user.username }}</div>
+                  <div class="text-muted small">@{{ lv.user.username }}</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">{{ lv.user.get_role_display }}</span>
+                </td>
+                <td>{{ lv.get_leave_type_display }}</td>
+                <td>
+                  <span class="small">{{ lv.start_date|date:"M d" }} to {{ lv.end_date|date:"M d, Y" }}</span>
+                  <span class="badge bg-light text-secondary border d-block mt-1">{{ lv.total_days }} day{{ lv.total_days|pluralize }}</span>
+                </td>
+                <td class="small" style="max-width: 300px;">
+                  <div class="text-dark">{{ lv.superadmin_decision_notes|default:"Approved by Super Admin." }}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Decided: {{ lv.superadmin_decided_at|date:"M d, Y &bull; h:i A" }}</div>
+                </td>
+                <td class="text-end pe-4">
+                  <span class="badge bg-success px-3 py-2 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i> Approved</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <p class="mb-0">No approved executive leave records yet.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- TAB 3: REJECTED HISTORY -->
+      <div class="tab-pane fade" id="rejected-content" role="tabpanel">
+        {% if rejected_leaves %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light">
+              <tr>
+                <th class="ps-4">Executive</th>
+                <th>Role</th>
+                <th>Leave Type</th>
+                <th>Period</th>
+                <th>Decline Remarks</th>
+                <th class="text-end pe-4">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lv in rejected_leaves %}
+              <tr>
+                <td class="ps-4">
+                  <div class="fw-bold text-dark small">{{ lv.user.get_full_name|default:lv.user.username }}</div>
+                  <div class="text-muted small">@{{ lv.user.username }}</div>
+                </td>
+                <td>
+                  <span class="badge bg-light text-dark border">{{ lv.user.get_role_display }}</span>
+                </td>
+                <td>{{ lv.get_leave_type_display }}</td>
+                <td>
+                  <span class="small">{{ lv.start_date|date:"M d" }} to {{ lv.end_date|date:"M d, Y" }}</span>
+                </td>
+                <td class="small" style="max-width: 300px;">
+                  <div class="text-danger">{{ lv.superadmin_decision_notes|default:"Declined by Super Admin." }}</div>
+                  <div class="text-muted" style="font-size: 0.75rem;">Decided: {{ lv.superadmin_decided_at|date:"M d, Y &bull; h:i A" }}</div>
+                </td>
+                <td class="text-end pe-4">
+                  <span class="badge bg-danger px-3 py-2 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i> Rejected</span>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <p class="mb-0">No rejected executive leave records.</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

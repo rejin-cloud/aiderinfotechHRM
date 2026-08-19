@@ -57,8 +57,12 @@
 <!-- Quick Action Shortcuts Bar -->
 <div class="card border-0 shadow-sm rounded-3 mb-4 p-3 bg-white">
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-    <span class="fw-bold text-dark"><i class="bi bi-lightning-fill text-warning me-1"></i> Quick Superadmin Operations:</span>
-    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-sm btn-dark text-white fw-bold shadow-sm" style="background: #1e1b4b; border-color: #1e1b4b;">
+        <i class="bi bi-shield-lock-fill text-warning me-1"></i> Executive Leaves
+        {% if pending_executive_leaves_count > 0 %}
+        <span class="badge bg-danger ms-1">{{ pending_executive_leaves_count }}</span>
+        {% endif %}
+      </a>
       <a href="{% url 'assign_employee' %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
         <i class="bi bi-person-check-fill me-1"></i> Assign Employee
       </a>

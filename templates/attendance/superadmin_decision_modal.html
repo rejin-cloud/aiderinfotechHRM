@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Executive Leave | Super Admin Authority{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <!-- Super Admin Header -->
+      <div class="p-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-warning text-dark fw-bold px-2 py-1"><i class="bi bi-shield-fill-check me-1"></i> Level 1 Executive Decision</span>
+              <span class="badge bg-primary text-white fw-bold">{{ leave_req.user.get_role_display }}</span>
+            </div>
+            <h4 class="fw-bold mb-0 text-white"><i class="bi bi-person-check-fill me-2 text-warning"></i> Executive Leave Application Review</h4>
+          </div>
+          <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Queue
+          </a>
+        </div>
+      </div>
+
+      <div class="card-body p-4 p-md-5">
+
+        <!-- Executive Applicant Dossier Card -->
+        <div class="p-4 bg-light rounded-4 border mb-4">
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <span class="text-muted small d-block">Executive / Officer</span>
+              <strong class="text-dark fs-6">{{ leave_req.user.get_full_name|default:leave_req.user.username }}</strong>
+              <div class="text-muted small font-monospace">@{{ leave_req.user.username }}</div>
+            </div>
+
+            <div class="col-6 col-md-4">
+              <span class="text-muted small d-block">Role &amp; Department</span>
+              <span class="badge bg-primary text-white fw-bold">{{ leave_req.user.get_role_display }}</span>
+              <div class="text-muted small mt-1">{{ leave_req.user.department.name|default:"Corporate Leadership" }}</div>
+            </div>
+
+            <div class="col-6 col-md-4">
+              <span class="text-muted small d-block">Requested Leave Category</span>
+              <span class="badge bg-dark text-white">{{ leave_req.get_leave_type_display }}</span>
+              <div class="fw-bold mt-1 text-primary">{{ leave_req.total_days }} day{{ leave_req.total_days|pluralize }}</div>
+            </div>
+
+            <div class="col-12 pt-2 border-top">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div>
+                  <span class="text-muted small d-block">Requested Absence Window:</span>
+                  <span class="fw-bold text-dark">{{ leave_req.start_date|date:"l, F d, Y" }} &rarr; {{ leave_req.end_date|date:"l, F d, Y" }}</span>
+                </div>
+                {% if leave_req.is_half_day %}
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill">
+                  <i class="bi bi-clock-history me-1"></i> Half Day: {{ leave_req.get_half_day_period_display }}
+                </span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="col-12 pt-2 border-top">
+              <span class="text-muted small d-block mb-1">Reason &amp; Operational Briefing:</span>
+              <div class="p-3 bg-white rounded-3 border text-dark">
+                {{ leave_req.reason|linebreaks }}
+              </div>
+              <div class="text-muted small mt-1">Submitted on: {{ leave_req.created_at|date:"M d, Y &bull; h:i A" }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Super Admin Decision Form -->
+        <form method="post">
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4 rounded-3">
+            {% for error in form.non_field_errors %}
+              <div>{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="mb-4">
+            <label class="form-label fw-bold text-dark fs-6">Super Admin Executive Decision <span class="text-danger">*</span></label>
+            <div class="p-3 bg-light rounded-3 border">
+              {% for radio in form.action %}
+              <div class="form-check mb-2">
+                {{ radio.tag }}
+                <label class="form-check-label fw-bold text-dark ms-1" for="{{ radio.id_for_label }}">
+                  {{ radio.choice_label }}
+                </label>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-semibold text-dark">Super Admin Notes, Instructions &amp; Conditions (Optional):</label>
+            {{ form.notes }}
+            <div class="form-text small text-muted">
+              <i class="bi bi-info-circle me-1"></i> When approved, the applicant's official attendance records will automatically be updated as <strong>On Leave</strong> for the full date range.
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+            <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-light border px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary fw-bold px-4 py-2 shadow-sm rounded-pill" style="background: #0f172a; border-color: #0f172a;">
+              <i class="bi bi-check2-circle me-1"></i> Confirm Executive Decision
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

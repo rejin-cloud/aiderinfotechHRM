@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Q
-from apps.users.models import User
+from apps.attendance.models import LeaveRequest
 from apps.departments.models import Department, Branch
 from apps.hierarchy.permissions import get_user_level
+from apps.users.models import User
 
 @login_required
 def dashboard_router_view(request):
@@ -43,6 +44,10 @@ def superadmin_dashboard_view(request):
     recent_users = User.objects.select_related('department', 'branch').order_by('-id')[:8]
     unassigned_or_staff_users = User.objects.filter(role=User.Role.STAFF).select_related('department', 'branch').order_by('-id')[:6]
 
+    pending_executive_leaves_count = LeaveRequest.objects.filter(
+        status=LeaveRequest.Status.PENDING_SUPERADMIN_APPROVAL
+    ).count()
+
     return render(request, 'dashboards/superadmin.html', {
         'total_users': total_users,
         'total_depts': total_depts,
@@ -51,6 +56,7 @@ def superadmin_dashboard_view(request):
         'departments': departments,
         'recent_users': recent_users,
         'unassigned_or_staff_users': unassigned_or_staff_users,
+        'pending_executive_leaves_count': pending_executive_leaves_count,
         'all_roles_list': User.Role.choices,
         'page_title': 'Superadmin & Executive System Control',
     })

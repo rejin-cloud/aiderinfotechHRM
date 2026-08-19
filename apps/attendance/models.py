@@ -117,6 +117,7 @@ class LeaveRequest(models.Model):
     class Status(models.TextChoices):
         PENDING_DEPT_REVIEW = 'PENDING_DEPT_REVIEW', 'Pending Dept Manager Review'
         PENDING_MANAGER_APPROVAL = 'PENDING_MANAGER_APPROVAL', 'Pending Manager Final Approval'
+        PENDING_SUPERADMIN_APPROVAL = 'PENDING_SUPERADMIN_APPROVAL', 'Pending Super Admin Approval'
         APPROVED = 'APPROVED', 'Approved'
         REJECTED = 'REJECTED', 'Rejected'
         CANCELLED = 'CANCELLED', 'Cancelled by Applicant'
@@ -153,7 +154,7 @@ class LeaveRequest(models.Model):
     )
 
     # Multi-Stage Audit Trail
-    # Stage 1: Department Manager Review & Forward
+    # Stage 1: Department Manager Review & Forward (For Staff/Intern/Exec)
     reviewed_by_dept_manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -164,7 +165,7 @@ class LeaveRequest(models.Model):
     dept_manager_notes = models.TextField(blank=True, default='')
     dept_manager_reviewed_at = models.DateTimeField(null=True, blank=True)
 
-    # Stage 2: Manager Final Decision
+    # Stage 2: Manager Final Decision (For Staff/Intern/Exec)
     approved_by_manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -174,6 +175,17 @@ class LeaveRequest(models.Model):
     )
     manager_decision_notes = models.TextField(blank=True, default='')
     manager_decided_at = models.DateTimeField(null=True, blank=True)
+
+    # Stage 3: Super Admin Executive Approval (For Server Admin, HR, Manager)
+    approved_by_superadmin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='superadmin_approved_leaves'
+    )
+    superadmin_decision_notes = models.TextField(blank=True, default='')
+    superadmin_decided_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -200,6 +212,7 @@ class LeaveRequest(models.Model):
         mapping = {
             self.Status.PENDING_DEPT_REVIEW: 'bg-warning text-dark',
             self.Status.PENDING_MANAGER_APPROVAL: 'bg-info text-dark',
+            self.Status.PENDING_SUPERADMIN_APPROVAL: 'bg-primary text-white',
             self.Status.APPROVED: 'bg-success text-white',
             self.Status.REJECTED: 'bg-danger text-white',
             self.Status.CANCELLED: 'bg-secondary text-white',

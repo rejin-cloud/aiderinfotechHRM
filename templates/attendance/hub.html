@@ -20,9 +20,19 @@
       </div>
     </div>
     <div class="col-12 col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
-      <a href="{% url 'leave_apply' %}" class="btn btn-primary px-3 py-2 rounded-pill shadow-sm">
-        <i class="bi bi-calendar-plus me-1"></i> Apply for Leave
-      </a>
+      {% if is_superadmin %}
+        <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
+          <i class="bi bi-shield-check me-1"></i> Executive Approvals
+        </a>
+      {% elif user.role == 'SERVER_ADMIN' or user.role == 'HR' or user.role == 'MANAGER' or user.role == 'DEPT_MANAGER' %}
+        <a href="{% url 'executive_leave_apply' %}" class="btn btn-primary px-3 py-2 rounded-pill shadow-sm" style="background: #312e81; border-color: #312e81;">
+          <i class="bi bi-shield-plus me-1"></i> Executive Leave
+        </a>
+      {% else %}
+        <a href="{% url 'leave_apply' %}" class="btn btn-primary px-3 py-2 rounded-pill shadow-sm">
+          <i class="bi bi-calendar-plus me-1"></i> Apply for Leave
+        </a>
+      {% endif %}
       <a href="{% url 'my_attendance_history' %}" class="btn btn-outline-light px-3 py-2 rounded-pill">
         <i class="bi bi-calendar3 me-1"></i> My Full History
       </a>
@@ -32,7 +42,7 @@
 
 {% if is_superadmin %}
 <!-- Superadmin Exemption Banner -->
-<div class="alert alert-dark bg-dark text-white rounded-3 shadow-sm d-flex align-items-center justify-content-between p-3 mb-4">
+<div class="alert alert-dark bg-dark text-white rounded-3 shadow-sm d-flex flex-wrap align-items-center justify-content-between p-3 mb-4 gap-3">
   <div class="d-flex align-items-center gap-3">
     <i class="bi bi-shield-check fs-3 text-warning"></i>
     <div>
@@ -40,7 +50,13 @@
       <p class="small text-light opacity-75 mb-0">Superadmin accounts are exempted from daily clock-in logging and have full operational auditing privileges.</p>
     </div>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-sm btn-warning text-dark fw-bold">
+      <i class="bi bi-shield-lock-fill me-1"></i> Executive Leave Approvals
+      {% if pending_superadmin_approvals_count > 0 %}
+      <span class="badge bg-danger ms-1">{{ pending_superadmin_approvals_count }}</span>
+      {% endif %}
+    </a>
     <a href="{% url 'department_attendance_roster' %}" class="btn btn-sm btn-light fw-bold">
       <i class="bi bi-people-fill me-1"></i> Company Roster
     </a>
@@ -230,7 +246,21 @@
       <div class="hrms-card-body p-3">
         <div class="row g-2">
           
-          {% if user.role == 'DEPT_MANAGER' or user.level <= 2 %}
+          {% if is_superadmin %}
+          <div class="col-12 col-md-6">
+            <a href="{% url 'superadmin_leave_approvals' %}" class="btn btn-outline-danger w-100 p-3 text-start d-flex align-items-center justify-content-between rounded-3">
+              <div>
+                <div class="fw-bold"><i class="bi bi-shield-fill-check me-1"></i> Executive Leave Approvals (Level 1)</div>
+                <div class="text-muted small">Super Admin decision on Server Admin, HR &amp; Manager leaves</div>
+              </div>
+              <span class="badge {% if pending_superadmin_approvals_count > 0 %}bg-danger text-white{% else %}bg-light text-muted border{% endif %} fs-6">
+                {{ pending_superadmin_approvals_count }} Pending
+              </span>
+            </a>
+          </div>
+          {% endif %}
+
+          {% if user.role == 'DEPT_MANAGER' or user.level <= 2 and not is_superadmin %}
           <div class="col-12 col-md-6">
             <a href="{% url 'dept_manager_leave_reviews' %}" class="btn btn-outline-warning text-dark w-100 p-3 text-start d-flex align-items-center justify-content-between rounded-3">
               <div>

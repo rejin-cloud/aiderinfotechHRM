@@ -80,8 +80,33 @@ def can_review_leave_dept_level(user, leave_request):
 
 def can_approve_leave_final(user, leave_request):
     """
-    Final approval from Manager (or HR / Superadmin / Server Admin) is necessary.
+    Final approval for standard staff/intern leaves from Manager (or HR / Server Admin).
     """
     if not user or not user.is_authenticated:
         return False
     return get_user_level(user) <= 2
+
+
+def is_executive_leave_applicant(user):
+    """
+    Identifies if a user belongs to management / leadership (Server Admin, HR, Manager, Dept Manager)
+    who apply through the dedicated Executive Leave portal.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    return user.role in [
+        User.Role.SERVER_ADMIN,
+        User.Role.HR,
+        User.Role.MANAGER,
+        User.Role.DEPT_MANAGER,
+    ]
+
+
+def can_approve_executive_leave(user):
+    """
+    Super Admin has sole authority to approve or reject executive leave requests from
+    Server Admin, HR, Manager, and Department Managers.
+    """
+    if not user or not user.is_authenticated:
+        return False
+    return user.role == User.Role.SUPERADMIN
