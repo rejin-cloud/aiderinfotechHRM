@@ -11,8 +11,10 @@ from django.utils.dateparse import parse_date, parse_datetime
 from apps.departments.models import Branch, Department
 from apps.hierarchy.permissions import get_user_level
 from apps.tasks.forms import (
+    ClientAssignmentForm,
     ClientFilterForm,
     ClientForm,
+    ExecutiveDelegationForm,
     ManagerExtensionReviewForm,
     ManagerSubmissionReviewForm,
     TaskCompletionForm,
@@ -22,6 +24,7 @@ from apps.tasks.forms import (
 )
 from apps.tasks.models import (
     Client,
+    ClientAssignment,
     Task,
     TaskAttachment,
     TaskExtensionRequest,
@@ -992,4 +995,193 @@ def client_delete_view(request, client_id):
         return redirect('client_list')
 
     return render(request, 'tasks/client_confirm_delete.html', {'client': client})
+
+
+# =====================================================================
+# Multi-Branch Client Assignment & Executive Delegation Views
+# =====================================================================
+
+@login_required
+def client_assign_view(request, client_id=None):
+    """
+    Dedicated Page for Creative Department Manager to assign a Client to a specific Branch
+    and that Branch's Executive for a particular task (e.g. Marketing, Designing, Editing).
+    A single client can have multiple branch assignments.
+    """
+    user = request.user
+    if not can_manage_creative_tasks(user):
+        messages.error(request, "Permission Denied: Only the Creative Department Manager has authority to assign clients.")
+        return redirect('client_list')
+
+    creative_dept = get_creative_department_instance()
+    if user.department and is_creative_department(user.department):
+        department = user.department
+    else:
+        department = creative_dept
+
+    selected_client = None
+    if client_id:
+        selected_client = get_object_or_404(Client, pk=client_id, department=department)
+
+    existing_assignments = []
+    if selected_client:
+        existing_assignments = selected_client.assignments.select_related(
+            'branch', 'executive', 'delegated_member'
+        ).order_by('-created_at')
+
+    if request.method == 'POST':
+        form = ClientAssignmentForm(
+            request.POST,
+            department=department,
+            initial_client=selected_client
+        )
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.assigned_by = user
+            assignment.status = ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE
+            assignment.save()
+
+            messages.success(
+                request,
+                f"Client [{assignment.client.client_number}] '{assignment.client.name}' was assigned to "
+                f"the {assignment.branch.name} Branch (Executive: {assignment.executive.get_full_name() or assignment.executive.username}) "
+                f"for '{assignment.task_title}'."
+            )
+            return redirect('client_detail', client_id=assignment.client.id)
+    else:
+        form = ClientAssignmentForm(
+            department=department,
+            initial_client=selected_client
+        )
+
+    # All branches in creative department
+    branches = Branch.objects.filter(department=department)
+    clients = Client.objects.filter(department=department)
+
+    return render(request, 'tasks/client_assign.html', {
+        'form': form,
+        'selected_client': selected_client,
+        'existing_assignments': existing_assignments,
+        'department': department,
+        'branches': branches,
+        'clients': clients,
+        'page_title': f'Assign Client to Branch | {department.name}',
+    })
+
+
+@login_required
+def executive_client_assignments_view(request):
+    """
+    Dedicated Portal for Branch Executives & Team Members:
+    - Branch Executive views client assignments assigned to them for their branch.
+    - Staff / Interns view client tasks delegated to them.
+    - Department Manager & Leadership view all client branch allocations.
+    """
+    user = request.user
+    if not can_view_creative_tasks(user):
+        messages.error(request, "Access restricted: You do not have permission to view client assignments.")
+        return redirect('dashboard_router')
+
+    creative_dept = get_creative_department_instance()
+    is_creative_manager = can_manage_creative_tasks(user)
+
+    if is_creative_manager or get_user_level(user) <= 2:
+        assignments = ClientAssignment.objects.all().select_related(
+            'client', 'branch', 'assigned_by', 'executive', 'delegated_member'
+        )
+    elif user.role == User.Role.EXECUTIVE:
+        assignments = ClientAssignment.objects.filter(
+            models.Q(executive=user) | models.Q(branch=user.branch)
+        ).select_related('client', 'branch', 'assigned_by', 'executive', 'delegated_member')
+    else:
+        # Staff / Intern: view tasks delegated to them or for their branch
+        assignments = ClientAssignment.objects.filter(
+            models.Q(delegated_member=user) | models.Q(branch=user.branch)
+        ).select_related('client', 'branch', 'assigned_by', 'executive', 'delegated_member')
+
+    pending_delegations_count = 0
+    if user.role == User.Role.EXECUTIVE:
+        pending_delegations_count = assignments.filter(
+            executive=user,
+            status=ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE
+        ).count()
+
+    return render(request, 'tasks/executive_client_assignments.html', {
+        'assignments': assignments,
+        'pending_delegations_count': pending_delegations_count,
+        'is_creative_manager': is_creative_manager,
+        'page_title': 'Client Branch Allocations & Assignments',
+    })
+
+
+@login_required
+def executive_client_delegate_view(request, assignment_id):
+    """
+    Dedicated Page for Branch Executive to delegate an assigned client task
+    to staff members or interns in their specific branch.
+    """
+    user = request.user
+    assignment = get_object_or_404(
+        ClientAssignment.objects.select_related('client', 'branch', 'executive', 'assigned_by'),
+        pk=assignment_id
+    )
+
+    # Permission: only the assigned Executive or Creative Manager
+    is_creative_manager = can_manage_creative_tasks(user)
+    if not is_creative_manager and assignment.executive != user and get_user_level(user) > 2:
+        messages.error(request, "Permission Denied: Only the assigned Branch Executive can delegate this client task.")
+        return redirect('executive_client_assignments')
+
+    branch = assignment.branch
+
+    if request.method == 'POST':
+        form = ExecutiveDelegationForm(request.POST, branch=branch, instance=assignment)
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.delegated_at = timezone.now()
+            assignment.status = ClientAssignment.Status.DELEGATED
+            assignment.save()
+
+            messages.success(
+                request,
+                f"Client deliverable '{assignment.task_title}' for [{assignment.client.company}] "
+                f"was successfully delegated to {assignment.delegated_member.get_full_name() or assignment.delegated_member.username}."
+            )
+            return redirect('executive_client_assignments')
+    else:
+        form = ExecutiveDelegationForm(branch=branch, instance=assignment)
+
+    return render(request, 'tasks/executive_client_delegate.html', {
+        'assignment': assignment,
+        'form': form,
+        'branch': branch,
+        'page_title': f'Delegate Client Task: {assignment.task_title}',
+    })
+
+
+@login_required
+def branch_executives_api(request, branch_id):
+    """
+    JSON API returning Executives belonging to a specific branch.
+    Used for dynamic executive dropdown filtering in client assignment forms.
+    """
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    branch = get_object_or_404(Branch, pk=branch_id)
+    executives = User.objects.filter(
+        branch=branch,
+        role=User.Role.EXECUTIVE
+    ).values('id', 'username', 'first_name', 'last_name', 'designation')
+
+    data = [
+        {
+            'id': e['id'],
+            'name': f"{e['first_name']} {e['last_name']}".strip() or e['username'],
+            'designation': e['designation'] or 'Executive'
+        }
+        for e in executives
+    ]
+    return JsonResponse({'executives': data})
+
 

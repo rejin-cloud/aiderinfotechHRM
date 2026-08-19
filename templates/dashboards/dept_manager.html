@@ -119,6 +119,12 @@
       <a href="{% url 'client_create' %}" class="btn btn-warning text-dark fw-bold px-3 shadow-sm">
         <i class="bi bi-person-plus-fill me-1"></i> Add New Client
       </a>
+      <a href="{% url 'client_assign_general' %}" class="btn btn-primary fw-bold px-3 shadow-sm" style="background: #0d9488; border-color: #0d9488;">
+        <i class="bi bi-diagram-3-fill me-1"></i> Assign Client to Branch
+      </a>
+      <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-info text-dark px-3">
+        <i class="bi bi-diagram-3 me-1"></i> All Branch Allocations ({{ client_assignments_count }})
+      </a>
       <a href="{% url 'client_list' %}" class="btn btn-outline-dark px-3">
         <i class="bi bi-people-fill me-1"></i> View Clients Directory
       </a>
@@ -143,8 +149,11 @@
           <td><span class="badge bg-light text-dark font-monospace border">{{ c.client_number }}</span></td>
           <td class="fw-semibold text-dark">{{ c.name }}</td>
           <td><span class="text-muted small"><i class="bi bi-building me-1"></i> {{ c.company }}</span></td>
-          <td class="small text-muted text-truncate" style="max-width: 300px;">{{ c.needs|truncatechars:80 }}</td>
+          <td class="small text-muted text-truncate" style="max-width: 250px;">{{ c.needs|truncatechars:70 }}</td>
           <td class="text-end">
+            <a href="{% url 'client_assign' c.id %}" class="btn btn-sm btn-outline-success py-0 px-2 me-1" style="font-size: 0.8rem;">
+              <i class="bi bi-diagram-3-fill"></i> Assign
+            </a>
             <a href="{% url 'client_detail' c.id %}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
               <i class="bi bi-eye"></i> View
             </a>

@@ -44,12 +44,28 @@
     </a>
     {% endif %}
 
-    <div class="sidebar-heading">Operations & Tasks</div>
-    <a href="{% url 'task_list' %}" class="sidebar-nav-link {% if 'task' in request.resolver_match.url_name %}active{% endif %}">
+    <div class="sidebar-heading">Creative Operations</div>
+    <a href="{% url 'client_list' %}" class="sidebar-nav-link text-teal {% if 'client_list' in request.resolver_match.url_name or 'client_detail' in request.resolver_match.url_name %}active{% endif %}" style="color: #0d9488;">
+      <i class="bi bi-people-fill"></i>
+      <span>Clients Directory</span>
+    </a>
+    <a href="{% url 'executive_client_assignments' %}" class="sidebar-nav-link text-info {% if 'executive_client_assignments' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-diagram-3-fill"></i>
+      <span>Client Allocations</span>
+    </a>
+    <a href="{% url 'task_list' %}" class="sidebar-nav-link {% if 'task_list' in request.resolver_match.url_name %}active{% endif %}">
       <i class="bi bi-palette2 text-warning"></i>
       <span>Creative Tasks</span>
     </a>
     {% if user.role == 'DEPT_MANAGER' and 'creative' in user.department.name.lower or user.role == 'SUPERADMIN' or user.role == 'SERVER_ADMIN' %}
+    <a href="{% url 'client_create' %}" class="sidebar-nav-link text-teal {% if request.resolver_match.url_name == 'client_create' %}active{% endif %}" style="color: #0d9488;">
+      <i class="bi bi-person-plus-fill"></i>
+      <span>Add Client</span>
+    </a>
+    <a href="{% url 'client_assign_general' %}" class="sidebar-nav-link text-warning {% if 'client_assign' in request.resolver_match.url_name %}active{% endif %}">
+      <i class="bi bi-diagram-3"></i>
+      <span>Assign Client to Branch</span>
+    </a>
     <a href="{% url 'task_create' %}" class="sidebar-nav-link text-warning {% if request.resolver_match.url_name == 'task_create' %}active{% endif %}">
       <i class="bi bi-plus-circle-fill"></i>
       <span>Create Task</span>

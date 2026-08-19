@@ -2,7 +2,13 @@ from django import forms
 from django.utils import timezone
 
 from apps.departments.models import Branch, Department
-from apps.tasks.models import Client, Task, TaskExtensionRequest, TaskSubmission
+from apps.tasks.models import (
+    Client,
+    ClientAssignment,
+    Task,
+    TaskExtensionRequest,
+    TaskSubmission,
+)
 from apps.users.models import User
 
 
@@ -337,3 +343,91 @@ class ClientFilterForm(forms.Form):
             'placeholder': 'Search by client #, name, company, or needs...'
         })
     )
+
+
+class ClientAssignmentForm(forms.ModelForm):
+    """
+    Used by Creative Department Manager to assign a client to a branch and its Executive for a specific task.
+    """
+    class Meta:
+        model = ClientAssignment
+        fields = [
+            'client',
+            'branch',
+            'executive',
+            'task_title',
+            'task_scope',
+            'deadline',
+        ]
+        widgets = {
+            'client': forms.Select(attrs={'class': 'form-select', 'id': 'id_assign_client'}),
+            'branch': forms.Select(attrs={'class': 'form-select', 'id': 'id_assign_branch'}),
+            'executive': forms.Select(attrs={'class': 'form-select', 'id': 'id_assign_executive'}),
+            'task_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. Marketing Campaign, Brand Identity Designing, 4K Video Production'
+            }),
+            'task_scope': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Specify branch-specific deliverables, creative instructions, formats, and scope...'
+            }),
+            'deadline': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+        }
+
+    def __init__(self, *args, department=None, initial_client=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if department:
+            self.fields['client'].queryset = Client.objects.filter(department=department)
+            self.fields['branch'].queryset = Branch.objects.filter(department=department)
+            self.fields['executive'].queryset = User.objects.filter(
+                department=department,
+                role=User.Role.EXECUTIVE
+            )
+        else:
+            self.fields['client'].queryset = Client.objects.all()
+            self.fields['branch'].queryset = Branch.objects.all()
+            self.fields['executive'].queryset = User.objects.filter(role=User.Role.EXECUTIVE)
+
+        if initial_client:
+            self.fields['client'].initial = initial_client
+
+
+class ExecutiveDelegationForm(forms.ModelForm):
+    """
+    Used by Branch Executive to assign / delegate a received client task to staff members or interns in their branch.
+    """
+    class Meta:
+        model = ClientAssignment
+        fields = [
+            'delegated_member',
+            'executive_notes',
+            'deadline',
+        ]
+        widgets = {
+            'delegated_member': forms.Select(attrs={'class': 'form-select'}),
+            'executive_notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Provide step-by-step guidance, creative specifications, review checkpoints, or asset guidelines to your team member...'
+            }),
+            'deadline': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+        }
+
+    def __init__(self, *args, branch=None, department=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        member_qs = User.objects.filter(role__in=[User.Role.STAFF, User.Role.INTERN])
+        if branch:
+            member_qs = member_qs.filter(branch=branch)
+        elif department:
+            member_qs = member_qs.filter(department=department)
+        self.fields['delegated_member'].queryset = member_qs
+        self.fields['delegated_member'].required = True
+        self.fields['delegated_member'].label = "Assign to Branch Member / Intern"
+

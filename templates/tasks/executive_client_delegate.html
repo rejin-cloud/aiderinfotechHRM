@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Delegate Client Task | {{ assignment.task_title }} | Aider Infotech{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-xl-9">
+    <div class="hrms-card shadow-sm border-0">
+      
+      <!-- Card Header -->
+      <div class="hrms-card-header text-white p-4" style="background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-3 bg-warning text-dark d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
+              <i class="bi bi-person-check-fill fs-3"></i>
+            </div>
+            <div>
+              <h4 class="fw-bold mb-0 text-white">Delegate Client Task to Branch Member</h4>
+              <p class="text-white-50 small mb-0">Branch Executive Allocation & Operational Directive</p>
+            </div>
+          </div>
+          <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-light btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Allocations
+          </a>
+        </div>
+      </div>
+
+      <!-- Card Body -->
+      <div class="hrms-card-body p-4 p-md-5">
+
+        <!-- Executive Role Badge -->
+        <div class="alert alert-primary bg-primary-subtle border-primary-subtle rounded-3 p-3 mb-4 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-diagram-3-fill fs-4 text-primary"></i>
+            <div>
+              <strong class="text-primary d-block">Branch Executive Delegation Authority</strong>
+              <span class="small text-dark">You are allocating this client deliverable to a staff member or intern within the <strong>{{ branch.name }}</strong> branch.</span>
+            </div>
+          </div>
+          <span class="badge bg-primary text-white">Executive Tier</span>
+        </div>
+
+        <!-- Client & Manager Directives Briefing Card -->
+        <div class="card border-0 bg-light rounded-4 p-4 mb-4">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <span class="text-muted small d-block">Client & Organization:</span>
+              <h5 class="fw-bold text-dark mb-0">{{ assignment.client.company }}</h5>
+              <span class="badge bg-teal text-white font-monospace mt-1" style="background-color: #0d9488;">
+                {{ assignment.client.client_number }}
+              </span>
+              <span class="text-muted small ms-1">{{ assignment.client.name }}</span>
+            </div>
+
+            <div class="col-12 col-md-6 text-md-end">
+              <span class="text-muted small d-block">Assigned Branch & Target Deadline:</span>
+              <span class="badge bg-secondary-subtle text-dark border fs-6 mt-1">{{ branch.name }}</span>
+              {% if assignment.deadline %}
+              <div class="small text-muted mt-1">Deadline: <strong>{{ assignment.deadline|date:"M d, Y h:i A" }}</strong></div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 border-top pt-3">
+              <span class="text-muted small d-block">Task Deliverable Headline:</span>
+              <h6 class="fw-bold text-primary mb-2">{{ assignment.task_title }}</h6>
+              <span class="text-muted small d-block">Creative Department Manager Scope & Instructions:</span>
+              <div class="p-3 bg-white rounded-3 border text-dark small mt-1" style="white-space: pre-line;">
+                {{ assignment.task_scope }}
+              </div>
+            </div>
+
+            <div class="col-12 border-top pt-2">
+              <span class="text-muted small d-block">Client Overall Requirements:</span>
+              <p class="small text-muted mb-0">{{ assignment.client.needs }}</p>
+            </div>
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <div class="alert alert-danger mb-4">
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Delegation Form -->
+        <form method="post">
+          {% csrf_token %}
+
+          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+            <i class="bi bi-person-fill-gear text-primary me-1"></i> Member Assignment & Executive Notes
+          </h6>
+
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-7">
+              <label class="form-label fw-semibold">Assign to Branch Staff / Intern <span class="text-danger">*</span></label>
+              {{ form.delegated_member }}
+              <div class="form-text small text-muted">Members & interns active in the {{ branch.name }} branch.</div>
+              {% if form.delegated_member.errors %}<div class="text-danger small mt-1">{{ form.delegated_member.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-12 col-md-5">
+              <label class="form-label fw-semibold">Adjust Target Deadline (Optional)</label>
+              {{ form.deadline }}
+              {% if form.deadline.errors %}<div class="text-danger small mt-1">{{ form.deadline.errors }}</div>{% endif %}
+            </div>
+
+            <div class="col-12">
+              <label class="form-label fw-semibold">Executive Guidance, Instructions & Review Checkpoints</label>
+              {{ form.executive_notes }}
+              <div class="form-text small text-muted">Provide operational steps, design direction, file export formats, or milestones for the team member.</div>
+              {% if form.executive_notes.errors %}<div class="text-danger small mt-1">{{ form.executive_notes.errors }}</div>{% endif %}
+            </div>
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="d-flex justify-content-end gap-3 pt-3 border-top">
+            <a href="{% url 'executive_client_assignments' %}" class="btn btn-outline-secondary px-4">Cancel</a>
+            <button type="submit" class="btn btn-primary px-5 fw-bold shadow-sm" style="background: #4338ca; border-color: #4338ca;">
+              <i class="bi bi-check-circle-fill me-1"></i> Assign to Member
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

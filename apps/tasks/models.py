@@ -68,6 +68,107 @@ class Client(models.Model):
         return f"{prefix}-{next_num:03d}"
 
 
+class ClientAssignment(models.Model):
+    """
+    Multi-Branch, Hierarchical Client Task Assignment:
+    - Stage 1: Creative Department Manager assigns a Client to a Branch and its Executive for a specific task.
+    - Stage 2: The Branch Executive delegates the task to a staff member or intern in their branch.
+    """
+    class Status(models.TextChoices):
+        ASSIGNED_TO_EXECUTIVE = 'ASSIGNED_TO_EXECUTIVE', 'Assigned to Branch Executive'
+        DELEGATED = 'DELEGATED', 'Delegated to Member / Intern'
+        IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
+        UNDER_REVIEW = 'UNDER_REVIEW', 'Completed / Under Review'
+        COMPLETED = 'COMPLETED', 'Completed'
+        ON_HOLD = 'ON_HOLD', 'On Hold'
+
+    client = models.ForeignKey(
+        Client,
+        on_delete=models.CASCADE,
+        related_name='assignments',
+        db_index=True
+    )
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.CASCADE,
+        related_name='client_assignments',
+        db_index=True
+    )
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='manager_client_assignments',
+        help_text="Creative Department Manager who initiated the branch assignment"
+    )
+    executive = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='executive_received_client_assignments',
+        help_text="Branch Executive responsible for supervising and delegating"
+    )
+
+    task_title = models.CharField(
+        max_length=255,
+        help_text="Specific task title for this branch (e.g. Marketing Campaign, UI/UX Design, 4K Video Editing)"
+    )
+    task_scope = models.TextField(
+        help_text="Specific instructions, deliverables, and scope delegated to this branch"
+    )
+    deadline = models.DateTimeField(null=True, blank=True, help_text="Target completion deadline")
+
+    status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.ASSIGNED_TO_EXECUTIVE,
+        db_index=True
+    )
+
+    # Stage 2: Delegation to Branch Member or Intern by Executive
+    delegated_member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='member_assigned_client_tasks',
+        help_text="Staff member or intern assigned by the Branch Executive"
+    )
+    delegated_at = models.DateTimeField(null=True, blank=True)
+    executive_notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Guidance, instructions, or allocation remarks from the Branch Executive"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Client Branch Assignment'
+        verbose_name_plural = 'Client Branch Assignments'
+
+    def __str__(self):
+        return f"[{self.client.client_number}] -> {self.branch.name}: {self.task_title}"
+
+    @property
+    def status_badge_class(self):
+        mapping = {
+            self.Status.ASSIGNED_TO_EXECUTIVE: 'bg-warning text-dark',
+            self.Status.DELEGATED: 'bg-info text-dark',
+            self.Status.IN_PROGRESS: 'bg-primary text-white',
+            self.Status.UNDER_REVIEW: 'bg-purple-subtle text-primary border',
+            self.Status.COMPLETED: 'bg-success text-white',
+            self.Status.ON_HOLD: 'bg-danger text-white',
+        }
+        return mapping.get(self.status, 'bg-secondary text-white')
+
+    @property
+    def is_overdue(self):
+        if self.deadline and self.status not in [self.Status.COMPLETED, self.Status.UNDER_REVIEW]:
+            return timezone.now() > self.deadline
+        return False
+
+
 class Task(models.Model):
     class Priority(models.TextChoices):
         LOW = 'LOW', 'Low'

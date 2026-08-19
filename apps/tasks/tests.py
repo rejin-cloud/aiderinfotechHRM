@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.departments.models import Branch, Department
 from apps.tasks.models import (
     Client as ClientModel,
+    ClientAssignment,
     Task,
     TaskAttachment,
     TaskExtensionRequest,
@@ -87,7 +88,31 @@ class CreativeTasksTestCase(TestCase):
             branch=self.branch_edit
         )
 
-        # 6. Outside Staff
+        # 6. Creative Department Executive B (Editing Branch)
+        self.creative_exec_edit = User.objects.create_user(
+            username="exec_eric",
+            first_name="Eric",
+            last_name="Bana",
+            email="eric@aider.internal",
+            password="password123",
+            role=User.Role.EXECUTIVE,
+            department=self.dept_creative,
+            branch=self.branch_edit
+        )
+
+        # 7. Creative Department Intern (Designing Branch)
+        self.creative_intern_sam = User.objects.create_user(
+            username="intern_sam",
+            first_name="Sam",
+            last_name="Smith",
+            email="sam@aider.internal",
+            password="password123",
+            role=User.Role.INTERN,
+            department=self.dept_creative,
+            branch=self.branch_design
+        )
+
+        # 8. Outside Staff
         self.it_staff = User.objects.create_user(
             username="staff_alex",
             first_name="Alex",
@@ -713,4 +738,202 @@ class CreativeTasksTestCase(TestCase):
         res_del = self.client.post(reverse('client_delete', kwargs={'client_id': client_obj.id}), follow=True)
         self.assertEqual(res_del.status_code, 200)
         self.assertFalse(ClientModel.objects.filter(id=client_obj.id).exists())
+
+    def test_creative_members_can_view_clients_but_cannot_add_clients(self):
+        """Every creative department member can view clients and details, but only manager can add/assign."""
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-101',
+            name='Global Brand Rep',
+            company='Brand Innovators Inc',
+            needs='Marketing strategy, 3D character design, corporate documentary editing.'
+        )
+
+        # 1. Executive can view directory and details, but cannot add
+        self.client.login(username="staff_daniel", password="password123")
+        res_list = self.client.get(reverse('client_list'))
+        self.assertEqual(res_list.status_code, 200)
+        self.assertContains(res_list, "Brand Innovators Inc")
+
+        res_detail = self.client.get(reverse('client_detail', kwargs={'client_id': client_obj.id}))
+        self.assertEqual(res_detail.status_code, 200)
+        self.assertContains(res_detail, "Brand Innovators Inc")
+
+        res_add = self.client.get(reverse('client_create'), follow=True)
+        self.assertContains(res_add, "Permission Denied: Only the Creative Department Manager")
+
+        # 2. Staff member can view directory and details, but cannot add
+        self.client.login(username="staff_liam", password="password123")
+        res_staff_list = self.client.get(reverse('client_list'))
+        self.assertEqual(res_staff_list.status_code, 200)
+        self.assertContains(res_staff_list, "Brand Innovators Inc")
+
+        res_staff_detail = self.client.get(reverse('client_detail', kwargs={'client_id': client_obj.id}))
+        self.assertEqual(res_staff_detail.status_code, 200)
+        self.assertContains(res_staff_detail, "Brand Innovators Inc")
+
+        res_staff_add = self.client.get(reverse('client_create'), follow=True)
+        self.assertContains(res_staff_add, "Permission Denied: Only the Creative Department Manager")
+
+        # 3. Intern can view directory and details, but cannot add
+        self.client.login(username="intern_sam", password="password123")
+        res_intern_list = self.client.get(reverse('client_list'))
+        self.assertEqual(res_intern_list.status_code, 200)
+        self.assertContains(res_intern_list, "Brand Innovators Inc")
+
+        res_intern_add = self.client.get(reverse('client_create'), follow=True)
+        self.assertContains(res_intern_add, "Permission Denied: Only the Creative Department Manager")
+
+    def test_creative_manager_can_assign_client_to_multiple_branches_and_executives(self):
+        """
+        Creative Department Manager can assign a client to multiple branches for different tasks.
+        e.g., Designing branch (Executive Daniel) and Editing branch (Executive Eric).
+        """
+        self.client.login(username="deptmgr_rachel", password="password123")
+
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-200',
+            name='Elena Rostova',
+            company='Starlight Entertainment',
+            needs='Poster designing and 4K trailer video editing.'
+        )
+
+        # 1. Assign to Designing branch & Executive Daniel for Poster Designing
+        res_assign_1 = self.client.post(
+            reverse('client_assign', kwargs={'client_id': client_obj.id}),
+            {
+                'client': client_obj.id,
+                'branch': self.branch_design.id,
+                'executive': self.creative_staff_daniel.id,
+                'task_title': 'Cinema Poster & Visual Identity',
+                'task_scope': 'Design main movie poster in portrait and landscape key art.',
+                'deadline': (timezone.now() + datetime.timedelta(days=7)).strftime('%Y-%m-%dT%H:%M'),
+            },
+            follow=True
+        )
+        self.assertEqual(res_assign_1.status_code, 200)
+
+        # 2. Assign same client to Editing branch & Executive Eric for Video Trailer Editing
+        res_assign_2 = self.client.post(
+            reverse('client_assign', kwargs={'client_id': client_obj.id}),
+            {
+                'client': client_obj.id,
+                'branch': self.branch_edit.id,
+                'executive': self.creative_exec_edit.id,
+                'task_title': '4K Cinematic Trailer Editing',
+                'task_scope': 'Cut 90-second teaser and 2.5-minute theatrical trailer with sound design.',
+                'deadline': (timezone.now() + datetime.timedelta(days=10)).strftime('%Y-%m-%dT%H:%M'),
+            },
+            follow=True
+        )
+        self.assertEqual(res_assign_2.status_code, 200)
+
+        # Verify DB has 2 distinct branch assignments for this client
+        assignments = ClientAssignment.objects.filter(client=client_obj)
+        self.assertEqual(assignments.count(), 2)
+
+        design_assign = assignments.get(branch=self.branch_design)
+        self.assertEqual(design_assign.executive, self.creative_staff_daniel)
+        self.assertEqual(design_assign.task_title, 'Cinema Poster & Visual Identity')
+        self.assertEqual(design_assign.status, ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE)
+
+        edit_assign = assignments.get(branch=self.branch_edit)
+        self.assertEqual(edit_assign.executive, self.creative_exec_edit)
+        self.assertEqual(edit_assign.task_title, '4K Cinematic Trailer Editing')
+        self.assertEqual(edit_assign.status, ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE)
+
+    def test_executive_can_delegate_client_task_to_branch_member_or_intern(self):
+        """
+        Branch Executive receives the client assignment and delegates it to a staff member or intern in their branch.
+        """
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-300',
+            name='Marcus Vance',
+            company='Vance Tech',
+            needs='Product visual guidelines'
+        )
+
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            task_title='Product 3D Icons Design',
+            task_scope='Create 12 vectorized 3D app icons.',
+            status=ClientAssignment.Status.ASSIGNED_TO_EXECUTIVE
+        )
+
+        # Executive Daniel logs in and views allocations portal
+        self.client.login(username="staff_daniel", password="password123")
+
+        portal_res = self.client.get(reverse('executive_client_assignments'))
+        self.assertEqual(portal_res.status_code, 200)
+        self.assertContains(portal_res, "Product 3D Icons Design")
+        self.assertContains(portal_res, "Vance Tech")
+
+        # Executive delegates task to intern Sam
+        del_post = self.client.post(
+            reverse('executive_client_delegate', kwargs={'assignment_id': assignment.id}),
+            {
+                'delegated_member': self.creative_intern_sam.id,
+                'executive_notes': 'Please follow Figma 2026 design token guidelines.',
+                'deadline': (timezone.now() + datetime.timedelta(days=5)).strftime('%Y-%m-%dT%H:%M'),
+            },
+            follow=True
+        )
+        self.assertEqual(del_post.status_code, 200)
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, ClientAssignment.Status.DELEGATED)
+        self.assertEqual(assignment.delegated_member, self.creative_intern_sam)
+        self.assertEqual(assignment.executive_notes, 'Please follow Figma 2026 design token guidelines.')
+
+    def test_branch_member_sees_delegated_client_tasks_in_dashboard(self):
+        """
+        Intern / Staff member sees the client task delegated to them by their branch executive on dashboard.
+        """
+        client_obj = ClientModel.objects.create(
+            department=self.dept_creative,
+            created_by=self.creative_mgr,
+            client_number='CR-CL-400',
+            name='Sofia Bennett',
+            company='Horizon Ventures',
+            needs='Social media visual campaign'
+        )
+
+        assignment = ClientAssignment.objects.create(
+            client=client_obj,
+            branch=self.branch_design,
+            assigned_by=self.creative_mgr,
+            executive=self.creative_staff_daniel,
+            delegated_member=self.creative_intern_sam,
+            delegated_at=timezone.now(),
+            task_title='Social Banner Suite',
+            task_scope='Produce 10 Instagram story templates in 1080x1920 format.',
+            executive_notes='Use brand colors #4f46e5 and #06b6d4.',
+            status=ClientAssignment.Status.DELEGATED
+        )
+
+        # Intern Sam logs into employee dashboard
+        self.client.login(username="intern_sam", password="password123")
+        dash_res = self.client.get(reverse('employee_dashboard'))
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertContains(dash_res, "Social Banner Suite")
+        self.assertContains(dash_res, "Horizon Ventures")
+        self.assertContains(dash_res, "Use brand colors #4f46e5")
+
+    def test_branch_executives_api(self):
+        """branch_executives_api returns executives in requested branch."""
+        self.client.login(username="deptmgr_rachel", password="password123")
+        res = self.client.get(reverse('branch_executives_api', kwargs={'branch_id': self.branch_design.id}))
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertIn('executives', data)
+        self.assertTrue(any(e['id'] == self.creative_staff_daniel.id for e in data['executives']))
+
 

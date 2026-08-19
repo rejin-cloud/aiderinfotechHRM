@@ -4,7 +4,7 @@ from django.db.models import Count, Q
 from apps.attendance.models import LeaveRequest
 from apps.departments.models import Department, Branch
 from apps.hierarchy.permissions import get_user_level
-from apps.tasks.models import Client
+from apps.tasks.models import Client, ClientAssignment
 from apps.users.models import User
 
 @login_required
@@ -169,9 +169,15 @@ def dept_manager_dashboard_view(request):
 
     clients_count = 0
     recent_clients = []
+    client_assignments_count = 0
+    recent_client_assignments = []
     if dept and 'creative' in dept.name.lower():
         clients_count = Client.objects.filter(department=dept).count()
         recent_clients = Client.objects.filter(department=dept).order_by('-created_at')[:5]
+        client_assignments_count = ClientAssignment.objects.filter(client__department=dept).count()
+        recent_client_assignments = ClientAssignment.objects.filter(
+            client__department=dept
+        ).select_related('client', 'branch', 'executive', 'delegated_member').order_by('-created_at')[:5]
 
     return render(request, 'dashboards/dept_manager.html', {
         'subordinates': subordinates,
@@ -183,6 +189,8 @@ def dept_manager_dashboard_view(request):
         'current_branch': branch,
         'clients_count': clients_count,
         'recent_clients': recent_clients,
+        'client_assignments_count': client_assignments_count,
+        'recent_client_assignments': recent_client_assignments,
         'page_title': f'Department Manager Portal: {dept.name if dept else "General"}',
     })
 
@@ -223,6 +231,18 @@ def employee_dashboard_view(request):
         else:
             branch_tasks = Task.objects.filter(department=dept, branch__isnull=True).select_related('created_by', 'branch', 'assigned_to').prefetch_related('attachments').order_by('-created_at')
 
+    # Client assignments for this employee
+    executive_client_assignments = []
+    member_client_assignments = []
+    if user.role == User.Role.EXECUTIVE:
+        executive_client_assignments = ClientAssignment.objects.filter(
+            Q(executive=user) | Q(branch=branch)
+        ).select_related('client', 'branch', 'assigned_by', 'delegated_member').order_by('-created_at')
+    else:
+        member_client_assignments = ClientAssignment.objects.filter(
+            delegated_member=user
+        ).select_related('client', 'branch', 'assigned_by', 'executive').order_by('-created_at')
+
     return render(request, 'dashboards/employee.html', {
         'user_profile': user,
         'department': dept,
@@ -232,6 +252,8 @@ def employee_dashboard_view(request):
         'company_departments': company_departments,
         'teammates': teammates,
         'branch_tasks': branch_tasks,
+        'executive_client_assignments': executive_client_assignments,
+        'member_client_assignments': member_client_assignments,
         'page_title': f'Employee Portal: {user.get_full_name() or user.username}',
     })
 

@@ -21,7 +21,12 @@ urlpatterns = [
     # Creative Department Client Management
     path('clients/', views.client_list_view, name='client_list'),
     path('clients/add/', views.client_create_view, name='client_create'),
+    path('clients/assign/', views.client_assign_view, name='client_assign_general'),
     path('clients/<int:client_id>/', views.client_detail_view, name='client_detail'),
+    path('clients/<int:client_id>/assign/', views.client_assign_view, name='client_assign'),
     path('clients/<int:client_id>/edit/', views.client_edit_view, name='client_edit'),
     path('clients/<int:client_id>/delete/', views.client_delete_view, name='client_delete'),
+    path('clients/assignments/all/', views.executive_client_assignments_view, name='executive_client_assignments'),
+    path('clients/assignments/<int:assignment_id>/delegate/', views.executive_client_delegate_view, name='executive_client_delegate'),
+    path('api/branch-executives/<int:branch_id>/', views.branch_executives_api, name='branch_executives_api'),
 ]

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}Client Branch Allocations & Assignments | Aider Infotech{% endblock %}
+
+{% block content %}
+<!-- Page Header Banner -->
+<div class="card border-0 text-white shadow-sm rounded-4 mb-4 p-4" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);">
+  <div class="row align-items-center">
+    <div class="col-md-7">
+      <span class="badge bg-warning text-dark fw-bold mb-2">
+        <i class="bi bi-diagram-3-fill me-1"></i> Multi-Branch Client Task Allocations
+      </span>
+      <h3 class="fw-bold mb-1">Client Task Assignments & Delegation Portal</h3>
+      <p class="mb-0 text-white-50">
+        Track client tasks dispatched across branches, executive delegation to members/interns, and project progress.
+      </p>
+    </div>
+    <div class="col-md-5 text-md-end mt-3 mt-md-0 d-flex flex-wrap justify-content-md-end gap-2">
+      {% if is_creative_manager %}
+      <a href="{% url 'client_assign_general' %}" class="btn btn-warning text-dark fw-bold shadow-sm px-3 py-2">
+        <i class="bi bi-diagram-3 me-1"></i> New Branch Assignment
+      </a>
+      {% endif %}
+      <a href="{% url 'client_list' %}" class="btn btn-light text-primary fw-semibold px-3 py-2">
+        <i class="bi bi-people-fill me-1"></i> Client Directory
+      </a>
+      <a href="{% url 'dashboard_router' %}" class="btn btn-outline-light px-3 py-2">
+        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Delegation Notice for Executives -->
+{% if pending_delegations_count > 0 %}
+<div class="alert alert-warning border-warning d-flex align-items-center justify-content-between p-3 rounded-4 mb-4 shadow-sm">
+  <div class="d-flex align-items-center gap-3">
+    <div class="rounded-circle bg-warning text-dark p-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+      <i class="bi bi-bell-fill fs-5"></i>
+    </div>
+    <div>
+      <h6 class="fw-bold mb-0 text-dark">Action Required: You have {{ pending_delegations_count }} Client Task{{ pending_delegations_count|pluralize }} Awaiting Delegation</h6>
+      <span class="small text-muted">As Branch Executive, please assign these tasks to staff members or interns within your branch.</span>
+    </div>
+  </div>
+  <span class="badge bg-warning text-dark fs-6 px-3 py-2">{{ pending_delegations_count }} Pending</span>
+</div>
+{% endif %}
+
+<!-- Client Assignments Table -->
+<div class="hrms-card shadow-sm border-0">
+  <div class="hrms-card-header bg-white p-3 border-bottom d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-list-check text-primary fs-5"></i>
+      <h5 class="hrms-card-title mb-0 fw-bold">Active Client Branch Directives</h5>
+    </div>
+    <span class="badge bg-light text-dark border">{{ assignments.count }} Total Allocation{{ assignments.count|pluralize }}</span>
+  </div>
+
+  <div class="hrms-card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-4">Client & Company</th>
+            <th>Branch</th>
+            <th>Task Headline & Scope</th>
+            <th>Branch Executive</th>
+            <th>Assigned Delegate</th>
+            <th>Status</th>
+            <th>Deadline</th>
+            <th class="text-end pe-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in assignments %}
+          <tr {% if a.executive == request.user and a.status == 'ASSIGNED_TO_EXECUTIVE' %}class="table-warning bg-opacity-25"{% endif %}>
+            <td class="ps-4">
+              <a href="{% url 'client_detail' a.client.id %}" class="fw-bold text-dark text-decoration-none d-block">
+                {{ a.client.company }}
+              </a>
+              <span class="badge bg-teal-subtle text-teal font-monospace" style="background-color: #ccfbf1; color: #0f766e;">
+                {{ a.client.client_number }}
+              </span>
+              <span class="text-muted small ms-1">{{ a.client.name }}</span>
+            </td>
+            <td>
+              <span class="badge bg-secondary-subtle text-dark border">{{ a.branch.name }}</span>
+            </td>
+            <td style="max-width: 260px;">
+              <div class="fw-semibold text-dark text-truncate">{{ a.task_title }}</div>
+              <div class="small text-muted text-truncate" title="{{ a.task_scope }}">{{ a.task_scope|truncatechars:70 }}</div>
+            </td>
+            <td>
+              <div class="small fw-semibold text-dark">{{ a.executive.get_full_name|default:a.executive.username }}</div>
+              <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">Executive Lead</span>
+            </td>
+            <td>
+              {% if a.delegated_member %}
+                <div class="small fw-bold text-primary">
+                  <i class="bi bi-person-check-fill me-1"></i> {{ a.delegated_member.get_full_name|default:a.delegated_member.username }}
+                </div>
+                <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">{{ a.delegated_member.get_role_display }}</span>
+                {% if a.executive_notes %}
+                <div class="small text-muted text-truncate mt-1" style="max-width: 180px;" title="{{ a.executive_notes }}">
+                  <em>"{{ a.executive_notes|truncatechars:40 }}"</em>
+                </div>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-warning-subtle text-warning border">
+                  <i class="bi bi-clock-history me-1"></i> Not Yet Delegated
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge {{ a.status_badge_class }}">{{ a.get_status_display }}</span>
+            </td>
+            <td>
+              {% if a.deadline %}
+                <span class="small {% if a.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                  {{ a.deadline|date:"M d, Y" }}
+                </span>
+                {% if a.is_overdue %}
+                <span class="badge bg-danger text-white d-block" style="font-size: 0.65rem;">Overdue</span>
+                {% endif %}
+              {% else %}
+                <span class="small text-muted">No deadline</span>
+              {% endif %}
+            </td>
+            <td class="text-end pe-4">
+              {% if a.executive == request.user or is_creative_manager %}
+                {% if not a.delegated_member or a.status == 'ASSIGNED_TO_EXECUTIVE' %}
+                <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+                  <i class="bi bi-person-plus-fill me-1"></i> Delegate
+                </a>
+                {% else %}
+                <a href="{% url 'executive_client_delegate' a.id %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-pencil-square me-1"></i> Re-assign
+                </a>
+                {% endif %}
+              {% else %}
+                <a href="{% url 'client_detail' a.client.id %}" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i> View Client
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-diagram-3 fs-1 d-block mb-3 text-muted opacity-50"></i>
+              <h6 class="fw-bold">No Client Branch Assignments Yet</h6>
+              <p class="small text-muted mb-0">When the Creative Manager assigns clients to branch executives, allocations will appear here.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
